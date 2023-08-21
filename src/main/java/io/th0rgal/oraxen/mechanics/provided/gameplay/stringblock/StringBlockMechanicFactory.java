@@ -51,7 +51,8 @@ public class StringBlockMechanicFactory extends MechanicFactory {
                                 .writeStringToVirtual("assets/minecraft/blockstates",
                                         "tripwire.json", getBlockstateContent())
         );
-        MechanicsManager.registerListeners(OraxenPlugin.get(), getMechanicID(), new StringBlockMechanicListener(this), new SaplingListener());
+        MechanicsManager.registerListeners(OraxenPlugin.get(), getMechanicID(),
+                new StringBlockMechanicListener(this), new StringBlockDamageListener(), new SaplingListener());
         if (customSounds) MechanicsManager.registerListeners(OraxenPlugin.get(), getMechanicID(), new StringBlockSoundListener());
     }
 
