@@ -2,6 +2,7 @@ package io.th0rgal.oraxen;
 
 import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.ProtocolManager;
+import com.tcoded.folialib.FoliaLib;
 import com.ticxo.playeranimator.PlayerAnimatorImpl;
 import dev.jorel.commandapi.CommandAPI;
 import dev.jorel.commandapi.CommandAPIBukkitConfig;
@@ -21,7 +22,6 @@ import io.th0rgal.oraxen.hud.HudManager;
 import io.th0rgal.oraxen.items.ItemUpdater;
 import io.th0rgal.oraxen.mechanics.MechanicsManager;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureFactory;
-import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureUpdater;
 import io.th0rgal.oraxen.pack.generation.ResourcePack;
 import io.th0rgal.oraxen.pack.upload.UploadManager;
 import io.th0rgal.oraxen.recipes.RecipesManager;
@@ -62,6 +62,7 @@ public class OraxenPlugin extends JavaPlugin {
     private ResourcePack resourcePack;
     private ClickActionManager clickActionManager;
     private ProtocolManager protocolManager;
+    public static FoliaLib foliaLib;
     public static boolean supportsDisplayEntities;
 
     public OraxenPlugin() {
@@ -88,9 +89,10 @@ public class OraxenPlugin extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        foliaLib = new FoliaLib(this);
         CommandAPI.onEnable();
         ProtectionLib.init(this);
-        PlayerAnimatorImpl.initialize(this);
+        if (!VersionUtil.isFoliaServer()) PlayerAnimatorImpl.initialize(this);
         audience = BukkitAudiences.create(this);
         clickActionManager = new ClickActionManager(this);
         supportsDisplayEntities = VersionUtil.isSupportedVersionOrNewer(VersionUtil.v1_19_R3);
