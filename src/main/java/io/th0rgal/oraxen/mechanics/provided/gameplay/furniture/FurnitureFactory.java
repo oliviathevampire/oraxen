@@ -1,19 +1,15 @@
 package io.th0rgal.oraxen.mechanics.provided.gameplay.furniture;
 
 import io.th0rgal.oraxen.OraxenPlugin;
-import io.th0rgal.oraxen.api.OraxenFurniture;
 import io.th0rgal.oraxen.mechanics.Mechanic;
 import io.th0rgal.oraxen.mechanics.MechanicFactory;
 import io.th0rgal.oraxen.mechanics.MechanicsManager;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.evolution.EvolutionListener;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.evolution.EvolutionTask;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.jukebox.JukeboxListener;
-import io.th0rgal.oraxen.utils.VersionUtil;
-import io.th0rgal.oraxen.utils.logs.Logs;
 import org.bukkit.configuration.ConfigurationSection;
 
 import java.util.List;
-import java.util.Objects;
 
 public class FurnitureFactory extends MechanicFactory {
 
@@ -74,7 +70,9 @@ public class FurnitureFactory extends MechanicFactory {
         if (evolutionTask != null)
             evolutionTask.cancel();
         evolutionTask = new EvolutionTask(this, evolutionCheckDelay);
-        evolutionTask.runTaskTimer(OraxenPlugin.get(), 0, evolutionCheckDelay);
+        //TODO This will only run as Bukkit, Folia not yet supported
+        OraxenPlugin.foliaLib.getImpl().runTimer(evolutionTask, 20, evolutionCheckDelay);
+        //evolutionTask.runTaskTimer(OraxenPlugin.get(), 0, evolutionCheckDelay);
         evolvingFurnitures = true;
     }
 

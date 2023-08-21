@@ -21,7 +21,6 @@ import io.th0rgal.oraxen.gestures.GestureManager;
 import io.th0rgal.oraxen.hud.HudManager;
 import io.th0rgal.oraxen.items.ItemUpdater;
 import io.th0rgal.oraxen.mechanics.MechanicsManager;
-import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureFactory;
 import io.th0rgal.oraxen.pack.generation.ResourcePack;
 import io.th0rgal.oraxen.pack.upload.UploadManager;
 import io.th0rgal.oraxen.recipes.RecipesManager;
@@ -143,14 +142,13 @@ public class OraxenPlugin extends JavaPlugin {
         uploadManager = new UploadManager(this);
         uploadManager.uploadAsyncAndSendToPlayers(resourcePack);
         new Metrics(this, 5371);
-        Bukkit.getScheduler().runTask(this, () ->
-                Bukkit.getPluginManager().callEvent(new OraxenItemsLoadedEvent()));
+        foliaLib.getImpl().runNextTick(() -> Bukkit.getPluginManager().callEvent(new OraxenItemsLoadedEvent()));
     }
 
     @Override
     public void onDisable() {
         unregisterListeners();
-        FurnitureFactory.unregisterEvolution();
+        foliaLib.getImpl().cancelAllTasks();
 
         CompatibilitiesManager.disableCompatibilities();
         Message.PLUGIN_UNLOADED.log();
