@@ -1,10 +1,11 @@
 package io.th0rgal.oraxen.utils.inventories;
 
-import com.github.stefvanschie.inventoryframework.gui.GuiItem;
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui;
 import com.github.stefvanschie.inventoryframework.pane.PaginatedPane;
 import com.github.stefvanschie.inventoryframework.pane.StaticPane;
-import com.github.stefvanschie.inventoryframework.pane.util.Slot;
+import dev.triumphteam.gui.guis.Gui;
+import dev.triumphteam.gui.guis.GuiItem;
+import dev.triumphteam.gui.guis.PaginatedGui;
 import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.api.OraxenItems;
 import io.th0rgal.oraxen.config.ResourcesManager;
@@ -12,6 +13,7 @@ import io.th0rgal.oraxen.config.Settings;
 import io.th0rgal.oraxen.items.ItemBuilder;
 import io.th0rgal.oraxen.items.ItemUpdater;
 import io.th0rgal.oraxen.utils.Utils;
+import net.kyori.adventure.text.Component;
 import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -30,17 +32,19 @@ import java.util.stream.Collectors;
 public class ItemsView {
 
     private final YamlConfiguration settings = new ResourcesManager(OraxenPlugin.get()).getSettings();
-    ChestGui mainGui;
+    PaginatedGui mainGui;
 
-    public ChestGui create() {
+    public PaginatedGui create() {
         final Map<File, ChestGui> files = new HashMap<>();
         for (final File file : OraxenItems.getMap().keySet()) {
             final List<ItemBuilder> unexcludedItems = OraxenItems.getUnexcludedItems(file);
             if (!unexcludedItems.isEmpty())
                 files.put(file, createSubGUI(file.getName(), unexcludedItems));
         }
-        mainGui = new ChestGui((int) Settings.ORAXEN_INV_ROWS.getValue(), Settings.ORAXEN_INV_TITLE.toString());
-        final StaticPane filesPane = new StaticPane(0, 0, 9, mainGui.getRows());
+        mainGui = Gui.paginated()
+                .title(Component.text(Settings.ORAXEN_INV_TITLE.toString()))
+                .rows((int) Settings.ORAXEN_INV_ROWS.getValue())
+                .create();
         int i = 0;
 
         Set<Integer> usedSlots = files.keySet().stream().map(e -> getItemStack(e).getRight()).filter(e -> e > -1).collect(Collectors.toSet());
@@ -49,13 +53,12 @@ public class ItemsView {
             Pair<ItemStack, Integer> itemSlotPair = getItemStack(entry.getKey());
             ItemStack itemStack = itemSlotPair.getLeft();
             int slot = itemSlotPair.getRight() > -1 ? itemSlotPair.getRight() : getUnusedSlot(i, usedSlots);
-            final GuiItem item = new GuiItem(itemStack, event -> entry.getValue().show(event.getWhoClicked()));
-            filesPane.addItem(item, Slot.fromXY(slot % 9, slot / 9));
+            final GuiItem item = dev.triumphteam.gui.builder.item.ItemBuilder.from(itemStack).asGuiItem(event -> entry.getValue().show(event.getWhoClicked()));
+            mainGui.setItem(slot % 9, slot / 9, item);
             i++;
         }
 
-        mainGui.addPane(filesPane);
-        mainGui.setOnTopClick(event -> event.setCancelled(true));
+        mainGui.setDefaultTopClickAction(event -> event.setCancelled(true));
         return mainGui;
     }
 
@@ -77,7 +80,7 @@ public class ItemsView {
             final StaticPane staticPane = new StaticPane(9, Math.min((itemStackList.size() - 1) / 9 + 1, 5));
             for (int itemIndex = 0; itemIndex < itemStackList.size(); itemIndex++) {
                 final ItemStack oraxenItem = itemStackList.get(itemIndex);
-                staticPane.addItem(new GuiItem(oraxenItem,
+                staticPane.addItem(new com.github.stefvanschie.inventoryframework.gui.GuiItem(oraxenItem,
                                 event -> event.getWhoClicked().getInventory().addItem(ItemUpdater.updateItem(oraxenItem))),
                         itemIndex % 9, itemIndex / 9);
             }
@@ -90,7 +93,7 @@ public class ItemsView {
         final StaticPane forward = new StaticPane(6, 5, 1, 1);
         final StaticPane exit = new StaticPane(4, 5, 9, 1);
 
-        back.addItem(new GuiItem((OraxenItems.getItemById("arrow_previous_icon") == null
+        back.addItem(new com.github.stefvanschie.inventoryframework.gui.GuiItem((OraxenItems.getItemById("arrow_previous_icon") == null
                 ? new ItemBuilder(Material.ARROW)
                 : OraxenItems.getItemById("arrow_previous_icon")).build(), event -> {
             pane.setPage(pane.getPage() - 1);
@@ -103,7 +106,7 @@ public class ItemsView {
 
         back.setVisible(false);
 
-        forward.addItem(new GuiItem((OraxenItems.getItemById("arrow_next_icon") == null
+        forward.addItem(new com.github.stefvanschie.inventoryframework.gui.GuiItem((OraxenItems.getItemById("arrow_next_icon") == null
                 ? new ItemBuilder(Material.ARROW)
                 : OraxenItems.getItemById("arrow_next_icon")).build(), event -> {
             pane.setPage(pane.getPage() + 1);
@@ -115,11 +118,11 @@ public class ItemsView {
         if (pane.getPages() <= 1)
             forward.setVisible(false);
 
-        exit.addItem(new GuiItem((OraxenItems.getItemById("exit_icon") == null
+        exit.addItem(new com.github.stefvanschie.inventoryframework.gui.GuiItem((OraxenItems.getItemById("exit_icon") == null
                 ? new ItemBuilder(Material.BARRIER)
                 : OraxenItems.getItemById("exit_icon"))
                 .build(), event ->
-                mainGui.show(event.getWhoClicked())
+                mainGui.open(event.getWhoClicked())
         ), 0, 0);
 
         gui.addPane(back);
