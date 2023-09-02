@@ -62,12 +62,12 @@ public class CustomArmorsTextures {
     public CustomArmorsTextures(int resolution) {
         this.resolution = resolution;
         try {
-            this.shaderType = ShaderType.valueOf(Settings.CUSTOM_ARMOR_SHADER_TYPE.toString().toUpperCase());
+            shaderType = ShaderType.valueOf(Settings.CUSTOM_ARMOR_SHADER_TYPE.toString().toUpperCase());
         } catch (IllegalArgumentException e) {
             Logs.logError("Invalid value for CUSTOM_ARMOR_SHADER_TYPE: " + Settings.CUSTOM_ARMOR_SHADER_TYPE.getValue());
             Logs.logWarning("Valid values are: FANCY, LESS_FANCY");
             Logs.logWarning("Defaulting to FANCY");
-            this.shaderType = ShaderType.FANCY;
+            shaderType = ShaderType.FANCY;
         }
         //this.layer1Height = resolution * HEIGHT_RATIO;
     }
@@ -188,6 +188,7 @@ public class CustomArmorsTextures {
         return true;
     }
 
+    private final Map<String, Integer> allSpecifiedArmorColors = getAllSpecifiedArmorColors();
     /**
      * Finds Armor Items tied to this prefix and fixes their colors
      * This removes the need for manually specifying a color
@@ -228,15 +229,39 @@ public class CustomArmorsTextures {
                 }
             }
 
-            if (builder != null && (!builder.hasColor() || shaderType == ShaderType.LESS_FANCY)) {
+            boolean duplicateColor = allSpecifiedArmorColors.entrySet().stream().filter(e-> builder != null && e.getValue() == builder.getColor().asRGB()).toList().size() >= 2;
+            if (builder != null && (!builder.hasColor() || duplicateColor  || shaderType == ShaderType.LESS_FANCY)) {
                 // If builder has no color or the shader-type is LESS_FANCY
                 // Then assign a color based on the armor ID
-                builder.setColor(Color.fromRGB(layers1.size() + 1));
+                String itemPrefix = prefix.replace("_", "");
+                int tempColor = allSpecifiedArmorColors.entrySet().stream().filter(e -> e.getKey().startsWith(itemPrefix)).findFirst().orElseGet(() -> Map.entry(prefix, layers1.size() + 1)).getValue();
+                Color armorColor = Color.fromRGB(getColorInt(itemPrefix, tempColor));
+                if (allSpecifiedArmorColors.entrySet().stream().filter(e -> !e.getKey().equals(itemPrefix)).map(Map.Entry::getValue).toList().contains(armorColor.asRGB())) {
+                    // If the color is already used, then assign a new one
+                    armorColor = Color.fromRGB(getColorInt(itemPrefix, tempColor + 1));
+                }
+                builder.setColor(armorColor);
                 builder.save();
+                if (Settings.DEBUG.toBool()) Logs.logInfo("Assigned color " + armorColor.asRGB() + " to " + prefix + suffix);
             }
 
             color = builder != null && builder.hasColor() ? builder.getColor() : null;
         }
+        return color;
+    }
+
+    /**
+     * Recursive function to get the next unused color that is unspecified
+     */
+    private int getColorInt(String itemId, int start) {
+        int color;
+        if (allSpecifiedArmorColors.get(itemId) != null) color = allSpecifiedArmorColors.get(itemId);
+        else if (allSpecifiedArmorColors.entrySet().stream().filter(e -> !e.getKey().equals(itemId)).anyMatch(e -> e.getValue() == start)) {
+            Logs.logWarning("Color " + start + " is already used! Reassigning " + itemId + " with a new color...");
+            color = getColorInt(itemId, start + 1);
+        } else color = start;
+
+        allSpecifiedArmorColors.put(itemId, color);
         return color;
     }
 
@@ -510,6 +535,20 @@ public class CustomArmorsTextures {
             }
         }
         return layers;
+    }
+
+    private static Map<String, Integer> getAllSpecifiedArmorColors() {
+        Map<String, Integer> specifiedColors = new HashMap<>();
+
+        for (Map.Entry<String, ItemBuilder> entry : OraxenItems.getEntries()) {
+            String itemId = entry.getKey();
+            ItemBuilder builder = entry.getValue();
+            if (!builder.build().getType().toString().contains("LEATHER_")) continue;
+            if (!builder.hasColor()) continue;
+
+            specifiedColors.putIfAbsent(StringUtils.substringBeforeLast(itemId, "_"), builder.getColor().asRGB());
+        }
+        return specifiedColors;
     }
 
     private InputStream getInputStream(int layerWidth, int layerHeight, BufferedImage layer, List<BufferedImage> layers) throws IOException {

@@ -5,5 +5,7 @@
   "menu.game": "<glyph:logo>",
   "item.dyed": "",
   "container.inventory": " Inventory",
-  "resourcePack.server.name": "Vanilla Mod"
+  "resourcePack.server.name": "Vanilla Mod",
+  "item.oraxen.emerald_helmet": "Emerald Helmet",
+  "item.oraxen.emerald_chestplate": "Emerald Chestplate"
 }

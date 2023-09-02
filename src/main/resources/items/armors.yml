@@ -6,7 +6,7 @@
 # Color codes: https://docs.adventure.kyori.net/minimessage.html#format
 
 emerald_helmet:
-  displayname: "<gradient:#89E59D:#37C6BA>Emerald Helmet"
+  displayname: "<gradient:#89E59D:#37C6BA><lang:item.oraxen.emerald_helmet:colorable>"
   material: LEATHER_HELMET
   lore:
     - "<#6f737d>» <#D5D6D8>Gives 1 extra <glyph:heart>"
@@ -29,7 +29,7 @@ emerald_helmet:
       - default/armors/emerald_helmet
 
 emerald_chestplate:
-  displayname: "<gradient:#89E59D:#37C6BA>Emerald Chestplate"
+  displayname: "<gradient:#89E59D:#37C6BA><lang:item.oraxen.emerald_chestplate:colorable>"
   material: LEATHER_CHESTPLATE
   lore:
     - "<#6f737d>» <#D5D6D8>Gives 1.5 extra <glyph:heart>"

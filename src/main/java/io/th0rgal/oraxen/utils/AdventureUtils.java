@@ -1,6 +1,7 @@
 package io.th0rgal.oraxen.utils;
 
 import io.th0rgal.oraxen.font.GlyphTag;
+import io.th0rgal.oraxen.font.LangTag;
 import io.th0rgal.oraxen.font.ShiftTag;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -15,8 +16,11 @@ public class AdventureUtils {
     private AdventureUtils() {
     }
 
-    public static final TagResolver OraxenTagResolver =
-            TagResolver.resolver(TagResolver.standard(), GlyphTag.RESOLVER, GlyphTag.RESOLVER_SHORT, ShiftTag.RESOLVER, ShiftTag.RESOLVER_SHORT);
+    public static final TagResolver OraxenTagResolver = TagResolver.resolver(TagResolver.standard(),
+            GlyphTag.RESOLVER, GlyphTag.RESOLVER_SHORT,
+            ShiftTag.RESOLVER, ShiftTag.RESOLVER_SHORT,
+            LangTag.RESOLVER, LangTag.RESOLVER_SHORT
+    );
 
     public static final LegacyComponentSerializer LEGACY_SERIALIZER =
             LegacyComponentSerializer.builder().character('§').hexColors().useUnusualXRepeatedCharacterHexFormat().build();
