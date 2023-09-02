@@ -26,8 +26,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 public class ItemsView {
 
@@ -44,28 +42,31 @@ public class ItemsView {
         mainGui = Gui.paginated()
                 .title(Component.text(Settings.ORAXEN_INV_TITLE.toString()))
                 .rows((int) Settings.ORAXEN_INV_ROWS.getValue())
+                .pageSize(45)
                 .create();
-        int i = 0;
-
-        Set<Integer> usedSlots = files.keySet().stream().map(e -> getItemStack(e).getRight()).filter(e -> e > -1).collect(Collectors.toSet());
 
         for (final var entry : files.entrySet()) {
             Pair<ItemStack, Integer> itemSlotPair = getItemStack(entry.getKey());
             ItemStack itemStack = itemSlotPair.getLeft();
-            int slot = itemSlotPair.getRight() > -1 ? itemSlotPair.getRight() : getUnusedSlot(i, usedSlots);
-            final GuiItem item = dev.triumphteam.gui.builder.item.ItemBuilder.from(itemStack).asGuiItem(event -> entry.getValue().show(event.getWhoClicked()));
-            mainGui.setItem(slot % 9, slot / 9, item);
-            i++;
+            final GuiItem item = dev.triumphteam.gui.builder.item.ItemBuilder
+                    .from(itemStack)
+                    .asGuiItem(event -> entry.getValue().show(event.getWhoClicked()));
+            mainGui.addItem(true, item);
         }
 
         mainGui.setDefaultTopClickAction(event -> event.setCancelled(true));
-        return mainGui;
-    }
 
-    private int getUnusedSlot(int i, Set<Integer> usedSlots) {
-        int slot = usedSlots.contains(i) ? getUnusedSlot(i + 1, usedSlots) : i;
-        usedSlots.add(slot);
-        return slot;
+        mainGui.setItem(6, 3, dev.triumphteam.gui.builder.item.ItemBuilder.from((OraxenItems.getItemById("arrow_previous_icon") == null
+                ? new ItemBuilder(Material.ARROW)
+                : OraxenItems.getItemById("arrow_previous_icon")).build()
+        ).asGuiItem(event -> mainGui.previous()));
+
+        mainGui.setItem(6, 7, dev.triumphteam.gui.builder.item.ItemBuilder.from((OraxenItems.getItemById("arrow_next_icon") == null
+                ? new ItemBuilder(Material.ARROW)
+                : OraxenItems.getItemById("arrow_next_icon")).build()
+        ).asGuiItem(event -> mainGui.next()));
+
+        return mainGui;
     }
 
     private ChestGui createSubGUI(final String fileName, final List<ItemBuilder> items) {

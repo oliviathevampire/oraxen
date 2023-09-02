@@ -2,6 +2,7 @@ package io.th0rgal.oraxen;
 
 import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.ProtocolManager;
+import com.jeff_media.customblockdata.CustomBlockData;
 import com.ticxo.playeranimator.PlayerAnimatorImpl;
 import dev.jorel.commandapi.CommandAPI;
 import dev.jorel.commandapi.CommandAPIBukkitConfig;
@@ -24,6 +25,7 @@ import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureFactory;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureUpdater;
 import io.th0rgal.oraxen.pack.generation.ResourcePack;
 import io.th0rgal.oraxen.pack.upload.UploadManager;
+import io.th0rgal.oraxen.pack.upload.hosts.LocalHost;
 import io.th0rgal.oraxen.recipes.RecipesManager;
 import io.th0rgal.oraxen.sound.SoundManager;
 import io.th0rgal.oraxen.utils.AdventureUtils;
@@ -110,7 +112,6 @@ public class OraxenPlugin extends JavaPlugin {
 
         resourcePack = new ResourcePack(this);
         MechanicsManager.registerNativeMechanics();
-        //CustomBlockData.registerListener(this); //Handle this manually
         hudManager = new HudManager(configsManager);
         fontManager = new FontManager(configsManager);
         soundManager = new SoundManager(configsManager.getSound());
@@ -130,8 +131,7 @@ public class OraxenPlugin extends JavaPlugin {
         postLoading();
         try {
             Message.PLUGIN_LOADED.log(AdventureUtils.tagResolver("os", OS.getOs().getPlatformName()));
-        } catch (Exception ignore) {
-        }
+        } catch (Exception ignore) {}
         CompatibilitiesManager.enableNativeCompatibilities();
         if (VersionUtil.isCompiled()) NoticeUtils.compileNotice();
         if (VersionUtil.isLeaked()) NoticeUtils.leakNotice();
@@ -142,13 +142,15 @@ public class OraxenPlugin extends JavaPlugin {
         uploadManager.uploadAsyncAndSendToPlayers(resourcePack);
         new Metrics(this, 5371);
         Bukkit.getScheduler().runTask(this, () ->
-                Bukkit.getPluginManager().callEvent(new OraxenItemsLoadedEvent()));
+                Bukkit.getPluginManager().callEvent(new OraxenItemsLoadedEvent())
+        );
     }
 
     @Override
     public void onDisable() {
         unregisterListeners();
         FurnitureFactory.unregisterEvolution();
+        LocalHost.stop();
 
         CompatibilitiesManager.disableCompatibilities();
         Message.PLUGIN_UNLOADED.log();

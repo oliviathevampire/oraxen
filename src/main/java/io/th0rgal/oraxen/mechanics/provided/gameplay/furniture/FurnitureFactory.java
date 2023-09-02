@@ -45,6 +45,7 @@ public class FurnitureFactory extends MechanicFactory {
 
         if (customSounds) MechanicsManager.registerListeners(OraxenPlugin.get(), getMechanicID(), new FurnitureSoundListener());
         detectViabackwards = OraxenPlugin.get().getConfigsManager().getMechanics().getConfigurationSection("furniture").getBoolean("detect_viabackwards", true);
+        if (VersionUtil.isPaperServer()) MechanicsManager.registerListeners(OraxenPlugin.get(), getMechanicID(), new FurniturePaperListener());
     }
 
     public static boolean setDefaultType(ConfigurationSection mechanicSection) {
@@ -58,6 +59,10 @@ public class FurnitureFactory extends MechanicFactory {
         Mechanic mechanic = new FurnitureMechanic(this, itemMechanicConfiguration);
         addToImplemented(mechanic);
         return mechanic;
+    }
+
+    public static boolean isEnabled() {
+        return instance != null;
     }
 
     public static FurnitureFactory getInstance() {

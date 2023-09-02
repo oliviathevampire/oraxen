@@ -304,12 +304,9 @@ public class ConfigsManager {
             try {
                 map.put(entry.getKey(), itemParser.buildItem());
             } catch (Exception e) {
-                continue;
-                /*map.put(entry.getKey(),
-                        errorItem.buildItem(String.valueOf(ChatColor.DARK_RED) + ChatColor.BOLD
-                                + e.getClass().getSimpleName() + ": " + ChatColor.RED + entry.getKey()));
+                map.put(entry.getKey(), errorItem.buildItem());
                 Logs.logError("ERROR BUILDING ITEM \"" + entry.getKey() + "\"");
-                e.printStackTrace();*/
+                e.printStackTrace();
             }
             if (itemParser.isConfigUpdated())
                 configUpdated = true;
