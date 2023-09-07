@@ -48,7 +48,7 @@ public class ItemsView {
             int slot = itemSlotPair.getRight() > -1 ? itemSlotPair.getRight() : getUnusedSlot(i, usedSlots);
             final GuiItem item = new GuiItem(itemStack);
             item.setAction(event -> entry.getValue().open(event.getWhoClicked()));
-            if (slot > 45) {
+            if (slot > ((rows - 1) * 9) - 1) {
                 Logs.logError(AdventureUtils.parseLegacy("Slot for %s is higher than 45".formatted(item.getItemStack().getItemMeta().getDisplayName())));
                 continue;
             }
