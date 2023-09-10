@@ -11,17 +11,16 @@ import io.th0rgal.oraxen.items.ItemBuilder;
 import io.th0rgal.oraxen.items.ItemUpdater;
 import io.th0rgal.oraxen.utils.AdventureUtils;
 import io.th0rgal.oraxen.utils.Utils;
-import io.th0rgal.oraxen.utils.logs.Logs;
 import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 
 import java.io.File;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class ItemsView {
 
@@ -38,55 +37,65 @@ public class ItemsView {
         int rows = (int) Settings.ORAXEN_INV_ROWS.getValue();
         mainGui = Gui.paginated().pageSize(9 * (Settings.ORAXEN_INV_ROWS.toInt() - 1)).rows(rows).title(Settings.ORAXEN_INV_TITLE.toComponent()).create();
         mainGui.disableAllInteractions();
-        int i = 0;
 
-        Set<Integer> usedSlots = files.keySet().stream().map(e -> getItemStack(e).getRight()).filter(e -> e > -1).collect(Collectors.toSet());
-
-        for (final var entry : files.entrySet()) {
-            Pair<ItemStack, Integer> itemSlotPair = getItemStack(entry.getKey());
-            ItemStack itemStack = itemSlotPair.getLeft();
-            int slot = itemSlotPair.getRight() > -1 ? itemSlotPair.getRight() : getUnusedSlot(i, usedSlots);
-            final GuiItem item = new GuiItem(itemStack);
-            item.setAction(event -> entry.getValue().open(event.getWhoClicked()));
-            if (slot > ((rows - 1) * 9) - 1) {
-                Logs.logError(AdventureUtils.parseLegacy("Slot for %s is higher than 45".formatted(item.getItemStack().getItemMeta().getDisplayName())));
-                continue;
-            }
-            mainGui.setItem(slot, item);
-            i++;
+        // Make a list of all slots to allow using mainGui.addItem easier
+        List<GuiItem> pageItems = new ArrayList<>(Collections.nCopies(files.size(), null));
+        // Make a list of all used slots to avoid using them later
+        for (Map.Entry<File, PaginatedGui> entry : files.entrySet()) {
+            int slot = getItemStack(entry.getKey()).getRight();
+            if (slot == -1) continue;
+            GuiItem guiItem = new GuiItem(getItemStack(entry.getKey()).getLeft(), e -> {
+                entry.getValue().open(e.getWhoClicked());
+                e.getWhoClicked().getWorld().playSound(e.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+            });
+            pageItems.add(slot, guiItem);
         }
+
+        // Add all items without a specified slot to the earliest available slot
+        for (Map.Entry<File, PaginatedGui> entry : files.entrySet()) {
+            if (getItemStack(entry.getKey()).getRight() != -1) continue;
+            pageItems.add(new GuiItem(getItemStack(entry.getKey()).getLeft(), e -> {
+                entry.getValue().open(e.getWhoClicked());
+                e.getWhoClicked().getWorld().playSound(e.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+            }));
+        }
+
+        mainGui.addItem(pageItems.stream().filter(Objects::nonNull).toArray(GuiItem[]::new));
 
         //page selection
         if (mainGui.getPagesNum() > 1) {
             mainGui.setItem(6, 2, new GuiItem((OraxenItems.exists("arrow_previous_icon")
                     ? OraxenItems.getItemById("arrow_previous_icon")
                     : new ItemBuilder(Material.ARROW).setDisplayName(AdventureUtils.parseLegacyThroughMiniMessage("<gray>Previous page"))
-            ).build(), event -> mainGui.previous()));
+            ).build(), event -> {
+                mainGui.previous();
+                event.getWhoClicked().getWorld().playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+            }));
 
             mainGui.setItem(6, 8, new GuiItem((OraxenItems.exists("arrow_next_icon")
                     ? OraxenItems.getItemById("arrow_next_icon")
                     : new ItemBuilder(Material.ARROW).setDisplayName(AdventureUtils.parseLegacyThroughMiniMessage("<gray>Next page"))
-            ).build(), event -> mainGui.previous()));
+            ).build(), event -> {
+                mainGui.next();
+                event.getWhoClicked().getWorld().playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+            }));
         }
 
         mainGui.setItem(6, 5, new GuiItem((OraxenItems.exists("exit_icon")
-                ? OraxenItems.getItemById("exit_icon")
+                ? OraxenItems.getItemById("exit_icon").setDisplayName(AdventureUtils.parseLegacyThroughMiniMessage("<red>Exit"))
                 : new ItemBuilder(Material.BARRIER).setDisplayName(AdventureUtils.parseLegacyThroughMiniMessage("<red>Exit"))
-        ).build(), event -> event.getWhoClicked().closeInventory()));
+        ).build(), event -> {
+            event.getWhoClicked().closeInventory();
+            event.getWhoClicked().getWorld().playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+        }));
 
         return mainGui;
     }
 
-    private int getUnusedSlot(int i, Set<Integer> usedSlots) {
-        int slot = usedSlots.contains(i) ? getUnusedSlot(i + 1, usedSlots) : i;
-        usedSlots.add(slot);
-        return slot;
-    }
-
     private PaginatedGui createSubGUI(final String fileName, final List<ItemBuilder> items) {
         final PaginatedGui gui = Gui.paginated().rows(6).pageSize(45).title(AdventureUtils.MINI_MESSAGE.deserialize(settings.getString(
-                        String.format("oraxen_inventory.menu_layout.%s.title", Utils.removeExtension(fileName)), Settings.ORAXEN_INV_TITLE.toString())
-                .replace("<main_menu_title>", Settings.ORAXEN_INV_TITLE.toString()))).create();
+                String.format("oraxen_inventory.menu_layout.%s.title", Utils.removeExtension(fileName)), Settings.ORAXEN_INV_TITLE.toString()
+        ).replace("<main_menu_title>", Settings.ORAXEN_INV_TITLE.toString()))).create();
         gui.disableAllInteractions();
 
         for (ItemBuilder builder : items) {
@@ -95,7 +104,10 @@ public class ItemsView {
             if (itemStack == null || itemStack.getType().isAir()) continue;
 
             GuiItem guiItem = new GuiItem(itemStack);
-            guiItem.setAction(e -> e.getWhoClicked().getInventory().addItem(ItemUpdater.updateItem(guiItem.getItemStack())));
+            guiItem.setAction(e -> {
+                e.getWhoClicked().getInventory().addItem(ItemUpdater.updateItem(guiItem.getItemStack()));
+                e.getWhoClicked().getWorld().playSound(e.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+            });
             gui.addItem(guiItem);
         }
 
@@ -104,18 +116,27 @@ public class ItemsView {
             gui.setItem(6, 2, new GuiItem((OraxenItems.exists("arrow_previous_icon")
                     ? OraxenItems.getItemById("arrow_previous_icon")
                     : new ItemBuilder(Material.ARROW).setDisplayName(AdventureUtils.parseLegacyThroughMiniMessage("<gray>Previous page"))
-            ).build(), event -> gui.previous()));
+            ).build(), event -> {
+                gui.previous();
+                event.getWhoClicked().getWorld().playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+            }));
 
             gui.setItem(6, 8, new GuiItem((OraxenItems.exists("arrow_next_icon")
                     ? OraxenItems.getItemById("arrow_next_icon")
                     : new ItemBuilder(Material.ARROW).setDisplayName(AdventureUtils.parseLegacyThroughMiniMessage("<gray>Next page"))
-            ).build(), event -> gui.previous()));
+            ).build(), event -> {
+                gui.next();
+                event.getWhoClicked().getWorld().playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+            }));
         }
 
         gui.setItem(6, 5, new GuiItem((OraxenItems.exists("exit_icon")
-                ? OraxenItems.getItemById("exit_icon")
-                : new ItemBuilder(Material.BARRIER).setDisplayName(AdventureUtils.parseLegacyThroughMiniMessage("<red>Exit"))
-        ).build(), event -> event.getWhoClicked().closeInventory()));
+                ? OraxenItems.getItemById("exit_icon").setDisplayName(AdventureUtils.parseLegacyThroughMiniMessage("<red>Back to main menu"))
+                : new ItemBuilder(Material.BARRIER).setDisplayName(AdventureUtils.parseLegacyThroughMiniMessage("<red>Back to main menu"))
+        ).build(), event -> {
+            mainGui.open(event.getWhoClicked());
+            event.getWhoClicked().getWorld().playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+        }));
 
         return gui;
     }
@@ -143,10 +164,9 @@ public class ItemsView {
             }
         }
 
-        if (itemStack == null)
-            // avoid possible bug if isOraxenItems is available but can't be an itemstack
-            itemStack = new ItemBuilder(Material.PAPER).setDisplayName(ChatColor.GREEN + file.getName()).build();
-
-        return Pair.of(itemStack, settings.getInt(String.format("oraxen_inventory.menu_layout.%s.slot", Utils.removeExtension(file.getName())), -1) - 1);
+        // avoid possible bug if isOraxenItems is available but can't be an itemstack
+        if (itemStack == null) itemStack = new ItemBuilder(Material.PAPER).setDisplayName(ChatColor.GREEN + file.getName()).build();
+        int slot = settings.getInt(String.format("oraxen_inventory.menu_layout.%s.slot", Utils.removeExtension(file.getName())), -1) - 1;
+        return Pair.of(itemStack, Math.max(slot, -1));
     }
 }

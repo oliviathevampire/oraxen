@@ -1,7 +1,6 @@
 package io.th0rgal.oraxen.utils;
 
 import io.th0rgal.oraxen.font.GlyphTag;
-import io.th0rgal.oraxen.font.LangTag;
 import io.th0rgal.oraxen.font.ShiftTag;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -11,7 +10,10 @@ import net.kyori.adventure.text.serializer.ansi.ANSIComponentSerializer;
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import net.kyori.adventure.translation.GlobalTranslator;
 import org.bukkit.entity.Player;
+
+import java.util.Locale;
 
 public class AdventureUtils {
 
@@ -20,8 +22,7 @@ public class AdventureUtils {
 
     public static final TagResolver OraxenTagResolver = TagResolver.resolver(TagResolver.standard(),
             GlyphTag.RESOLVER, GlyphTag.RESOLVER_SHORT,
-            ShiftTag.RESOLVER, ShiftTag.RESOLVER_SHORT,
-            LangTag.RESOLVER, LangTag.RESOLVER_SHORT
+            ShiftTag.RESOLVER, ShiftTag.RESOLVER_SHORT
     );
 
     public static final LegacyComponentSerializer LEGACY_SERIALIZER =
@@ -129,7 +130,10 @@ public class AdventureUtils {
     }
 
     public static String parseJsonThroughMiniMessage(String message, Player player) {
-        return GSON_SERIALIZER.serialize(MINI_MESSAGE.deserialize(MINI_MESSAGE.serialize(GSON_SERIALIZER.deserialize(message)).replaceAll("\\\\(?!u)(?!n)(?!\")", ""), GlyphTag.getResolverForPlayer(player))).replaceAll("\\\\(?!u)(?!n)(?!\")", "");
+        Component component = GSON_SERIALIZER.deserialize(message.replaceAll("\\\\(?!u)(?!n)(?!\")", ""));
+        component = parseMiniMessage(component, GlyphTag.getResolverForPlayer(player));
+        if (player != null) component = GlobalTranslator.render(component, Locale.forLanguageTag(player.getLocale()));
+        return GSON_SERIALIZER.serialize(component).replaceAll("\\\\(?!u)(?!n)(?!\")", "");
     }
 
     /**

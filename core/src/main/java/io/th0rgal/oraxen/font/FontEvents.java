@@ -49,7 +49,7 @@ public class FontEvents implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onBookGlyph(final PlayerEditBookEvent event) {
-        if (!Settings.FORMAT_BOOKS.toBool()) return;
+        if (!Settings.FORMAT_BOOKS.toBool() || manager.useNmsGlyphs()) return;
 
         BookMeta meta = event.getNewBookMeta();
         for (String page : meta.getPages()) {
@@ -69,9 +69,9 @@ public class FontEvents implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onBookGlyph(final PlayerInteractEvent event) {
-        Player player = event.getPlayer();
-        if (!Settings.FORMAT_BOOKS.toBool()) return;
+        if (!Settings.FORMAT_SIGNS.toBool() || manager.useNmsGlyphs()) return;
 
+        Player player = event.getPlayer();
         if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
         if (event.getItem() == null || !(event.getItem().getItemMeta() instanceof BookMeta meta)) return;
         if (event.getItem().getType() != Material.WRITTEN_BOOK) return;
@@ -139,7 +139,7 @@ public class FontEvents implements Listener {
     @EventHandler
     public void onPlayerRename(final InventoryClickEvent event) {
         if (!(event.getClickedInventory() instanceof AnvilInventory clickedInv)) return;
-        if (!Settings.FORMAT_ANVIL.toBool() || event.getSlot() != 2) return;
+        if (!Settings.FORMAT_ANVIL.toBool() || manager.useNmsGlyphs() || event.getSlot() != 2) return;
 
         Player player = (Player) event.getWhoClicked();
         String displayName = clickedInv.getRenameText();
@@ -196,7 +196,7 @@ public class FontEvents implements Listener {
     public class SpigotChatHandler implements Listener {
         @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
         public void onPlayerChat(AsyncPlayerChatEvent event) {
-            if (!Settings.FORMAT_CHAT.toBool()) return;
+            if (!Settings.FORMAT_CHAT.toBool() || manager.useNmsGlyphs()) return;
 
             String format = format(event.getFormat(), null);
             String message = format(event.getMessage(), event.getPlayer());
@@ -236,7 +236,7 @@ public class FontEvents implements Listener {
 
         @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
         public void onPlayerChat(AsyncChatDecorateEvent event) {
-            if (!Settings.FORMAT_CHAT.toBool()) return;
+            if (!Settings.FORMAT_CHAT.toBool() || manager.useNmsGlyphs()) return;
 
             Player player = event.player();
             Component message = AdventureUtils.parseMiniMessage(event.originalMessage(), GlyphTag.getResolverForPlayer(player));

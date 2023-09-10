@@ -7,7 +7,6 @@ import io.netty.channel.*;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.codec.MessageToByteEncoder;
 import io.th0rgal.oraxen.OraxenPlugin;
-import io.th0rgal.oraxen.config.Settings;
 import io.th0rgal.oraxen.nms.NMSHandlers;
 import io.th0rgal.oraxen.utils.AdventureUtils;
 import net.kyori.adventure.text.Component;
@@ -40,6 +39,7 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
     private final Map<Channel, ChannelHandler> encoder = Collections.synchronizedMap(new WeakHashMap<>());
     private final Map<Channel, ChannelHandler> decoder = Collections.synchronizedMap(new WeakHashMap<>());
 
+
     @Override
     public ItemStack copyItemNBTTags(ItemStack oldItem, ItemStack newItem) {
         CompoundTag oldTag = CraftItemStack.asNMSCopy(oldItem).getOrCreateTag();
@@ -52,26 +52,19 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
 
     @Override
     public void setupNmsGlyphs() {
-        if (!Settings.USE_NMS_GLYPHS.toBool()) return;
-
-        List<ConnectionProtocol> networkManagers;
+        List<Connection> networkManagers = MinecraftServer.getServer().getConnection().getConnections();
         List<ChannelFuture> channelFutures;
 
         try {
-            Field networkManagerField = ServerConnectionListener.class.getDeclaredField("g");
-            networkManagerField.setAccessible(true);
             Field channelFutureField = ServerConnectionListener.class.getDeclaredField("f");
             channelFutureField.setAccessible(true);
 
-            networkManagers = (List<ConnectionProtocol>) networkManagerField.get(MinecraftServer.getServer().getConnection());
             channelFutures = (List<ChannelFuture>) channelFutureField.get(MinecraftServer.getServer().getConnection());
         } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e1) {
-            networkManagers = new ArrayList<>();
             channelFutures = new ArrayList<>();
             e1.printStackTrace();
         }
 
-        final List<ConnectionProtocol> managers = networkManagers;
         final List<ChannelFuture> futures = channelFutures;
 
         // Handle connected channels
@@ -80,7 +73,7 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
             protected void initChannel(@NotNull Channel channel) {
                 try {
                     // This can take a while, so we need to stop the main thread from interfering
-                    synchronized (managers) {
+                    synchronized (networkManagers) {
                         // Stop injecting channels
                         channel.eventLoop().submit(() -> inject(channel));
                     }
@@ -142,8 +135,6 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
                 }
             }.runTask(OraxenPlugin.get());
         }
-
-        OraxenPlugin.get().getServer().getOnlinePlayers().stream().map(player -> (Player) player).forEach(this::inject);
     }
 
     private void bind(List<ChannelFuture> channelFutures, ChannelInboundHandlerAdapter serverChannelHandler) {
@@ -237,7 +228,7 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
             try {
                 JsonElement element = JsonParser.parseString(string);
                 if (element.isJsonObject())
-                    return super.writeUtf(NMSHandlers.returnFormattedString(element.getAsJsonObject(), supplier.get()), maxLength);
+                    return super.writeUtf(NMSHandlers.formatJsonString(element.getAsJsonObject(), supplier.get()), maxLength);
             } catch (Exception ignored) {
 
             }
@@ -252,7 +243,7 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
                     try {
                         JsonElement element = JsonParser.parseString(string);
                         if (element.isJsonObject())
-                            return NMSHandlers.returnFormattedString(element.getAsJsonObject(), supplier.get());
+                            return NMSHandlers.formatJsonString(element.getAsJsonObject(), supplier.get());
                     } catch (Exception ignored) {
                     }
                     return string;
@@ -265,27 +256,22 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
         private void transform(CompoundTag compound, Function<String, String> transformer) {
             for (String key : compound.getAllKeys()) {
                 Tag base = compound.get(key);
-                if (base instanceof CompoundTag tag) {
-                    transform(tag, transformer);
-                } else if (base instanceof ListTag listTag) {
-                    transform(listTag, transformer);
-                } else if (base instanceof StringTag) {
-                    compound.put(key, StringTag.valueOf(transformer.apply(base.getAsString())));
-                }
+                if (base instanceof CompoundTag tag) transform(tag, transformer);
+                else if (base instanceof ListTag listTag) transform(listTag, transformer);
+                else if (base instanceof StringTag) compound.put(key, StringTag.valueOf(transformer.apply(base.getAsString())));
             }
         }
 
         private void transform(ListTag list, Function<String, String> transformer) {
-            List<Tag> objects = new ArrayList<>(list);
-            for (Tag base : objects) {
-                if (base instanceof CompoundTag tag) {
-                    transform(tag, transformer);
-                } else if (base instanceof ListTag listTag) {
-                    transform(listTag, transformer);
-                } else if (base instanceof StringTag) {
-                    String val = base.getAsString();
-                    list.remove(base);
-                    list.add(StringTag.valueOf(transformer.apply(val)));
+            for (Tag base : List.copyOf(list)) {
+                if (base instanceof CompoundTag tag) transform(tag, transformer);
+                else if (base instanceof ListTag listTag) transform(listTag, transformer);
+                else if (base instanceof StringTag) {
+                    String transformed = transformer.apply(base.getAsString());
+                    if (base.getAsString().equals(transformed)) continue;
+                    int index = list.indexOf(base);
+                    list.add(index, StringTag.valueOf(transformed));
+                    list.remove(index + 1);
                 }
             }
         }

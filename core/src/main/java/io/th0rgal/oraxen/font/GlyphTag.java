@@ -30,7 +30,6 @@ public class GlyphTag {
     static Tag create(final ArgumentQueue args, final Context ctx, Player player) throws ParsingException {
         String arg = args.popOr("A glyph value is required").value();
         Glyph glyph = OraxenPlugin.get().getFontManager().getGlyphFromName(arg);
-//        Logs.logError(String.valueOf(player == null || glyph.hasPermission(player)) + " : " + glyph.getName() + " : " + args);
         Component glyphComponent = player == null || glyph.hasPermission(player) ? Component.text(glyph.getCharacter()).font(Key.key("default")).style(Style.empty()) : Component.text(arg);
         if (!args.hasNext() || !args.peek().value().equals("colorable"))
             glyphComponent = glyphComponent.color(NamedTextColor.WHITE);

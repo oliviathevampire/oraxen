@@ -69,6 +69,8 @@ allprojects {
         maven("https://maven.enginehub.org/repo/")
         maven("https://nexus.phoenixdevt.fr/repository/maven-public/")
         maven("https://nexuslite.gcnt.net/repos/other/") // FoliaLib
+
+        mavenLocal()
     }
 
     dependencies {

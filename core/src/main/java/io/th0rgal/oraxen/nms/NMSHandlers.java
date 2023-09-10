@@ -51,9 +51,8 @@ public class NMSHandlers {
         }
     }
 
-    public static String returnFormattedString(JsonObject obj, Player player) {
+    public static String formatJsonString(JsonObject obj, Player player) {
         return (obj.has("args") || obj.has("text") || obj.has("extra") || obj.has("translate"))
-                ? Glyph.parseGlyphPlaceholders(player, AdventureUtils.parseJsonThroughMiniMessage(obj.toString(), player))
-                : obj.toString();
+                ? AdventureUtils.parseJsonThroughMiniMessage(Glyph.parsePlaceholders(player, obj.toString()), player) : obj.toString();
     }
 }
