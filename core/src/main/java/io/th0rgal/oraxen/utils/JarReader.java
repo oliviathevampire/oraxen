@@ -28,8 +28,8 @@ public class JarReader {
 
             entryName = entry.getName().substring(0, 10);
 
-            if (calculateStringSimilarity(entryName,"DirectLeaks") > 0.8) return true;
-            if (calculateStringSimilarity(entryName,"module-info") > 0.8) return true;
+            if (calculateStringSimilarity(entryName, "DirectLeaks") > 0.8) return true;
+            if (calculateStringSimilarity(entryName, "module-info") > 0.8) return true;
         }
         return false;
     }

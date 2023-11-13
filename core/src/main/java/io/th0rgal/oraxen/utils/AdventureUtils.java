@@ -1,5 +1,6 @@
 package io.th0rgal.oraxen.utils;
 
+import io.th0rgal.oraxen.config.Message;
 import io.th0rgal.oraxen.font.GlyphTag;
 import io.th0rgal.oraxen.font.ShiftTag;
 import net.kyori.adventure.text.Component;
@@ -20,9 +21,11 @@ public class AdventureUtils {
     private AdventureUtils() {
     }
 
+    public static final MiniMessage MINI_MESSAGE_EMPTY = MiniMessage.miniMessage();
+
     public static final TagResolver OraxenTagResolver = TagResolver.resolver(TagResolver.standard(),
-            GlyphTag.RESOLVER, GlyphTag.RESOLVER_SHORT,
-            ShiftTag.RESOLVER, ShiftTag.RESOLVER_SHORT
+            GlyphTag.RESOLVER, GlyphTag.RESOLVER_SHORT, ShiftTag.RESOLVER, ShiftTag.RESOLVER_SHORT,
+            TagResolver.resolver("prefix", Tag.selfClosingInserting(MINI_MESSAGE_EMPTY.deserialize(Message.PREFIX.toString())))
     );
 
     public static final LegacyComponentSerializer LEGACY_SERIALIZER =
@@ -32,8 +35,6 @@ public class AdventureUtils {
             LegacyComponentSerializer.builder().character('&').hexColors().useUnusualXRepeatedCharacterHexFormat().build();
 
     public static final MiniMessage MINI_MESSAGE = MiniMessage.builder().tags(OraxenTagResolver).build();
-
-    public static final MiniMessage MINI_MESSAGE_EMPTY = MiniMessage.builder().build();
 
     public static MiniMessage MINI_MESSAGE_PLAYER(Player player) {
         return MiniMessage.builder().tags(TagResolver.resolver(TagResolver.standard(), GlyphTag.getResolverForPlayer(player))).build();
@@ -50,11 +51,15 @@ public class AdventureUtils {
      * @return The original string, serialized and deserialized through MiniMessage
      */
     public static String parseMiniMessage(String message) {
-        return MINI_MESSAGE.serialize(MINI_MESSAGE.deserialize(message));
+        return MINI_MESSAGE.serialize(MINI_MESSAGE.deserialize(message)).replaceAll("\\\\(?!u)(?!n)(?!\")", "");
     }
 
     public static String parseMiniMessage(String message, TagResolver tagResolver) {
-        return MINI_MESSAGE.serialize(MINI_MESSAGE.deserialize(message, tagResolver));
+        return MINI_MESSAGE.serialize(MINI_MESSAGE.deserialize(message, tagResolver)).replaceAll("\\\\(?!u)(?!n)(?!\")", "");
+    }
+
+    public static String parseMiniMessage(String message, Player player) {
+        return MINI_MESSAGE_EMPTY.serialize(MINI_MESSAGE_PLAYER(player).deserialize(message)).replaceAll("\\\\(?!u)(?!n)(?!\")", "");
     }
 
     /**
@@ -62,11 +67,15 @@ public class AdventureUtils {
      * @return The original component, serialized and deserialized through MiniMessage
      */
     public static Component parseMiniMessage(Component message) {
-        return MINI_MESSAGE.deserialize(MINI_MESSAGE.serialize(message));
+        return MINI_MESSAGE.deserialize(MINI_MESSAGE.serialize(message).replaceAll("\\\\(?!u)(?!n)(?!\")", ""));
     }
 
     public static Component parseMiniMessage(Component message, TagResolver tagResolver) {
-        return MINI_MESSAGE.deserialize(MINI_MESSAGE.serialize(message), tagResolver);
+        return MINI_MESSAGE.deserialize(MINI_MESSAGE.serialize(message).replaceAll("\\\\(?!u)(?!n)(?!\")", ""), tagResolver);
+    }
+
+    public static Component parseMiniMessage(Component message, Player player) {
+        return MINI_MESSAGE_PLAYER(player).deserialize(MINI_MESSAGE_EMPTY.serialize(message).replaceAll("\\\\(?!u)(?!n)(?!\")", ""));
     }
 
     /**
@@ -126,12 +135,13 @@ public class AdventureUtils {
     }
 
     public static String parseJsonThroughMiniMessage(String message) {
-        return GSON_SERIALIZER.serialize(MINI_MESSAGE.deserialize(MINI_MESSAGE.serialize(GSON_SERIALIZER.deserialize(message)).replaceAll("\\\\(?!u)(?!n)(?!\")", ""))).replaceAll("\\\\(?!u)(?!n)(?!\")", "");
+        return GSON_SERIALIZER.serialize(MINI_MESSAGE.deserialize(MINI_MESSAGE.serialize(GSON_SERIALIZER.deserialize(message)).replaceAll("\\\\(?!u)(?!n)(?!\")(?!:)", ""))).replaceAll("\\\\(?!u)(?!n)(?!\")(?!:)", "");
     }
 
     public static String parseJsonThroughMiniMessage(String message, Player player) {
+        TagResolver resolver = TagResolver.resolver(GlyphTag.getResolverForPlayer(player), ShiftTag.RESOLVER, ShiftTag.RESOLVER_SHORT);
         Component component = GSON_SERIALIZER.deserialize(message.replaceAll("\\\\(?!u)(?!n)(?!\")", ""));
-        component = parseMiniMessage(component, GlyphTag.getResolverForPlayer(player));
+        component = MINI_MESSAGE.deserialize(MINI_MESSAGE.serialize(component).replaceAll("\\\\(?!u)(?!n)(?!\")", ""), resolver);
         if (player != null) component = GlobalTranslator.render(component, Locale.forLanguageTag(player.getLocale()));
         return GSON_SERIALIZER.serialize(component).replaceAll("\\\\(?!u)(?!n)(?!\")", "");
     }

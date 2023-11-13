@@ -10,6 +10,7 @@ import io.lumine.mythic.bukkit.utils.lib.http.entity.mime.MultipartEntityBuilder
 import io.lumine.mythic.bukkit.utils.lib.http.impl.client.CloseableHttpClient;
 import io.lumine.mythic.bukkit.utils.lib.http.impl.client.HttpClients;
 import io.lumine.mythic.bukkit.utils.lib.http.util.EntityUtils;
+import io.th0rgal.oraxen.config.Settings;
 import io.th0rgal.oraxen.utils.logs.Logs;
 
 import java.io.File;
@@ -32,7 +33,7 @@ public class Polymath implements HostingProvider {
             HttpPost request = new HttpPost(serverAddress + "upload");
 
             HttpEntity httpEntity = MultipartEntityBuilder
-                    .create().addTextBody("id", "%%__USER__%%")
+                    .create().addTextBody("id", Settings.POLYMATH_SECRET.toString())
                     .addBinaryBody("pack", resourcePack)
                     .build();
 

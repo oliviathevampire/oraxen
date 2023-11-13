@@ -8,9 +8,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public enum Message {
 
     // general
@@ -25,6 +22,7 @@ public enum Message {
     PACK_UPLOADED("general.pack_uploaded"),
     PACK_REGENERATED("general.pack_regenerated"),
     UPDATING_CONFIG("general.updating_config"),
+    REMOVING_CONFIG("general.removing_config"),
     CONFIGS_VALIDATION_FAILED("general.configs_validation_failed"),
     REPAIRED_ITEMS("general.repaired_items"),
     CANNOT_BE_REPAIRED("general.cannot_be_repaired"),
@@ -94,11 +92,9 @@ public enum Message {
     public void send(final CommandSender sender, final TagResolver... placeholders) {
         if (sender == null) return;
         String lang = OraxenPlugin.get().getConfigsManager().getLanguage().getString(path);
-        ArrayList<TagResolver> tagResolvers = new ArrayList<>(List.of(placeholders));
-        tagResolvers.add(AdventureUtils.tagResolver("prefix", Message.PREFIX.toString()));
         if (lang == null) return;
         OraxenPlugin.get().getAudience().sender(sender).sendMessage(
-                AdventureUtils.MINI_MESSAGE.deserialize(lang, TagResolver.resolver(tagResolvers))
+                AdventureUtils.MINI_MESSAGE.deserialize(lang, TagResolver.resolver(placeholders))
         );
     }
 

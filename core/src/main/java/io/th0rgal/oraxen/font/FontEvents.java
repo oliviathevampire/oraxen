@@ -1,6 +1,7 @@
 package io.th0rgal.oraxen.font;
 
 import io.papermc.paper.event.player.AsyncChatDecorateEvent;
+import io.papermc.paper.event.player.AsyncChatEvent;
 import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.api.OraxenItems;
 import io.th0rgal.oraxen.compatibilities.provided.placeholderapi.PapiAliases;
@@ -44,7 +45,11 @@ public class FontEvents implements Listener {
 
     public FontEvents(FontManager manager) {
         this.manager = manager;
-        Bukkit.getPluginManager().registerEvents(VersionUtil.isPaperServer() ? new PaperChatHandler() : new SpigotChatHandler(), OraxenPlugin.get());
+        Bukkit.getPluginManager().registerEvents(
+                VersionUtil.isPaperServer() && VersionUtil.isSupportedVersionOrNewer("1.19.1")
+                        ? new PaperChatHandler() : new SpigotChatHandler(), OraxenPlugin.get()
+        );
+
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -69,9 +74,9 @@ public class FontEvents implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onBookGlyph(final PlayerInteractEvent event) {
-        if (!Settings.FORMAT_SIGNS.toBool() || manager.useNmsGlyphs()) return;
-
         Player player = event.getPlayer();
+        if (!Settings.FORMAT_BOOKS.toBool()) return;
+
         if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
         if (event.getItem() == null || !(event.getItem().getItemMeta() instanceof BookMeta meta)) return;
         if (event.getItem().getType() != Material.WRITTEN_BOOK) return;
@@ -106,9 +111,9 @@ public class FontEvents implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onSignGlyph(final SignChangeEvent event) {
-        if (!Settings.FORMAT_SIGNS.toBool()) return;
-        Player player = event.getPlayer();
+        if (!Settings.FORMAT_SIGNS.toBool() || manager.useNmsGlyphs()) return;
 
+        Player player = event.getPlayer();
         for (String line : event.getLines()) {
             line = AdventureUtils.parseLegacyThroughMiniMessage(line);
             int i = Arrays.stream(event.getLines()).toList().indexOf(line);
@@ -196,7 +201,7 @@ public class FontEvents implements Listener {
     public class SpigotChatHandler implements Listener {
         @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
         public void onPlayerChat(AsyncPlayerChatEvent event) {
-            if (!Settings.FORMAT_CHAT.toBool() || manager.useNmsGlyphs()) return;
+            if (!Settings.FORMAT_CHAT.toBool()) return;
 
             String format = format(event.getFormat(), null);
             String message = format(event.getMessage(), event.getPlayer());
@@ -206,12 +211,87 @@ public class FontEvents implements Listener {
                 event.setMessage(message);
             }
         }
+
+        /**
+         * Formats a string with glyphs and placeholders
+         * @param string The string to format
+         * @param player The player to check permissions for, if null it parses the string without checking permissions
+         * @return The formatted string, or null if the player doesn't have permission for a glyph
+         */
+        private String format(String string, @Nullable Player player) {
+            string = AdventureUtils.parseLegacyThroughMiniMessage(string, player);
+            if (player != null) for (Character character : manager.getReverseMap().keySet()) {
+                if (!string.contains(String.valueOf(character))) continue;
+                Glyph glyph = manager.getGlyphFromName(manager.getReverseMap().get(character));
+                if (!glyph.hasPermission(player)) {
+                    Message.NO_PERMISSION.send(player, AdventureUtils.tagResolver("permission", glyph.getPermission()));
+                    return null;
+                }
+            }
+
+
+            for (Map.Entry<String, Glyph> entry : manager.getGlyphByPlaceholderMap().entrySet()) {
+                String unicode = ChatColor.WHITE + String.valueOf(entry.getValue().getCharacter());
+                if (player == null || entry.getValue().hasPermission(player))
+                    string = (manager.permsChatcolor == null)
+                            ? string.replace(entry.getKey(), unicode)
+                            : string.replace(entry.getKey(), unicode + PapiAliases.setPlaceholders(player, manager.permsChatcolor));
+            }
+
+            return string;
+        }
     }
 
-    private String format(String string, @Nullable Player player) {
-        string = AdventureUtils.parseLegacyThroughMiniMessage(string, player);
-        if (player != null) for (Character character : manager.getReverseMap().keySet()) {
-            if (!string.contains(String.valueOf(character))) continue;
+
+    @SuppressWarnings("UnstableApiUsage")
+    public class PaperChatHandler implements Listener {
+
+        @EventHandler(priority = EventPriority.LOWEST)
+        public void onPlayerChat(AsyncChatDecorateEvent event) {
+            if (!Settings.FORMAT_CHAT.toBool()) return;
+
+            Component result = format(event.originalMessage(), event.player());
+            event.result(result != null ? result : Component.empty());
+        }
+
+        @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+        public void onPlayerChat2(AsyncChatDecorateEvent event) {
+            if (!Settings.FORMAT_CHAT.toBool()) return;
+
+            Component result = format(event.result(), null);
+            event.result(result != null ? result : Component.empty());
+        }
+
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onPlayerChat(AsyncChatEvent event) {
+        if (!Settings.FORMAT_CHAT.toBool() || !VersionUtil.isPaperServer()) return;
+        // AsyncChatDecorateEvent has formatted the component if server is 1.19.1+
+        Component message = VersionUtil.isSupportedVersionOrNewer("1.19.1") ? event.message() : format(event.message(), event.getPlayer());
+        message = message != null ? message : Component.empty();
+        if (!message.equals(Component.empty())) return;
+
+        event.viewers().clear();
+        event.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onPlayerChat2(AsyncChatEvent event) {
+        if (!Settings.FORMAT_CHAT.toBool() || !VersionUtil.isPaperServer()) return;
+        // AsyncChatDecorateEvent has formatted the component if server is 1.19.1+
+        Component message = VersionUtil.isSupportedVersionOrNewer("1.19.1") ? event.message() : format(event.originalMessage(), event.getPlayer());
+        message = message != null ? message : Component.empty();
+        if (!message.equals(Component.empty())) return;
+
+        event.viewers().clear();
+        event.setCancelled(true);
+    }
+
+    private Component format(Component message, Player player) {
+        for (Character character : manager.getReverseMap().keySet()) {
+            if (!MINI_MESSAGE.serialize(message).contains(character.toString())) continue;
+
             Glyph glyph = manager.getGlyphFromName(manager.getReverseMap().get(character));
             if (!glyph.hasPermission(player)) {
                 Message.NO_PERMISSION.send(player, AdventureUtils.tagResolver("permission", glyph.getPermission()));
@@ -219,44 +299,15 @@ public class FontEvents implements Listener {
             }
         }
 
-
-        for (Map.Entry<String, Glyph> entry : manager.getGlyphByPlaceholderMap().entrySet()) {
-            String unicode = ChatColor.WHITE + String.valueOf(entry.getValue().getCharacter());
-            if (player == null || entry.getValue().hasPermission(player))
-                string = (manager.permsChatcolor == null)
-                        ? string.replace(entry.getKey(), unicode)
-                        : string.replace(entry.getKey(), unicode + PapiAliases.setPlaceholders(player, manager.permsChatcolor));
+        for (Glyph glyph : manager.getGlyphs()) {
+            for (String placeholder : glyph.getPlaceholders()) {
+                if (!glyph.hasPermission(player)) continue;
+                message = message.replaceText(TextReplacementConfig.builder().matchLiteral(placeholder)
+                        .replacement(Component.text(glyph.getCharacter()).color(NamedTextColor.WHITE)).build());
+            }
         }
 
-        return string;
+        return AdventureUtils.parseMiniMessage(message, player);
     }
 
-    @SuppressWarnings("UnstableApiUsage")
-    public class PaperChatHandler implements Listener {
-
-        @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-        public void onPlayerChat(AsyncChatDecorateEvent event) {
-            if (!Settings.FORMAT_CHAT.toBool() || manager.useNmsGlyphs()) return;
-
-            Player player = event.player();
-            Component message = AdventureUtils.parseMiniMessage(event.originalMessage(), GlyphTag.getResolverForPlayer(player));
-            for (Character character : manager.getReverseMap().keySet()) {
-                if (!message.contains(Component.text(character))) continue;
-
-                Glyph glyph = manager.getGlyphFromName(manager.getReverseMap().get(character));
-                if (!glyph.hasPermission(player)) {
-                    Message.NO_PERMISSION.send(player, AdventureUtils.tagResolver("permission", glyph.getPermission()));
-                    event.setCancelled(true);
-                    return;
-                }
-            }
-
-            for (Map.Entry<String, Glyph> entry : manager.getGlyphByPlaceholderMap().entrySet()) {
-                message = message.replaceText(TextReplacementConfig.builder().match(entry.getKey())
-                        .replacement(Component.text(entry.getValue().getCharacter()).color(NamedTextColor.WHITE)).build());
-            }
-
-            event.result(message);
-        }
-    }
 }

@@ -6,26 +6,45 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.codec.MessageToByteEncoder;
+import io.papermc.paper.configuration.GlobalConfiguration;
 import io.th0rgal.oraxen.OraxenPlugin;
+import io.th0rgal.oraxen.config.Settings;
+import io.th0rgal.oraxen.font.GlyphTag;
 import io.th0rgal.oraxen.nms.NMSHandlers;
 import io.th0rgal.oraxen.utils.AdventureUtils;
+import io.th0rgal.oraxen.utils.VersionUtil;
 import net.kyori.adventure.text.Component;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.StringTag;
-import net.minecraft.nbt.Tag;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.nbt.*;
 import net.minecraft.network.*;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.PacketFlow;
+import net.minecraft.network.protocol.game.ClientboundPlayerChatPacket;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerConnectionListener;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.item.context.DirectionalPlaceContext;
+import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 import org.bukkit.Bukkit;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.craftbukkit.v1_20_R1.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_20_R1.inventory.CraftItemStack;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -39,19 +58,68 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
     private final Map<Channel, ChannelHandler> encoder = Collections.synchronizedMap(new WeakHashMap<>());
     private final Map<Channel, ChannelHandler> decoder = Collections.synchronizedMap(new WeakHashMap<>());
 
+    @Override
+    public boolean tripwireUpdatesDisabled() {
+        return VersionUtil.isPaperServer() && VersionUtil.matchesServer("1.20.1")  && GlobalConfiguration.get().blockUpdates.disableTripwireUpdates;
+    }
 
     @Override
-    public ItemStack copyItemNBTTags(ItemStack oldItem, ItemStack newItem) {
+    public boolean noteblockUpdatesDisabled() {
+        return VersionUtil.isPaperServer() && VersionUtil.matchesServer("1.20.1") && GlobalConfiguration.get().blockUpdates.disableNoteblockUpdates;
+    }
+
+
+    @Override
+    public ItemStack copyItemNBTTags(@NotNull ItemStack oldItem, @NotNull ItemStack newItem) {
         CompoundTag oldTag = CraftItemStack.asNMSCopy(oldItem).getOrCreateTag();
         net.minecraft.world.item.ItemStack newNmsItem = CraftItemStack.asNMSCopy(newItem);
         CompoundTag newTag = newNmsItem.getOrCreateTag();
         oldTag.getAllKeys().stream().filter(key -> !vanillaKeys.contains(key)).forEach(key -> newTag.put(key, oldTag.get(key)));
         newNmsItem.setTag(newTag);
-        return newNmsItem.asBukkitCopy();
+        return CraftItemStack.asBukkitCopy(newNmsItem);
+    }
+
+    @Override
+    @Nullable
+    public BlockData correctBlockStates(Player player, EquipmentSlot slot, ItemStack itemStack, Block block, BlockFace blockFace) {
+        BlockHitResult hitResult = getBlockHitResult(player, block, blockFace);
+        InteractionHand hand = slot == EquipmentSlot.HAND ? InteractionHand.MAIN_HAND : slot == EquipmentSlot.OFF_HAND ? InteractionHand.OFF_HAND : null;
+        if (hitResult == null || hand == null) return null;
+
+        net.minecraft.world.item.ItemStack nmsStack = CraftItemStack.asNMSCopy(itemStack);
+        ServerPlayer serverPlayer = ((CraftPlayer) player).getHandle();
+        BlockPlaceContext placeContext = new BlockPlaceContext(new UseOnContext(serverPlayer, hand, hitResult));
+
+        if (!(nmsStack.getItem() instanceof BlockItem blockItem)) {
+            InteractionResultHolder<net.minecraft.world.item.ItemStack> result = nmsStack.getItem().use(serverPlayer.level(), serverPlayer, hand);
+            if (result.getResult() == InteractionResult.CONSUME) player.getInventory().setItem(slot, CraftItemStack.asBukkitCopy(result.getObject()));
+            return null;
+        }
+
+        // Shulker-Boxes are DirectionalPlace based unlike other directional-blocks
+        if (org.bukkit.Tag.SHULKER_BOXES.isTagged(itemStack.getType())) {
+            placeContext = new DirectionalPlaceContext(serverPlayer.level(), hitResult.getBlockPos(), hitResult.getDirection(), nmsStack, hitResult.getDirection().getOpposite());
+        }
+
+        BlockPos pos = hitResult.getBlockPos();
+        InteractionResult result = blockItem.place(placeContext);
+        if (result == InteractionResult.FAIL) return null;
+        if (placeContext instanceof DirectionalPlaceContext && player.getGameMode() != org.bukkit.GameMode.CREATIVE) itemStack.setAmount(itemStack.getAmount() - 1);
+        return block.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ()).getBlockData();
+    }
+
+    @Override
+    public @Nullable BlockHitResult getBlockHitResult(Player player, Block block, BlockFace blockFace) {
+        Vec3 vec3 = new Vec3(player.getEyeLocation().getX(), player.getEyeLocation().getY(), player.getEyeLocation().getZ());
+        Direction direction = Arrays.stream(Direction.values()).filter(d -> d.name().equals(blockFace.name())).findFirst().orElse(null);
+        if (direction == null) return null;
+        BlockPos blockPos = new BlockPos(block.getX(), block.getY(), block.getZ()).relative(direction);
+        return new BlockHitResult(vec3, direction.getOpposite(), blockPos, false);
     }
 
     @Override
     public void setupNmsGlyphs() {
+        if (!Settings.NMS_GLYPHS.toBool()) return;
         List<Connection> networkManagers = MinecraftServer.getServer().getConnection().getConnections();
         List<ChannelFuture> channelFutures;
 
@@ -84,7 +152,7 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
         };
 
         // This is executed before Minecraft's channel handler
-        ChannelInitializer<Channel> beginInitProtocol = new ChannelInitializer<Channel>() {
+        ChannelInitializer<Channel> beginInitProtocol = new ChannelInitializer<>() {
             @Override
             protected void initChannel(Channel channel) throws Exception {
                 ChannelHandler handler = null;
@@ -107,7 +175,7 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
                         @Override
                         protected void initChannel(@NotNull Channel ch) throws Exception {
                             initChannel.invoke(initializer, ch);
-
+                            channel.eventLoop().submit(() -> inject(channel));
                             inject(ch);
                         }
                     };
@@ -137,21 +205,12 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
         }
     }
 
-    private void bind(List<ChannelFuture> channelFutures, ChannelInboundHandlerAdapter serverChannelHandler) {
-        for (ChannelFuture future : channelFutures) {
-            future.channel().pipeline().addFirst(serverChannelHandler);
-        }
-
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            inject(player);
-        }
-    }
-
     @Override
     public void inject(Player player) {
+        if (player == null || !Settings.NMS_GLYPHS.toBool()) return;
         Channel channel = ((CraftPlayer) player).getHandle().connection.connection.channel;
 
-        inject(channel);
+        channel.eventLoop().submit(() -> inject(channel));
 
         for (Map.Entry<String, ChannelHandler> entry : channel.pipeline()) {
             ChannelHandler handler = entry.getValue();
@@ -165,6 +224,7 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
 
     @Override
     public void uninject(Player player) {
+        if (player == null || !Settings.NMS_GLYPHS.toBool()) return;
         Channel channel = ((CraftPlayer) player).getHandle().connection.connection.channel;
 
         uninject(channel);
@@ -208,6 +268,16 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
         }
     }
 
+    private void bind(List<ChannelFuture> channelFutures, ChannelInboundHandlerAdapter serverChannelHandler) {
+        for (ChannelFuture future : channelFutures) {
+            future.channel().pipeline().addFirst(serverChannelHandler);
+        }
+
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            inject(player);
+        }
+    }
+
     private static class CustomDataSerializer extends FriendlyByteBuf {
         private final Supplier<Player> supplier;
 
@@ -220,7 +290,7 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
         @NotNull
         @Override
         public FriendlyByteBuf writeComponent(@NotNull Component component) {
-            return super.writeComponent(AdventureUtils.parseMiniMessage(component));
+            return super.writeComponent(AdventureUtils.parseMiniMessage(component, GlyphTag.getResolverForPlayer(supplier.get())));
         }
 
         @Override
@@ -228,7 +298,7 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
             try {
                 JsonElement element = JsonParser.parseString(string);
                 if (element.isJsonObject())
-                    return super.writeUtf(NMSHandlers.formatJsonString(element.getAsJsonObject(), supplier.get()), maxLength);
+                    return super.writeUtf(NMSHandlers.formatJsonString(element.getAsJsonObject()), maxLength);
             } catch (Exception ignored) {
 
             }
@@ -243,7 +313,7 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
                     try {
                         JsonElement element = JsonParser.parseString(string);
                         if (element.isJsonObject())
-                            return NMSHandlers.formatJsonString(element.getAsJsonObject(), supplier.get());
+                            return NMSHandlers.formatJsonString(element.getAsJsonObject());
                     } catch (Exception ignored) {
                     }
                     return string;
@@ -278,8 +348,15 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
 
         @Override
         public @NotNull String readUtf(int i) {
-            String val = super.readUtf(i);
-            return supplier != null ? AdventureUtils.parseLegacy(val) : val;
+            return NMSHandlers.verifyFor(supplier.get(), super.readUtf(i));
+        }
+
+        @Override
+        public @Nullable CompoundTag readNbt(@NotNull NbtAccounter nbtAccounter) {
+            CompoundTag compound = super.readNbt(nbtAccounter);
+            if (compound != null) transform(compound, string -> NMSHandlers.verifyFor(supplier.get(), string));
+
+            return compound;
         }
     }
 
@@ -320,11 +397,13 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
 
         @Override
         protected void decode(ChannelHandlerContext ctx, ByteBuf msg, List<Object> out) throws Exception {
+            final ByteBuf bufCopy = msg.copy();
             if (msg.readableBytes() == 0) return;
 
             CustomDataSerializer dataSerializer = new CustomDataSerializer(() -> player, msg);
             int packetID = dataSerializer.readVarInt();
-            Packet<?> packet = ctx.channel().attr(Connection.ATTRIBUTE_PROTOCOL).get().createPacket(PacketFlow.SERVERBOUND, packetID, dataSerializer);
+            ConnectionProtocol protocol = ctx.channel().attr(Connection.ATTRIBUTE_PROTOCOL).get();
+            Packet<?> packet = protocol.createPacket(PacketFlow.SERVERBOUND, packetID, dataSerializer);
 
             if (packet == null) {
                 throw new IOException("Bad packet id " + packetID);
@@ -332,6 +411,10 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
 
             if (dataSerializer.readableBytes() > 0) {
                 throw new IOException("Packet " + packetID + " " + packet + " was larger than expected, found " + dataSerializer.readableBytes() + " bytes extra whiløst reading the packet " + packetID);
+            } else if (packet instanceof ClientboundPlayerChatPacket) {
+                FriendlyByteBuf serializer = new FriendlyByteBuf(bufCopy);
+                serializer.readVarInt();
+                packet = protocol.createPacket(PacketFlow.SERVERBOUND, packetID, serializer);
             }
             out.add(packet);
         }

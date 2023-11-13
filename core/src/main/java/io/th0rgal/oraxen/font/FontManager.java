@@ -63,15 +63,18 @@ public class FontManager {
         if (fontConfiguration.isConfigurationSection("fonts"))
             loadFonts(fontConfiguration.getConfigurationSection("fonts"));
 
-
-        if (Settings.USE_NMS_GLYPHS.toBool() && NMSHandlers.getHandler() != null) {
-            useNmsGlyphs = true;
-            NMSHandlers.getHandler().setupNmsGlyphs();
-            Logs.logSuccess("Oraxens NMS Glyph system has been enabled!");
-            Logs.logSuccess("Disabling packet-based glyph systems");
-            Logs.newline();
-            OraxenPlugin.get().getProtocolManager().removePacketListener(new InventoryPacketListener());
-            OraxenPlugin.get().getProtocolManager().removePacketListener(new TitlePacketListener());
+        if (Settings.NMS_GLYPHS.toBool() && NMSHandlers.getHandler() != null) {
+            if (VersionUtil.isSupportedVersionOrNewer("1.20.2")) {
+                useNmsGlyphs = false;
+                Logs.logWarning("NMS Glyphs are not supported on 1.20.2 and newer at the moment...");
+            } else {
+                useNmsGlyphs = true;
+                NMSHandlers.getHandler().setupNmsGlyphs();
+                Logs.logSuccess("Oraxens NMS Glyph system has been enabled!");
+                Logs.logInfo("Disabling packet-based glyph systems", true);
+                OraxenPlugin.get().getProtocolManager().removePacketListener(new InventoryPacketListener());
+                OraxenPlugin.get().getProtocolManager().removePacketListener(new TitlePacketListener());
+            }
         } else useNmsGlyphs = false;
     }
 
@@ -221,7 +224,7 @@ public class FontManager {
                         : Arrays.stream(glyph.getPlaceholders()))
                 .toList();
 
-        if (VersionUtil.isSupportedVersionOrNewer(VersionUtil.v1_19_R3)) {
+        if (VersionUtil.isSupportedVersionOrNewer("1.19.4")) {
             player.removeCustomChatCompletions(currentGlyphCompletions.getOrDefault(player.getUniqueId(), new ArrayList<>()));
             player.addCustomChatCompletions(completions);
             currentGlyphCompletions.put(player.getUniqueId(), completions);

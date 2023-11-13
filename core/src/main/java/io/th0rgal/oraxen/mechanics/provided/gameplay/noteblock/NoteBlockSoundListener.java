@@ -7,13 +7,7 @@ import io.th0rgal.oraxen.api.events.noteblock.OraxenNoteBlockPlaceEvent;
 import io.th0rgal.oraxen.utils.BlockHelpers;
 import io.th0rgal.oraxen.utils.blocksounds.BlockSounds;
 import io.th0rgal.protectionlib.ProtectionLib;
-import org.bukkit.Bukkit;
-import org.bukkit.GameEvent;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Sound;
-import org.bukkit.SoundCategory;
-import org.bukkit.SoundGroup;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
@@ -27,30 +21,26 @@ import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.world.GenericGameEvent;
+import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.HashMap;
 import java.util.Map;
 
 import static io.th0rgal.oraxen.utils.BlockHelpers.isLoaded;
-import static io.th0rgal.oraxen.utils.blocksounds.BlockSounds.VANILLA_BREAK_PITCH;
-import static io.th0rgal.oraxen.utils.blocksounds.BlockSounds.VANILLA_BREAK_VOLUME;
-import static io.th0rgal.oraxen.utils.blocksounds.BlockSounds.VANILLA_FALL_PITCH;
-import static io.th0rgal.oraxen.utils.blocksounds.BlockSounds.VANILLA_FALL_VOLUME;
-import static io.th0rgal.oraxen.utils.blocksounds.BlockSounds.VANILLA_HIT_PITCH;
-import static io.th0rgal.oraxen.utils.blocksounds.BlockSounds.VANILLA_HIT_VOLUME;
-import static io.th0rgal.oraxen.utils.blocksounds.BlockSounds.VANILLA_PLACE_PITCH;
-import static io.th0rgal.oraxen.utils.blocksounds.BlockSounds.VANILLA_PLACE_VOLUME;
-import static io.th0rgal.oraxen.utils.blocksounds.BlockSounds.VANILLA_STEP_PITCH;
-import static io.th0rgal.oraxen.utils.blocksounds.BlockSounds.VANILLA_STEP_VOLUME;
-import static io.th0rgal.oraxen.utils.blocksounds.BlockSounds.VANILLA_WOOD_BREAK;
-import static io.th0rgal.oraxen.utils.blocksounds.BlockSounds.VANILLA_WOOD_FALL;
-import static io.th0rgal.oraxen.utils.blocksounds.BlockSounds.VANILLA_WOOD_HIT;
-import static io.th0rgal.oraxen.utils.blocksounds.BlockSounds.VANILLA_WOOD_PLACE;
-import static io.th0rgal.oraxen.utils.blocksounds.BlockSounds.VANILLA_WOOD_STEP;
+import static io.th0rgal.oraxen.utils.blocksounds.BlockSounds.*;
 
 public class NoteBlockSoundListener implements Listener {
     private final Map<Location, BukkitTask> breakerPlaySound = new HashMap<>();
+
+    @EventHandler
+    public void onWorldUnload(WorldUnloadEvent event) {
+        for (Map.Entry<Location, BukkitTask> entry : breakerPlaySound.entrySet()) {
+            if (entry.getKey().isWorldLoaded() || entry.getValue().isCancelled()) continue;
+            entry.getValue().cancel();
+            breakerPlaySound.remove(entry.getKey());
+        }
+    }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPlacingWood(final BlockPlaceEvent event) {

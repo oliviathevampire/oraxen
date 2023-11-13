@@ -1,10 +1,10 @@
 package io.th0rgal.oraxen.mechanics.provided.gameplay.furniture;
 
-import com.jeff_media.customblockdata.CustomBlockData;
 import com.jeff_media.morepersistentdatatypes.DataType;
 import com.ticxo.modelengine.api.ModelEngineAPI;
 import com.ticxo.modelengine.api.model.ActiveModel;
 import com.ticxo.modelengine.api.model.ModeledEntity;
+import io.lumine.mythiccrucible.utils.CustomBlockData;
 import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.api.OraxenFurniture;
 import io.th0rgal.oraxen.api.OraxenItems;
@@ -15,30 +15,16 @@ import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.evolution.Evolvin
 import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.jukebox.JukeboxBlock;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.limitedplacing.LimitedPlacing;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.storage.StorageMechanic;
-import io.th0rgal.oraxen.utils.BlockHelpers;
-import io.th0rgal.oraxen.utils.Utils;
-import io.th0rgal.oraxen.utils.VersionUtil;
+import io.th0rgal.oraxen.utils.*;
 import io.th0rgal.oraxen.utils.actions.ClickAction;
 import io.th0rgal.oraxen.utils.blocksounds.BlockSounds;
 import io.th0rgal.oraxen.utils.drops.Drop;
 import io.th0rgal.oraxen.utils.logs.Logs;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Rotation;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.entity.ArmorStand;
-import org.bukkit.entity.Display;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.GlowItemFrame;
-import org.bukkit.entity.Interaction;
-import org.bukkit.entity.ItemDisplay;
-import org.bukkit.entity.ItemFrame;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.*;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -48,12 +34,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 public class FurnitureMechanic extends Mechanic {
 
@@ -108,8 +89,7 @@ public class FurnitureMechanic extends Mechanic {
                 return FurnitureType.valueOf(type);
             } catch (IllegalArgumentException e) {
                 Logs.logError("Invalid furniture type: " + type + ", set in mechanics.yml.");
-                Logs.logWarning("Using default " + (OraxenPlugin.supportsDisplayEntities ? "DISPLAY_ENTITY" : "ITEM_FRAME"));
-                Logs.newline();
+                Logs.logWarning("Using default " + (OraxenPlugin.supportsDisplayEntities ? "DISPLAY_ENTITY" : "ITEM_FRAME"), true);
                 return OraxenPlugin.supportsDisplayEntities ? DISPLAY_ENTITY : ITEM_FRAME;
             }
         }
@@ -175,15 +155,9 @@ public class FurnitureMechanic extends Mechanic {
         } else hasSeat = false;
 
         ConfigurationSection evoSection = section.getConfigurationSection("evolution");
-        if (evoSection != null) {
-            if (VersionUtil.isFoliaServer()) {
-                Logs.logError("Folia currently does not support Evolution Mechanic on Furniture.");
-                Logs.logError("This will hopefully be fixed in an upcoming update");
-                evolvingFurniture = null;
-            } else {
-                evolvingFurniture = new EvolvingFurniture(getItemID(), evoSection);
-                ((FurnitureFactory) getFactory()).registerEvolution();
-            }
+        if (evoSection != null && !VersionUtil.isFoliaServer()) {
+            evolvingFurniture = new EvolvingFurniture(getItemID(), evoSection);
+            ((FurnitureFactory) getFactory()).registerEvolution();
         } else evolvingFurniture = null;
 
         ConfigurationSection dropSection = section.getConfigurationSection("drop");
@@ -382,13 +356,20 @@ public class FurnitureMechanic extends Mechanic {
         } else item = placedItem;
         item.setAmount(1);
 
-        Entity baseEntity = location.getWorld().spawn(BlockHelpers.toCenterBlockLocation(location), entityClass, (entity) ->
-                setEntityData(entity, yaw, item, facing));
+        Entity baseEntity = EntityUtils.spawnEntity(correctedSpawnLocation(location), entityClass, (e) -> setEntityData(e, yaw, item, facing));
         if (this.isModelEngine() && Bukkit.getPluginManager().isPluginEnabled("ModelEngine")) {
             spawnModelEngineFurniture(baseEntity);
         }
 
         return baseEntity;
+    }
+
+    //TODO Account for limitedPlacing differences
+    private Location correctedSpawnLocation(Location baseLocation) {
+        Location correctedLocation = BlockHelpers.toCenterBlockLocation(baseLocation);
+        if (furnitureType != FurnitureType.DISPLAY_ENTITY || !hasDisplayEntityProperties()) return correctedLocation;
+        if (displayEntityProperties.getDisplayTransform() != ItemDisplay.ItemDisplayTransform.NONE) return correctedLocation;
+        return correctedLocation.add(0, 0.5 * displayEntityProperties.getScale().y(), 0);
     }
 
     private void setEntityData(Entity entity, float yaw, ItemStack item, BlockFace facing) {
@@ -418,8 +399,10 @@ public class FurnitureMechanic extends Mechanic {
             float width = hasHitbox() ? hitbox.width : displayEntityProperties.getDisplayWidth();
             float height = hasHitbox() ? hitbox.height : displayEntityProperties.getDisplayHeight();
             Interaction interaction = spawnInteractionEntity(itemDisplay, location, width, height);
+            Location barrierLoc = EntityUtils.isFixed(itemDisplay) && displayEntityProperties.hasScale()
+                    ? location.clone().subtract(0, 0.5 * displayEntityProperties.getScale().y(), 0) : location;
 
-            if (hasBarriers()) setBarrierHitbox(entity, location, yaw, false);
+            if (hasBarriers()) setBarrierHitbox(entity, barrierLoc, yaw, false);
             else if (hasSeat() && interaction != null) {
                 UUID seatUuid = spawnSeat(location.getBlock(), hasSeatYaw ? seatYaw : yaw);
                 interaction.getPersistentDataContainer().set(SEAT_KEY, DataType.UUID, seatUuid);
@@ -433,11 +416,12 @@ public class FurnitureMechanic extends Mechanic {
 
     private Interaction spawnInteractionEntity(Entity entity, Location location, float width, float height) {
         if (!OraxenPlugin.supportsDisplayEntities || width <= 0f || height <= 0f) return null;
-        Interaction interaction = entity.getWorld().spawn(BlockHelpers.toCenterBlockLocation(location), Interaction.class, (Interaction i) -> {
+        Interaction interaction = EntityUtils.spawnEntity(BlockHelpers.toCenterBlockLocation(location), Interaction.class, (i) -> {
             i.setInteractionWidth(width);
             i.setInteractionHeight(height);
             i.setPersistent(true);
         });
+
         PersistentDataContainer pdc = interaction.getPersistentDataContainer();
         pdc.set(FURNITURE_KEY, DataType.STRING, getItemID());
         pdc.set(BASE_ENTITY_KEY, DataType.UUID, entity.getUniqueId());
@@ -486,20 +470,14 @@ public class FurnitureMechanic extends Mechanic {
         // 1.20 Fixes this, will break for 1.19.4 but added disclaimer in console
         float pitch;
         float alterYaw;
-        if (VersionUtil.isSupportedVersionOrNewer(VersionUtil.v1_20_R1)) {
+        if (VersionUtil.isSupportedVersionOrNewer("1.20.1")) {
             pitch = isFixed && hasLimitedPlacing() && (limitedPlacing.isFloor() || limitedPlacing.isRoof()) ? -90 : 0;
             alterYaw = yaw;
         } else {
             pitch = isFixed && hasLimitedPlacing() ? limitedPlacing.isFloor() ? 90 : limitedPlacing.isWall() ? 0 : limitedPlacing.isRoof() ? -90 : 0 : 0;
             alterYaw = yaw - 180;
         }
-        //TODO isWall will be put of the wall slightly. Fixing this is annoying as it is direction relative
-        Location fixedLocation = !isFixed || !hasLimitedPlacing() || limitedPlacing.isWall()
-                ? BlockHelpers.toCenterLocation(itemDisplay.getLocation())
-                // Add .9 to raise the item up due to pitch change
-                : limitedPlacing.isRoof() ? BlockHelpers.toCenterBlockLocation(itemDisplay.getLocation()).add(0, 0.9, 0)
-                : BlockHelpers.toCenterBlockLocation(itemDisplay.getLocation());
-        itemDisplay.teleport(fixedLocation);
+
         itemDisplay.setTransformation(transform);
         itemDisplay.setRotation(alterYaw, pitch);
     }
@@ -538,16 +516,10 @@ public class FurnitureMechanic extends Mechanic {
 
     void spawnModelEngineFurniture(Entity entity) {
         ModeledEntity modelEntity = ModelEngineAPI.getOrCreateModeledEntity(entity);
-        ActiveModel activeModel = ModelEngineAPI.createActiveModel(ModelEngineAPI.getBlueprint(getModelEngineID()));
-
-        modelEntity.addModel(activeModel, false);
+        ActiveModel activeModel = ModelEngineAPI.createActiveModel(getModelEngineID());
+        ModelEngineUtils.addModel(modelEntity, activeModel, false);
+        ModelEngineUtils.setRotationLock(modelEntity, false);
         modelEntity.setBaseEntityVisible(false);
-        modelEntity.setModelRotationLock(true);
-
-        if (OraxenPlugin.supportsDisplayEntities && entity instanceof ItemDisplay itemDisplay)
-            itemDisplay.setItemStack(new ItemStack(Material.AIR));
-        else if (entity instanceof ItemFrame itemFrame)
-            itemFrame.setItem(new ItemStack(Material.AIR), false);
     }
 
     public static ItemStack getFurnitureItem(Entity entity) {
@@ -653,8 +625,7 @@ public class FurnitureMechanic extends Mechanic {
     }
 
     private UUID spawnSeat(Block target, float yaw) {
-        final ArmorStand seat = target.getWorld().spawn(target.getLocation()
-                .add(0.5, seatHeight - 1, 0.5), ArmorStand.class, (ArmorStand stand) -> {
+        final ArmorStand seat = EntityUtils.spawnEntity(target.getLocation().add(0.5, seatHeight - 1, 0.5), ArmorStand.class, (ArmorStand stand) -> {
             stand.setVisible(false);
             stand.setRotation(yaw, 0);
             stand.setInvulnerable(true);

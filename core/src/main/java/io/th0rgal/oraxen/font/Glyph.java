@@ -2,10 +2,15 @@ package io.th0rgal.oraxen.font;
 
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.config.Settings;
+import io.th0rgal.oraxen.utils.AdventureUtils;
 import io.th0rgal.oraxen.utils.logs.Logs;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextReplacementConfig;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
@@ -20,6 +25,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 
@@ -142,7 +148,9 @@ public class Glyph {
         return isEmoji;
     }
 
-    public boolean hasTabCompletion() { return tabcomplete; }
+    public boolean hasTabCompletion() {
+        return tabcomplete;
+    }
 
     public JsonObject toJson() {
         final JsonObject output = new JsonObject();
@@ -175,8 +183,7 @@ public class Glyph {
             textureFile = packFolder.resolve(texturePath).toFile();
             if (!textureFile.exists())
                 textureFile = packFolder.resolve("assets/minecraft/" + texturePath).toFile();
-        }
-        else textureFile = packFolder.resolve(texturePath.replace("assets/minecraft/", "")).toFile();
+        } else textureFile = packFolder.resolve(texturePath.replace("assets/minecraft/", "")).toFile();
 
         Map<Glyph, Boolean> sameCharMap = glyphs.stream().filter(g -> !g.name.equals(name) && !g.getCharacter().isBlank() && g.character.equals(character)).collect(Collectors.toMap(g -> g, g -> true));
         // Check if the texture is a vanilla item texture and therefore not in oraxen, but the vanilla pack
@@ -227,16 +234,52 @@ public class Glyph {
         }
     }
 
-    public static String parsePlaceholders(Player player, String message) {
-        Glyph requiredGlyph = OraxenPlugin.get().getFontManager().getGlyphFromName("required");
+    /**
+     * Parses all glyph-tags and raw unicodes in a message to their formatted variant
+     * Relies on NMSHandler#verifyFor to escape all glyphs that the player doesn't have permission for
+     * @param element The JSON Object to parse
+     * @return The parsed JSON Object
+     */
+    public static JsonObject parsePlaceholders(JsonElement element) {
+        Component component = AdventureUtils.GSON_SERIALIZER.deserializeFromTree(element);
         for (Glyph glyph : OraxenPlugin.get().getFontManager().getGlyphs()) {
-            String glyphTag = "<glyph:" + glyph.getName() + ">";
-            message = message.replace(glyph.getCharacter(), glyph.hasPermission(player)
-                    ? glyphTag : Arrays.stream(glyph.placeholders).findFirst().orElse(requiredGlyph.getCharacter()));
-            for (String placeholder : glyph.placeholders)
-                if (message.contains(placeholder) && glyph.hasPermission(player))
-                    message = message.replace(placeholder, glyphTag);
+            Component glyphComponent = Component.text().content(glyph.getCharacter()).color(NamedTextColor.WHITE).build();
+            // Format all non-escaped glyph-tags and raw unicodes
+            component = component.replaceText(TextReplacementConfig.builder()
+                    .match(Pattern.compile("(?<!\\\\)" + glyph.getCharacter()))
+                    .match(Pattern.compile("(?<!\\\\)" + glyph.getGlyphTag()))
+                    .replacement(glyphComponent).build());
+            for (String placeholder : glyph.placeholders) {
+                component = component.replaceText(TextReplacementConfig.builder()
+                        .match(Pattern.compile("(?<!\\\\)" + placeholder))
+                        .match(Pattern.compile("(?<!\\\\)(" + glyph.getCharacter() + "|" + glyph.getGlyphTag() + ")"))
+                        .replacement(glyphComponent).build());
+
+                // Replace all escaped glyphs with their non-formatted variant
+                component = component.replaceText(TextReplacementConfig.builder()
+                        .match(Pattern.compile("\\\\(" + placeholder + "|" + glyph.getCharacter() + ")"))
+                        .replacement(glyphComponent)
+                        .build());
+            }
+
+            // Replace all escaped glyph-tags with their non-formatted variant
+            component = component.replaceText(TextReplacementConfig.builder()
+                    .match(Pattern.compile("\\\\" + glyph.getGlyphTag()))
+                    .replacement(glyph.getGlyphTag())
+                    .build());
         }
-        return message;
+        component = AdventureUtils.MINI_MESSAGE.deserialize(AdventureUtils.MINI_MESSAGE.serialize(component));
+        return AdventureUtils.GSON_SERIALIZER.serializeToTree(component).getAsJsonObject();
+    }
+
+    /**
+     * Useful to easily get the MiniMessage-tag for a glyph
+     */
+    public String getGlyphTag() {
+        return '<' + "glyph:" + name + '>';
+    }
+
+    public String getShortGlyphTag() {
+        return "<g:" + name + '>';
     }
 }

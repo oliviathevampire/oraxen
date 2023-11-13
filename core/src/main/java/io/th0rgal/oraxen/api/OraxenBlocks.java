@@ -16,6 +16,7 @@ import io.th0rgal.oraxen.mechanics.provided.gameplay.stringblock.StringBlockMech
 import io.th0rgal.oraxen.mechanics.provided.gameplay.stringblock.StringBlockMechanicListener;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.stringblock.sapling.SaplingMechanic;
 import io.th0rgal.oraxen.utils.BlockHelpers;
+import io.th0rgal.oraxen.utils.EventUtils;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -145,6 +146,7 @@ public class OraxenBlocks {
      * @param itemID The ItemID of the OraxenBlock
      * @return The BlockData assosiated with the ItemID, can be null
      */
+    @Nullable
     public static BlockData getOraxenBlockData(String itemID) {
         if (isOraxenNoteBlock(itemID)) {
             return NoteBlockMechanicFactory.getInstance().createNoteBlockData(itemID);
@@ -227,14 +229,14 @@ public class OraxenBlocks {
 
         if (player != null) {
             OraxenNoteBlockBreakEvent noteBlockBreakEvent = new OraxenNoteBlockBreakEvent(mechanic, block, player);
-            OraxenPlugin.get().getServer().getPluginManager().callEvent(noteBlockBreakEvent);
-            if (noteBlockBreakEvent.isCancelled()) return;
+            if (!EventUtils.callEvent(noteBlockBreakEvent)) return;
+
+            if (player.getGameMode() != GameMode.CREATIVE)
+                noteBlockBreakEvent.getDrop().spawns(block.getLocation(), player.getInventory().getItemInMainHand());
         }
 
         if (mechanic.hasLight())
             WrappedLightAPI.removeBlockLight(block.getLocation());
-        if (player != null && player.getGameMode() != GameMode.CREATIVE)
-            mechanic.getDrop().spawns(block.getLocation(), player.getInventory().getItemInMainHand());
         if (mechanic.isStorage() && mechanic.getStorage().getStorageType() == StorageMechanic.StorageType.STORAGE) {
             mechanic.getStorage().dropStorageContent(block);
         }
@@ -249,16 +251,16 @@ public class OraxenBlocks {
 
         if (player != null) {
             OraxenStringBlockBreakEvent wireBlockBreakEvent = new OraxenStringBlockBreakEvent(mechanic, block, player);
-            OraxenPlugin.get().getServer().getPluginManager().callEvent(wireBlockBreakEvent);
-            if (wireBlockBreakEvent.isCancelled()) return;
+            if (!EventUtils.callEvent(wireBlockBreakEvent)) return;
+
+            if (player.getGameMode() != GameMode.CREATIVE)
+                wireBlockBreakEvent.getDrop().spawns(block.getLocation(), item);
         }
 
         if (mechanic.hasLight())
             WrappedLightAPI.removeBlockLight(block.getLocation());
         if (mechanic.isTall())
             block.getRelative(BlockFace.UP).setType(Material.AIR, false);
-        if (player != null && player.getGameMode() != GameMode.CREATIVE)
-            mechanic.getDrop().spawns(block.getLocation(), item);
         block.setType(Material.AIR, false);
         final Block blockAbove = block.getRelative(BlockFace.UP);
         OraxenPlugin.foliaLib.getImpl().runLater(() -> {
@@ -280,7 +282,6 @@ public class OraxenBlocks {
                 switch (location.getBlock().getType()) {
                     case NOTE_BLOCK -> getNoteBlockMechanic(location.getBlock());
                     case TRIPWIRE -> getStringMechanic(location.getBlock());
-                    case MUSHROOM_STEM -> getBlockMechanic(location.getBlock());
                     default -> null;
                 };
     }

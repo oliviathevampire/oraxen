@@ -5,10 +5,13 @@ import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.mechanics.Mechanic;
 import io.th0rgal.oraxen.mechanics.MechanicFactory;
 import io.th0rgal.oraxen.mechanics.MechanicsManager;
+import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.NoteBlockMechanicListener;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.stringblock.sapling.SaplingListener;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.stringblock.sapling.SaplingTask;
+import io.th0rgal.oraxen.nms.NMSHandlers;
 import io.th0rgal.oraxen.utils.VersionUtil;
 import io.th0rgal.oraxen.utils.logs.Logs;
+import org.apache.commons.lang3.Range;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -16,9 +19,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Tripwire;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
 
-import java.io.File;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -58,16 +59,14 @@ public class StringBlockMechanicFactory extends MechanicFactory {
         MechanicsManager.registerListeners(OraxenPlugin.get(), getMechanicID(), new StringBlockMechanicListener(this), new SaplingListener());
         if (customSounds) MechanicsManager.registerListeners(OraxenPlugin.get(), getMechanicID(), new StringBlockSoundListener());
         if (VersionUtil.isPaperServer()) {
-            File paperConfig = OraxenPlugin.get().getDataFolder().toPath().toAbsolutePath().getParent().getParent().resolve("config").resolve("paper-global.yml").toFile();
-            if (paperConfig.exists()) {
-                ConfigurationSection paperSection = YamlConfiguration.loadConfiguration(paperConfig).getConfigurationSection("block-updates");
-                if (paperSection != null && !paperSection.getBoolean("disable-tripwire-updates", false)) {
-                    MechanicsManager.registerListeners(OraxenPlugin.get(), getMechanicID(), new StringBlockMechanicListener.StringBlockMechanicPhysicsListener());
-                    Logs.logError("Papers block.updates.disable-tripwire-updates is not enabled.");
+            MechanicsManager.registerListeners(OraxenPlugin.get(), getMechanicID(), new NoteBlockMechanicListener.NoteBlockMechanicPaperListener());
+            if (!NMSHandlers.isTripwireUpdatesDisabled()) {
+                MechanicsManager.registerListeners(OraxenPlugin.get(), getMechanicID(), new StringBlockMechanicListener.StringBlockMechanicPhysicsListener());
+                if (VersionUtil.isSupportedVersionOrNewer("1.20.1")) {
+                    Logs.logError("Papers block-updates.disable-tripwire-updates is not enabled.");
                     Logs.logWarning("It is recommended to enable this setting for improved performance and prevent bugs with tripwires");
                     Logs.logWarning("Otherwise Oraxen needs to listen to very taxing events, which also introduces some bugs");
-                    Logs.logWarning("You can enable this setting in ServerFolder/config/paper-global.yml");
-                    Logs.newline();
+                    Logs.logWarning("You can enable this setting in ServerFolder/config/paper-global.yml", true);
                 }
             }
         }
@@ -123,6 +122,10 @@ public class StringBlockMechanicFactory extends MechanicFactory {
     @Override
     public Mechanic parse(ConfigurationSection itemMechanicConfiguration) {
         StringBlockMechanic mechanic = new StringBlockMechanic(this, itemMechanicConfiguration);
+        if (!Range.between(1, 127).contains(mechanic.getCustomVariation())) {
+            Logs.logError("The custom variation of the block " + mechanic.getItemID() + " is not between 1 and 127!");
+            Logs.logWarning("The item has failed to build for now to prevent bugs and issues.");
+        }
         variants.add(getBlockstateVariantName(mechanic.getCustomVariation()),
                 getModelJson(mechanic.getModel(itemMechanicConfiguration.getParent()
                         .getParent())));

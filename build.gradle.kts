@@ -4,18 +4,20 @@ import java.util.*
 
 plugins {
     id("java")
-    id("maven-publish")
-    id("com.github.johnrengelman.shadow") version "8.1.1"
-    id("xyz.jpenilla.run-paper") version "2.0.1"
+    id("xyz.jpenilla.run-paper") version "2.2.0"
     id("net.minecrell.plugin-yml.bukkit") version "0.6.0" // Generates plugin.yml
-    id("io.papermc.paperweight.userdev") version "1.5.5" apply false
+    id("io.papermc.paperweight.userdev") version "1.5.6" apply false
+    id("com.mineinabyss.conventions.autoversion")
+    alias(libs.plugins.shadowjar)
+    alias(libs.plugins.mia.publication)
 }
 
 
 class NMSVersion(val nmsVersion: String, val serverVersion: String)
 infix fun String.toNms(that: String): NMSVersion = NMSVersion(this, that)
 val SUPPORTED_VERSIONS: List<NMSVersion> = listOf(
-        "v1_20_R1" toNms "1.20.1-R0.1-SNAPSHOT"
+        "v1_20_R1" toNms "1.20.1-R0.1-SNAPSHOT",
+        "v1_20_R2" toNms "1.20.2-R0.1-SNAPSHOT"
 )
 
 SUPPORTED_VERSIONS.forEach {
@@ -36,11 +38,14 @@ SUPPORTED_VERSIONS.forEach {
 }
 
 val compiled = (project.findProperty("oraxen_compiled")?.toString() ?: "true").toBoolean()
-val pluginPath = project.findProperty("oraxen_folia_plugin_path")
+val pluginPath = project.findProperty("oraxen_plugin_path")?.toString()
+val devPluginPath = project.findProperty("oraxen_dev_plugin_path")?.toString()
+val foliaPluginPath = project.findProperty("oraxen_folia_plugin_path")?.toString()
+val spigotPluginPath = project.findProperty("oraxen_spigot_plugin_path")?.toString()
 val pluginVersion: String by project
-val commandApiVersion = "9.1.0"
+val commandApiVersion = "9.2.0"
 val adventureVersion = "4.14.0"
-val platformVersion = "4.3.0"
+val platformVersion = "4.3.1"
 group = "io.th0rgal"
 version = pluginVersion
 
@@ -52,10 +57,10 @@ allprojects {
     repositories {
         mavenCentral()
 
+        maven("http://5.135.152.216:8081/releases").isAllowInsecureProtocol = true // Temporary Oraxen Repo
         maven("https://repo.papermc.io/repository/maven-public/") // Paper
         maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/") // Spigot
         maven("https://oss.sonatype.org/content/repositories/snapshots") // Because Spigot depends on Bungeecord ChatComponent-API
-        maven("https://jitpack.io") // JitPack
         maven("https://repo.dmulloy2.net/repository/public/") // ProtocolLib
         maven("https://libraries.minecraft.net/") // Minecraft repo (commodore)
         maven("https://repo.extendedclip.com/content/repositories/placeholderapi/") // PlaceHolderAPI
@@ -68,7 +73,11 @@ allprojects {
         maven("https://nexuslite.gcnt.net/repos/other/") // FoliaSchedulers
         maven("https://maven.enginehub.org/repo/")
         maven("https://nexus.phoenixdevt.fr/repository/maven-public/")
+        maven("https://repo.auxilor.io/repository/maven-public/") // EcoItems
         maven("https://nexuslite.gcnt.net/repos/other/") // FoliaLib
+        maven("https://repo.oraxen.com/releases")
+        maven("https://repo.oraxen.com/snapshots")
+        maven("https://jitpack.io") // JitPack
 
         mavenLocal()
     }
@@ -76,29 +85,31 @@ allprojects {
     dependencies {
         val actionsVersion = "1.0.0-SNAPSHOT"
 
-        compileOnly("org.spigotmc:spigot-api:1.20.1-R0.1-SNAPSHOT") { exclude("org.bukkit")}
-        compileOnly("io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT") { exclude("net.kyori") }
+        compileOnly("io.papermc.paper:paper-api:1.20.2-R0.1-SNAPSHOT")
         compileOnly("net.kyori:adventure-text-minimessage:$adventureVersion")
         compileOnly("net.kyori:adventure-text-serializer-plain:$adventureVersion")
         compileOnly("net.kyori:adventure-text-serializer-ansi:$adventureVersion")
         compileOnly("net.kyori:adventure-platform-bukkit:$platformVersion")
         compileOnly("com.comphenix.protocol:ProtocolLib:5.1.0")
-        compileOnly("me.clip:placeholderapi:2.11.3")
+        compileOnly("me.clip:placeholderapi:2.11.4")
         compileOnly("com.github.BeYkeRYkt:LightAPI:5.3.0-Bukkit")
         compileOnly("me.gabytm.util:actions-core:$actionsVersion")
         compileOnly("io.lumine:Mythic-Dist:5.4.0-SNAPSHOT")
         compileOnly("io.lumine:MythicCrucible:1.7.0-SNAPSHOT")
         compileOnly("com.sk89q.worldedit:worldedit-bukkit:7.2.0")
         compileOnly("commons-io:commons-io:2.11.0")
-        compileOnly("com.ticxo.modelengine:api:R3.1.5")
-        compileOnly("dev.jorel:commandapi-bukkit-shade:${property("commandApiVersion")}")
-        compileOnly("org.apache.httpcomponents:httpclient:${property("httpVersion")}")
-        compileOnly("io.javalin:javalin:${property("javalinVersion")}") // Javalin werbserver for LocalHost
-        compileOnly("javax.xml.bind:jaxb-api:${property("javaxVersion")}") // Javalin werbserver for LocalHost
+        compileOnly("com.ticxo.modelengine:api:R3.1.8")
+        compileOnly("com.ticxo.modelengine:ModelEngine:R4.0.1")
         compileOnly("org.springframework:spring-expression:${property("springVersion")}")
+        compileOnly("dev.jorel:commandapi-bukkit-shade:${property("commandApiVersion")}")
 
         compileOnly("io.lumine:MythicLib-dist:1.6.2-20230827.205210-9")
         compileOnly("net.Indyuce:MMOItems-API:6.9.5-20230827.205716-2")
+        compileOnly("com.willfp:EcoItems:5.23.0")
+        compileOnly("com.willfp:eco:6.65.5")
+        compileOnly("com.willfp:libreforge:4.36.0")
+        compileOnly("io.github.miniplaceholders:miniplaceholders-api:2.2.1")
+        compileOnly(fileTree(mapOf("dir" to "libs/compile", "include" to listOf("*.jar"))))
     }
 }
 
@@ -131,7 +142,7 @@ tasks {
     }
 
     runServer {
-        minecraftVersion("1.20.1")
+        minecraftVersion("1.20.2")
     }
 
     shadowJar {
@@ -187,7 +198,6 @@ bukkit {
             "org.springframework:spring-expression:6.0.6",
             "org.apache.httpcomponents:httpmime:4.5.13",
             "dev.jorel:commandapi-bukkit-shade:$commandApiVersion",
-            "org.joml:joml:1.10.5",
             "net.kyori:adventure-text-minimessage:$adventureVersion",
             "net.kyori:adventure-text-serializer-plain:$adventureVersion",
             "net.kyori:adventure-text-serializer-ansi:$adventureVersion",
@@ -195,25 +205,48 @@ bukkit {
     )
 }
 
-publishing {
-    publications {
-        register<MavenPublication>("maven") {
-            from(components.getByName("java"))
-        }
-    }
-}
-
 if (pluginPath != null) {
     tasks {
-        register<Copy>("copyJar") {
+        val defaultPath = findByName("reobfJar") ?: findByName("shadowJar") ?: findByName("jar")
+        // Define the main copy task
+        val copyJarTask = register<Copy>("copyJar") {
             this.doNotTrackState("Overwrites the plugin jar to allow for easier reloading")
             dependsOn(shadowJar, jar)
-            from(findByName("reobfJar") ?: findByName("shadowJar") ?: findByName("jar"))
+            from(defaultPath)
             into(pluginPath)
             doLast {
                 println("Copied to plugin directory $pluginPath")
             }
         }
-        named<DefaultTask>("build").get().dependsOn("copyJar")
+
+        // Create individual copy tasks for each destination
+        /*val copyToDevPluginPathTask = register<Copy>("copyToDevPluginPath") {
+            dependsOn(shadowJar, jar)
+            from(defaultPath)
+            devPluginPath?.let { into(it) }
+            doLast { println("Copied to plugin directory $devPluginPath") }
+        }
+
+        val copyToFoliaPluginPathTask = register<Copy>("copyToFoliaPluginPath") {
+            dependsOn(shadowJar, jar)
+            from(defaultPath)
+            foliaPluginPath?.let { into(it) }
+            doLast { println("Copied to plugin directory $foliaPluginPath") }
+        }
+
+        val copyToSpigotPluginPathTask = register<Copy>("copyToSpigotPluginPath") {
+            dependsOn(shadowJar, jar)
+            from(defaultPath)
+            spigotPluginPath?.let { into(it) }
+            doLast { println("Copied to plugin directory $spigotPluginPath") }
+        }*/
+
+        // Make the build task depend on all individual copy tasks
+        named<DefaultTask>("build").get().dependsOn(
+                copyJarTask/*,
+                copyToDevPluginPathTask,
+                copyToFoliaPluginPathTask,
+                copyToSpigotPluginPathTask*/
+        )
     }
 }

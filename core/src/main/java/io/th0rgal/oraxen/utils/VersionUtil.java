@@ -10,39 +10,57 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
-public enum VersionUtil implements Comparable<VersionUtil> {
-    v1_20_R1(5),
-    v1_19_R3(4),
-    v1_19_R2(3),
-    v1_19_R1(2),
-    v1_18_R2(1),
-    v1_18_R1(0),
-    UNKNOWN(-1);
+import java.util.*;
 
-    private final int value;
-    private static final boolean leaked = JarReader.checkIsLeaked();
+public class VersionUtil {
+    private static final Map<NMSVersion, Map<Integer, String>> versionMap = new HashMap<>();
 
-    VersionUtil(int value) {
-        this.value = value;
+    public enum NMSVersion {
+        v1_20_R2,
+        v1_20_R1,
+        v1_19_R3,
+        v1_19_R2,
+        v1_19_R1,
+        v1_18_R2,
+        v1_18_R1,
+        UNKNOWN;
+
+        public static boolean matchesServer(String version) {
+            return getNMSVersion(getMinecraftVersion()).equals(getNMSVersion(version));
+        }
+        public static boolean matchesServer(NMSVersion version) {
+            return version != UNKNOWN && getNMSVersion(getMinecraftVersion()).equals(version);
+        }
     }
 
-    /**
-     * @param server to get the version from
-     * @return the version of the server
-     * @throws IllegalArgumentException if server is null
-     */
-    @NotNull
-    public static VersionUtil getServerVersion(@NotNull Server server) {
-        Validate.notNull(server, "Server cannot be null");
+    static {
+        versionMap.put(NMSVersion.v1_20_R2, Map.of(10, "1.20.2"));
+        versionMap.put(NMSVersion.v1_20_R1, Map.of(8, "1.20", 9, "1.20.1"));
+        versionMap.put(NMSVersion.v1_19_R3, Map.of(7, "1.19.4"));
+        versionMap.put(NMSVersion.v1_19_R2, Map.of(6, "1.19.3"));
+        versionMap.put(NMSVersion.v1_19_R1, Map.of(3, "1.19", 4, "1.19.1", 5, "1.19.2"));
+        versionMap.put(NMSVersion.v1_18_R2, Map.of(2, "1.18.2"));
+        versionMap.put(NMSVersion.v1_18_R1, Map.of(0, "1.18", 1, "1.18.1"));
+    }
 
-        String packageName = server.getClass().getPackage().getName();
-        String version = packageName.substring(packageName.lastIndexOf('.') + 1);
+    public static NMSVersion getNMSVersion(String version) {
+        return versionMap.entrySet().stream().filter(e -> e.getValue().containsValue(version)).map(Map.Entry::getKey).findFirst().orElse(NMSVersion.UNKNOWN);
+    }
 
-        try {
-            return valueOf(version.trim());
-        } catch (final IllegalArgumentException e) {
-            return VersionUtil.UNKNOWN;
+    private static int getVersionValue(String version) {
+        for (Map.Entry<Integer, String> pair : versionMap.values().stream().flatMap(map -> map.entrySet().stream()).toList()) {
+            if (pair.getValue().equals(version)) return pair.getKey();
         }
+        return -1;
+    }
+
+    public static boolean matchesServer(String server) {
+        return server.equals(getMinecraftVersion());
+    }
+
+    public static boolean isSupportedVersionOrNewer(String versionString) {
+        int serverValue = getVersionValue(getMinecraftVersion());
+        return getVersionValue(versionString) <= serverValue;
     }
 
     /**
@@ -69,22 +87,15 @@ public enum VersionUtil implements Comparable<VersionUtil> {
         return server.getName().equalsIgnoreCase("Folia");
     }
 
-    public static boolean isSupportedVersionOrNewer(VersionUtil serverVersion) {
-        VersionUtil currentVersion = VersionUtil.getServerVersion(Bukkit.getServer());
-        return currentVersion.value >= serverVersion.value;
-    }
-
-    public static boolean isSupportedVersion(@NotNull VersionUtil serverVersion, @NotNull VersionUtil... supportedVersions) {
-        for (VersionUtil version : supportedVersions) {
-            if (version == serverVersion) {
-                return true;
-            }
+    public static boolean isSupportedVersion(@NotNull NMSVersion serverVersion, @NotNull NMSVersion... supportedVersions) {
+        for (NMSVersion version : supportedVersions) {
+            if (version.equals(serverVersion)) return true;
         }
 
         Logs.logWarning(String.format("The Server version which you are running is unsupported, you are running version '%s'.", serverVersion));
         Logs.logWarning(String.format("The plugin supports following versions %s.", combineVersions(supportedVersions)));
 
-        if (serverVersion == VersionUtil.UNKNOWN) {
+        if (serverVersion == NMSVersion.UNKNOWN) {
             Logs.logWarning(String.format("The Version '%s' can indicate, that you are using a newer Minecraft version than currently supported.", serverVersion));
             Logs.logWarning("In this case please update to the newest version of this plugin. If this is the newest Version, than please be patient. It can take a few weeks until the plugin is updated.");
         }
@@ -95,12 +106,12 @@ public enum VersionUtil implements Comparable<VersionUtil> {
     }
 
     @NotNull
-    private static String combineVersions(@NotNull VersionUtil... versions) {
+    private static String combineVersions(@NotNull NMSVersion... versions) {
         StringBuilder stringBuilder = new StringBuilder();
 
         boolean first = true;
 
-        for (VersionUtil version : versions) {
+        for (NMSVersion version : versions) {
             if (first) {
                 first = false;
             } else {
@@ -115,72 +126,6 @@ public enum VersionUtil implements Comparable<VersionUtil> {
         return stringBuilder.toString();
     }
 
-    /**
-     * Checks if the version is newer than the given version
-     * <p>
-     * If both versions are the same, the method will return false
-     *
-     * @param version to check against
-     * @return true if the version is newer than the given one, otherwise false
-     * @throws IllegalArgumentException if version is null
-     * @throws IllegalArgumentException if this version or the given version, is the version UNKNOWN
-     */
-    public boolean isNewerThan(@NotNull VersionUtil version) {
-        Validate.notNull(version, "Version cannot be null");
-        Validate.isTrue(this != UNKNOWN, "Cannot check, if version UNKNOWN is newer");
-        Validate.isTrue(version != UNKNOWN, "Cannot check, if version UNKNOWN is newer");
-
-        return value > version.value;
-    }
-
-    /**
-     * Checks if the version is newer or the same than the given version
-     *
-     * @param version to check against
-     * @return true if the version is newer or the same than the given one, otherwise false
-     * @throws IllegalArgumentException if version is null
-     * @throws IllegalArgumentException if this version or the given version, is the version UNKNOWN
-     */
-    public boolean isNewerOrSameThan(@NotNull VersionUtil version) {
-        Validate.notNull(version, "Version cannot be null");
-        Validate.isTrue(this != UNKNOWN, "Cannot check, if version UNKNOWN is newer or same");
-        Validate.isTrue(version != UNKNOWN, "Cannot check, if version UNKNOWN is newer or same");
-
-        return value >= version.value;
-    }
-
-    /**
-     * Checks if the version is older than the given version
-     *
-     * @param version to check against
-     * @return true if the version is older than the given one, otherwise false
-     * @throws IllegalArgumentException if version is null
-     * @throws IllegalArgumentException if this version or the given version, is the version UNKNOWN
-     */
-    public boolean isOlderThan(@NotNull VersionUtil version) {
-        Validate.notNull(version, "Version cannot be null");
-        Validate.isTrue(this != UNKNOWN, "Cannot check, if version UNKNOWN is older");
-        Validate.isTrue(version != UNKNOWN, "Cannot check, if version UNKNOWN is older");
-
-        return value < version.value;
-    }
-
-    /**
-     * Checks if the version is older or the same than the given version
-     *
-     * @param version to check against
-     * @return true if the version is older or the same than the given one, otherwise false
-     * @throws IllegalArgumentException if version is null
-     * @throws IllegalArgumentException if this version or the given version, is the version UNKNOWN
-     */
-    public boolean isOlderOrSameThan(@NotNull VersionUtil version) {
-        Validate.notNull(version, "Version cannot be null");
-        Validate.isTrue(this != UNKNOWN, "Cannot check, if version UNKNOWN is older or same");
-        Validate.isTrue(version != UNKNOWN, "Cannot check, if version UNKNOWN is older or same");
-
-        return value <= version.value;
-    }
-
     private final static String manifest = JarReader.getManifestContent();
 
     public static boolean isCompiled() {
@@ -188,12 +133,18 @@ public enum VersionUtil implements Comparable<VersionUtil> {
         return Boolean.parseBoolean(split.get(split.indexOf("Compiled") + 1)) && !isValidCompiler();
     }
 
+    private static final boolean leaked = JarReader.checkIsLeaked();
     public static boolean isLeaked() {
         return leaked;
     }
 
     public static boolean isValidCompiler() {
         List<String> split = Arrays.stream(manifest.split(":|\n")).map(String::trim).toList();
-        return Set.of("sivert", "thomas").contains(split.get(split.indexOf("Built-By") + 1).toLowerCase());
+        return Set.of("sivert", "thomas", "oliviathevampire").contains(split.get(split.indexOf("Built-By") + 1).toLowerCase());
+    }
+
+    public static String getMinecraftVersion() {
+        if (isPaperServer()) return Bukkit.getMinecraftVersion();
+        else return Bukkit.getVersion().split("MC: ")[1].split("\\)")[0];
     }
 }

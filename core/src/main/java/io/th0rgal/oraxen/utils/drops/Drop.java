@@ -11,6 +11,7 @@ import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
@@ -57,10 +58,22 @@ public class Drop {
         this.bestTools = new ArrayList<>();
     }
 
+    public static Drop emptyDrop() {
+        return new Drop(new ArrayList<>(), false, false, "");
+    }
+
+    public static Drop emptyDrop(List<Loot> loots) {
+        return new Drop(loots, false, false, "");
+    }
+
+    public static Drop clone(Drop drop, List<Loot> newLoots) {
+        return new Drop(drop.hierarchy, newLoots, drop.silktouch, drop.fortune, drop.sourceID, drop.minimalType, drop.bestTools);
+    }
+
     public String getItemType(ItemStack itemInHand) {
         String itemID = OraxenItems.getIdByItem(itemInHand);
         ItemTypeMechanicFactory factory = ItemTypeMechanicFactory.get();
-        if (factory.isNotImplementedIn(itemID)) {
+        if (factory == null || factory.isNotImplementedIn(itemID)) {
             String[] content = itemInHand.getType().toString().split("_");
             return content.length >= 2 ? content[0] : "";
         } else {
@@ -95,8 +108,38 @@ public class Drop {
         return (minimalType == null) ? 0 : hierarchy.indexOf(getItemType(item)) - hierarchy.indexOf(minimalType);
     }
 
+    public boolean isSilktouch() {
+        return silktouch;
+    }
+
+    public boolean isFortune() {
+        return fortune;
+    }
+
+    public String getSourceID() {
+        return sourceID;
+    }
+
+    public String getMinimalType() {
+        return minimalType;
+    }
+
+    public List<String> getBestTools() {
+        return bestTools;
+    }
+
+    public List<String> getHierarchy() {
+        return hierarchy;
+    }
+
     public List<Loot> getLoots() {
         return loots;
+    }
+
+    public Drop setLoots(List<Loot> loots) {
+        this.loots.clear();
+        this.loots.addAll(loots);
+        return this;
     }
 
     public void spawns(Location location, ItemStack itemInHand) {
@@ -149,5 +192,25 @@ public class Drop {
 
     private void dropLoot(List<Loot> loots, Location location, int fortuneMultiplier) {
         for (Loot loot : loots) loot.dropNaturally(location, fortuneMultiplier);
+    }
+
+    /**
+     * Get the loots that will drop based on a given Player
+     * @param player the player that triggered this drop
+     * @return the loots that will drop
+     */
+    public List<Loot> getLootToDrop(Player player) {
+        ItemStack itemInHand = player.getInventory().getItemInMainHand();
+        int fortuneMultiplier = getFortuneMultiplier(itemInHand);
+        List<Loot> droppedLoots = new ArrayList<>();
+        for (Loot loot : loots) {
+            ItemStack item = loot.getItem(fortuneMultiplier);
+
+            if (!canDrop(itemInHand) || item == null) continue;
+            if (ThreadLocalRandom.current().nextInt(loot.getProbability()) != 0) continue;
+
+            droppedLoots.add(loot);
+        }
+        return droppedLoots;
     }
 }

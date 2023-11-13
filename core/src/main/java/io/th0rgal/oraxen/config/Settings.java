@@ -28,9 +28,8 @@ public enum Settings {
     FORMAT_SIGNS("Plugin.formatting.signs"),
     FORMAT_CHAT("Plugin.formatting.chat"),
     FORMAT_BOOKS("Plugin.formatting.books"),
-    VERIFY_PACK_FILES("Plugin.experimental.verify_pack_files"),
-    EXCLUDE_MALFORMED_ATLAS("Plugin.experimental.exclude_malformed_from_atlas"),
-    USE_NMS_GLYPHS("Plugin.experimental.use_nms_glyphs"),
+    NMS_GLYPHS("Plugin.experimental.nms.glyphs"),
+    NMS_BLOCK_CORRECTION("Plugin.experimental.nms.block_correction"),
 
     // Config Tools
     CONFIGS_VERSION("configs_version"),
@@ -66,11 +65,16 @@ public enum Settings {
     BOW_DISPLAY("Misc.bow_display"),
     CROSSBOW_DISPLAY("Misc.crossbow_display"),
     HIDE_SCOREBOARD_NUMBERS("Misc.hide_scoreboard_numbers"),
+    HIDE_SCOREBOARD_BACKGROUND("Misc.hide_scoreboard_background"),
 
     //Pack
     GENERATE("Pack.generation.generate"),
     EXCLUDED_FILE_EXTENSIONS("Pack.generation.excluded_file_extensions"),
+    FIX_FORCE_UNICODE_GLYPHS("Pack.generation.fix_force_unicode_glyphs"),
+    VERIFY_PACK_FILES("Pack.generation.verify_pack_files"),
     GENERATE_ATLAS_FILE("Pack.generation.atlas.generate"),
+    TEXTURE_SLICER("Pack.generation.texture_slicer"),
+    EXCLUDE_MALFORMED_ATLAS("Pack.generation.atlas.exclude_malformed_from_atlas"),
     ATLAS_GENERATION_TYPE("Pack.generation.atlas.type"),
     GENERATE_MODEL_BASED_ON_TEXTURE_PATH("Pack.generation.auto_generated_models_follow_texture_path"),
     ARMOR_RESOLUTION("Pack.generation.armor_resolution"),
@@ -91,15 +95,13 @@ public enum Settings {
     UPLOAD_OPTIONS("Pack.upload.options"),
 
     POLYMATH_SERVER("Pack.upload.polymath.server"),
-    LOCALHOST_PORT("Pack.upload.localhost.port"),
-    LOCALHOST_IP("Pack.upload.localhost.ip"),
+    POLYMATH_SECRET("Pack.upload.polymath.secret"),
 
     SEND_PACK("Pack.dispatch.send_pack"),
     SEND_ON_RELOAD("Pack.dispatch.send_on_reload"),
     SEND_PACK_DELAY("Pack.dispatch.delay"),
-    SEND_PACK_ADVANCED("Pack.dispatch.send_pack_advanced.enabled"),
-    SEND_PACK_ADVANCED_MANDATORY("Pack.dispatch.send_pack_advanced.mandatory"),
-    SEND_PACK_ADVANCED_MESSAGE("Pack.dispatch.send_pack_advanced.message"),
+    SEND_PACK_MANDATORY("Pack.dispatch.mandatory"),
+    SEND_PACK_PROMPT("Pack.dispatch.prompt"),
     SEND_JOIN_MESSAGE("Pack.dispatch.join_message.enabled"),
     JOIN_MESSAGE_DELAY("Pack.dispatch.join_message.delay"),
 
@@ -112,8 +114,7 @@ public enum Settings {
     // Inventory
     ORAXEN_INV_LAYOUT("oraxen_inventory.menu_layout"),
     ORAXEN_INV_ROWS("oraxen_inventory.menu_rows"),
-    ORAXEN_INV_TITLE("oraxen_inventory.main_menu_title"),
-    ;
+    ORAXEN_INV_TITLE("oraxen_inventory.main_menu_title");
 
     private final String path;
 

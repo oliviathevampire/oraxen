@@ -1,8 +1,8 @@
 package io.th0rgal.oraxen.mechanics.provided.farming.harvesting;
 
-import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.api.OraxenItems;
 import io.th0rgal.oraxen.mechanics.MechanicFactory;
+import io.th0rgal.oraxen.utils.EventUtils;
 import io.th0rgal.oraxen.utils.timers.Timer;
 import io.th0rgal.protectionlib.ProtectionLib;
 import org.bukkit.Location;
@@ -95,8 +95,7 @@ public class HarvestingMechanicListener implements Listener {
         }
 
         if (mechanic.shouldLowerItemDurability() && item.getItemMeta() instanceof Damageable && durabilityDamage > 0) {
-            PlayerItemDamageEvent playerItemDamageEvent = new PlayerItemDamageEvent(player, item, durabilityDamage);
-            OraxenPlugin.get().getServer().getPluginManager().callEvent(playerItemDamageEvent);
+            EventUtils.callEvent(new PlayerItemDamageEvent(player, item, durabilityDamage));
         }
     }
 

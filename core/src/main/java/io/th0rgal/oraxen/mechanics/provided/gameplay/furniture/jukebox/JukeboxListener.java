@@ -13,7 +13,6 @@ import io.th0rgal.oraxen.utils.BlockHelpers;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.SoundCategory;
@@ -59,7 +58,7 @@ public class JukeboxListener implements Listener {
 
         if (displayName != null) {
             Component message = AdventureUtils.MINI_MESSAGE.deserialize(Message.MECHANICS_JUKEBOX_NOW_PLAYING.toString(),
-                    TagResolver.builder().resolvers(AdventureUtils.OraxenTagResolver, AdventureUtils.tagResolver("disc", displayName)).build());
+                    AdventureUtils.tagResolver("disc", displayName));
             OraxenPlugin.get().getAudience().player(player).sendActionBar(message);
         }
 

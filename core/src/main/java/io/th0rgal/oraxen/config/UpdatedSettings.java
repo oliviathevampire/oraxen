@@ -11,7 +11,11 @@ public enum UpdatedSettings {
     MERGE_FONTS("Plugin.experimental.merge_font_files", "Pack.import.merge_font_files"),
     GENERATE_ATLAS_FILE("Pack.generation.generate_atlas_file", "Pack.generation.atlas.generate"),
     AUTO_UPDATE_ITEMS("Misc.auto_update_items", "ItemUpdater.auto_update_items"),
-    ;
+    USE_NMS_GLYPHS("Plugin.experimental.nms_glyphs", "Plugin.experimental.nms.glyphs"),
+    SEND_PACK_ADVANCED_MANDATORY("Pack.dispatch.send_pack_advanced.mandatory", "Pack.dispatch.mandatory"),
+    SEND_PACK_ADVANCED_MESSAGE("Pack.dispatch.send_pack_advanced.message", "Pack.dispatch.prompt"),
+    VERIFY_PACK_FILES("Plugin.experimental.verify_pack_files", "Pack.generation.verify_pack_files"),
+    EXCLUDE_MALFORMED_ATLAS("Plugin.experimental.exclude_malformed_from_atlas", "Pack.generation.atlas.exclude_malformed_from_atlas");
 
     private final String path;
     private final String newPath;

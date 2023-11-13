@@ -5,7 +5,6 @@ import dev.triumphteam.gui.guis.GuiItem;
 import dev.triumphteam.gui.guis.PaginatedGui;
 import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.api.OraxenItems;
-import io.th0rgal.oraxen.config.ResourcesManager;
 import io.th0rgal.oraxen.config.Settings;
 import io.th0rgal.oraxen.items.ItemBuilder;
 import io.th0rgal.oraxen.items.ItemUpdater;
@@ -16,6 +15,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 
@@ -24,11 +24,11 @@ import java.util.*;
 
 public class ItemsView {
 
-    private final YamlConfiguration settings = new ResourcesManager(OraxenPlugin.get()).getSettings();
+    private final YamlConfiguration settings = OraxenPlugin.get().getResourceManager().getSettings();
     PaginatedGui mainGui;
 
     public PaginatedGui create() {
-        final Map<File, PaginatedGui> files = new HashMap<>();
+        final SortedMap<File, PaginatedGui> files = new TreeMap<>(Comparator.comparing(File::getName));
         for (final File file : OraxenItems.getMap().keySet()) {
             final List<ItemBuilder> unexcludedItems = OraxenItems.getUnexcludedItems(file);
             if (!unexcludedItems.isEmpty())
@@ -46,7 +46,7 @@ public class ItemsView {
             if (slot == -1) continue;
             GuiItem guiItem = new GuiItem(getItemStack(entry.getKey()).getLeft(), e -> {
                 entry.getValue().open(e.getWhoClicked());
-                e.getWhoClicked().getWorld().playSound(e.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+                ((Player)e.getWhoClicked()).playSound(e.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
             });
             pageItems.add(slot, guiItem);
         }
@@ -56,7 +56,7 @@ public class ItemsView {
             if (getItemStack(entry.getKey()).getRight() != -1) continue;
             pageItems.add(new GuiItem(getItemStack(entry.getKey()).getLeft(), e -> {
                 entry.getValue().open(e.getWhoClicked());
-                e.getWhoClicked().getWorld().playSound(e.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+                ((Player)e.getWhoClicked()).playSound(e.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
             }));
         }
 
@@ -69,7 +69,7 @@ public class ItemsView {
                     : new ItemBuilder(Material.ARROW).setDisplayName(AdventureUtils.parseLegacyThroughMiniMessage("<gray>Previous page"))
             ).build(), event -> {
                 mainGui.previous();
-                event.getWhoClicked().getWorld().playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+                ((Player)event.getWhoClicked()).playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
             }));
 
             mainGui.setItem(6, 8, new GuiItem((OraxenItems.exists("arrow_next_icon")
@@ -77,7 +77,7 @@ public class ItemsView {
                     : new ItemBuilder(Material.ARROW).setDisplayName(AdventureUtils.parseLegacyThroughMiniMessage("<gray>Next page"))
             ).build(), event -> {
                 mainGui.next();
-                event.getWhoClicked().getWorld().playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+                ((Player)event.getWhoClicked()).playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
             }));
         }
 
@@ -86,7 +86,7 @@ public class ItemsView {
                 : new ItemBuilder(Material.BARRIER).setDisplayName(AdventureUtils.parseLegacyThroughMiniMessage("<red>Exit"))
         ).build(), event -> {
             event.getWhoClicked().closeInventory();
-            event.getWhoClicked().getWorld().playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+            ((Player)event.getWhoClicked()).playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
         }));
 
         return mainGui;
@@ -106,7 +106,7 @@ public class ItemsView {
             GuiItem guiItem = new GuiItem(itemStack);
             guiItem.setAction(e -> {
                 e.getWhoClicked().getInventory().addItem(ItemUpdater.updateItem(guiItem.getItemStack()));
-                e.getWhoClicked().getWorld().playSound(e.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+                ((Player)e.getWhoClicked()).playSound(e.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
             });
             gui.addItem(guiItem);
         }
@@ -118,7 +118,8 @@ public class ItemsView {
                     : new ItemBuilder(Material.ARROW).setDisplayName(AdventureUtils.parseLegacyThroughMiniMessage("<gray>Previous page"))
             ).build(), event -> {
                 gui.previous();
-                event.getWhoClicked().getWorld().playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+
+                ((Player)event.getWhoClicked()).playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
             }));
 
             gui.setItem(6, 8, new GuiItem((OraxenItems.exists("arrow_next_icon")
@@ -126,7 +127,7 @@ public class ItemsView {
                     : new ItemBuilder(Material.ARROW).setDisplayName(AdventureUtils.parseLegacyThroughMiniMessage("<gray>Next page"))
             ).build(), event -> {
                 gui.next();
-                event.getWhoClicked().getWorld().playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+                ((Player)event.getWhoClicked()).playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
             }));
         }
 
@@ -135,7 +136,7 @@ public class ItemsView {
                 : new ItemBuilder(Material.BARRIER).setDisplayName(AdventureUtils.parseLegacyThroughMiniMessage("<red>Back to main menu"))
         ).build(), event -> {
             mainGui.open(event.getWhoClicked());
-            event.getWhoClicked().getWorld().playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+            ((Player)event.getWhoClicked()).playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
         }));
 
         return gui;

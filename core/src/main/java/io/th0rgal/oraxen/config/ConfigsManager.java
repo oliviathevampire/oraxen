@@ -4,8 +4,8 @@ import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.font.Glyph;
 import io.th0rgal.oraxen.items.ItemBuilder;
 import io.th0rgal.oraxen.items.ItemParser;
+import io.th0rgal.oraxen.items.ItemTemplate;
 import io.th0rgal.oraxen.items.ModelData;
-import io.th0rgal.oraxen.pack.generation.DuplicationHandler;
 import io.th0rgal.oraxen.utils.AdventureUtils;
 import io.th0rgal.oraxen.utils.OraxenYaml;
 import io.th0rgal.oraxen.utils.Utils;
@@ -115,7 +115,7 @@ public class ConfigsManager {
         if (!itemsFolder.exists()) {
             itemsFolder.mkdirs();
             if (Settings.GENERATE_DEFAULT_CONFIGS.toBool())
-                new ResourcesManager(plugin).extractConfigsInFolder("items", "yml");
+                OraxenPlugin.get().getResourceManager().extractConfigsInFolder("items", "yml");
         }
 
         // check glyphsFolder
@@ -123,8 +123,8 @@ public class ConfigsManager {
         if (!glyphsFolder.exists()) {
             glyphsFolder.mkdirs();
             if (Settings.GENERATE_DEFAULT_CONFIGS.toBool())
-                new ResourcesManager(plugin).extractConfigsInFolder("glyphs", "yml");
-            else new ResourcesManager(plugin).extractConfiguration("glyphs/interface.yml");
+                OraxenPlugin.get().getResourceManager().extractConfigsInFolder("glyphs", "yml");
+            else OraxenPlugin.get().getResourceManager().extractConfiguration("glyphs/interface.yml");
         }
 
         // check schematicsFolder
@@ -132,7 +132,7 @@ public class ConfigsManager {
         if (!schematicsFolder.exists()) {
             schematicsFolder.mkdirs();
             if (Settings.GENERATE_DEFAULT_CONFIGS.toBool())
-                new ResourcesManager(plugin).extractConfigsInFolder("schematics", "schem");
+                OraxenPlugin.get().getResourceManager().extractConfigsInFolder("schematics", "schem");
         }
     }
 
@@ -148,6 +148,13 @@ public class ConfigsManager {
                 configuration.set(key, defaultConfiguration.get(key));
             }
         }
+
+        for (String key : configuration.getKeys(false)) if (removedYamlKeys.contains(key)) {
+            updated = true;
+            Message.REMOVING_CONFIG.log(AdventureUtils.tagResolver("option", key));
+            configuration.set(key, null);
+        }
+
         if (updated)
             try {
                 configuration.save(configurationFile);
@@ -163,6 +170,11 @@ public class ConfigsManager {
             List.of(
                     "oraxen_inventory.menu_layout",
                     "Misc.armor_equip_event_bypass"
+            );
+
+    private final List<String> removedYamlKeys =
+            List.of(
+                    "armorpotioneffects"
             );
 
     public Collection<Glyph> parseGlyphConfigs() {
@@ -209,11 +221,8 @@ public class ConfigsManager {
     }
 
     public Map<File, Map<String, ItemBuilder>> parseItemConfig() {
-
         Map<File, Map<String, ItemBuilder>> parseMap = new LinkedHashMap<>();
-        for (File file : getItemFiles()) {
-            parseMap.put(file, parseItemConfig(OraxenYaml.loadConfiguration(file), file));
-        }
+        for (File file : getItemFiles()) parseMap.put(file, parseItemConfig(file));
         return parseMap;
     }
 
@@ -228,7 +237,7 @@ public class ConfigsManager {
                 ConfigurationSection itemSection = configuration.getConfigurationSection(key);
                 if (itemSection == null) continue;
                 ConfigurationSection packSection = itemSection.getConfigurationSection("Pack");
-                Material material = Material.matchMaterial(itemSection.getString("material", ""));
+                Material material = Material.getMaterial(itemSection.getString("material", ""));
                 if (packSection == null || material == null) continue;
                 int modelData = packSection.getInt("custom_model_data", -1);
                 String model = getItemModelFromConfigurationSection(packSection);
@@ -236,17 +245,16 @@ public class ConfigsManager {
                 if (assignedModelDatas.containsKey(material) && assignedModelDatas.get(material).containsKey(modelData)) {
                     if (assignedModelDatas.get(material).get(modelData).equals(model)) continue;
                     Logs.logError("CustomModelData " + modelData + " is already assigned to another item with this material but different model");
-                    if (file.getName().equals(DuplicationHandler.DUPLICATE_FILE_MERGE_NAME) && Settings.RETAIN_CUSTOM_MODEL_DATA.toBool()) {
+                    /*if (file.getAbsolutePath().equals(DuplicationHandler.getDuplicateItemFile(material).getAbsolutePath()) && Settings.RETAIN_CUSTOM_MODEL_DATA.toBool()) {
                         Logs.logWarning("Due to " + Settings.RETAIN_CUSTOM_MODEL_DATA.getPath() + " being enabled,");
                         Logs.logWarning("the model data will not removed from " + file.getName() + ": " + key + ".");
                         Logs.logWarning("There will still be a conflict which you need to solve yourself.");
-                        Logs.logWarning("Either reset the CustomModelData of this item, or change the CustomModelData of the conflicting item.");
+                        Logs.logWarning("Either reset the CustomModelData of this item, or change the CustomModelData of the conflicting item.", true);
                     } else {
-                        Logs.logWarning("Removing custom model data from " + file.getName() + ": " + key);
+                        Logs.logWarning("Removing custom model data from " + file.getName() + ": " + key, true);
                         packSection.set("custom_model_data", null);
                         fileChanged = true;
-                    }
-                    Logs.newline();
+                    }*/
                     continue;
                 }
 
@@ -264,6 +272,17 @@ public class ConfigsManager {
         }
     }
 
+    public void parseAllItemTemplates() {
+        for (File file : getItemFiles()) {
+            if (!file.exists()) continue;
+            YamlConfiguration configuration = OraxenYaml.loadConfiguration(file);
+            for (String key : configuration.getKeys(false)) {
+                ConfigurationSection itemSection = configuration.getConfigurationSection(key);
+                if (itemSection != null && itemSection.isBoolean("template")) new ItemTemplate(itemSection);
+            }
+        }
+    }
+
     private String getItemModelFromConfigurationSection(ConfigurationSection packSection) {
         String model = packSection.getString("model", "");
         if (model.isEmpty() && packSection.getBoolean("generate_model", false)) {
@@ -272,13 +291,14 @@ public class ConfigsManager {
         return model;
     }
 
-    public Map<String, ItemBuilder> parseItemConfig(YamlConfiguration config, File itemFile) {
+    public Map<String, ItemBuilder> parseItemConfig(File itemFile) {
+        YamlConfiguration config = OraxenYaml.loadConfiguration(itemFile);
         Map<String, ItemParser> parseMap = new LinkedHashMap<>();
         ItemParser errorItem = new ItemParser(Settings.ERROR_ITEM.toConfigSection());
-        for (String itemSectionName : config.getKeys(false)) {
-            ConfigurationSection itemSection = config.getConfigurationSection(itemSectionName);
-            if (itemSection == null) continue;
-            parseMap.put(itemSectionName, new ItemParser(itemSection));
+        for (String itemKey : config.getKeys(false)) {
+            ConfigurationSection itemSection = config.getConfigurationSection(itemKey);
+            if (itemSection == null || ItemTemplate.isTemplate(itemKey)) continue;
+            parseMap.put(itemKey, new ItemParser(itemSection));
         }
         boolean configUpdated = false;
         // because we must have parse all the items before building them to be able to
@@ -291,7 +311,8 @@ public class ConfigsManager {
             } catch (Exception e) {
                 map.put(entry.getKey(), errorItem.buildItem());
                 Logs.logError("ERROR BUILDING ITEM \"" + entry.getKey() + "\"");
-                e.printStackTrace();
+                if (Settings.DEBUG.toBool()) e.printStackTrace();
+                else Logs.logWarning(e.getMessage());
             }
             if (itemParser.isConfigUpdated())
                 configUpdated = true;

@@ -1,5 +1,6 @@
 package io.th0rgal.oraxen.utils;
 
+import io.th0rgal.oraxen.config.Settings;
 import io.th0rgal.oraxen.utils.logs.Logs;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -50,8 +51,8 @@ public class OraxenYaml extends YamlConfiguration {
             super.load(file);
         } catch (Exception ex) {
             // Handle the exception here (e.g., log the error)
-            System.err.println("Error loading YAML configuration file: " + file.getName());
-            ex.printStackTrace();
+            Logs.logError("Error loading YAML configuration file: " + file.getName());
+            if (Settings.DEBUG.toBool()) Logs.logWarning(ex.getMessage());
             // You can choose to do nothing and keep the existing data in the file
             // or provide default values and continue.
         }

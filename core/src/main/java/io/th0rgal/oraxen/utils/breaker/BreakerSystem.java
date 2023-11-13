@@ -20,13 +20,12 @@ import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureMechanic
 import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.NoteBlockMechanic;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.stringblock.StringBlockMechanic;
 import io.th0rgal.oraxen.utils.BlockHelpers;
+import io.th0rgal.oraxen.utils.EventUtils;
+import io.th0rgal.oraxen.utils.Utils;
+import io.th0rgal.oraxen.utils.VersionUtil;
 import io.th0rgal.oraxen.utils.blocksounds.BlockSounds;
 import io.th0rgal.protectionlib.ProtectionLib;
-import org.bukkit.Bukkit;
-import org.bukkit.GameMode;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.configuration.ConfigurationSection;
@@ -39,16 +38,13 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Consumer;
 
 import static io.th0rgal.oraxen.mechanics.provided.gameplay.block.BlockMechanicFactory.getBlockMechanic;
@@ -156,17 +152,20 @@ public class BreakerSystem {
 
                         if (value++ < 10) return;
 
-                        final BlockBreakEvent blockBreakEvent = new BlockBreakEvent(block, player);
-                        Bukkit.getPluginManager().callEvent(blockBreakEvent);
-
-                        if (!blockBreakEvent.isCancelled() && ProtectionLib.canBreak(player, block.getLocation())) {
+                        if (EventUtils.callEvent(new BlockBreakEvent(block, player)) && ProtectionLib.canBreak(player, block.getLocation())) {
                             modifier.breakBlock(player, block, item);
-                            PlayerItemDamageEvent playerItemDamageEvent = new PlayerItemDamageEvent(player, item, 1);
-                            Bukkit.getPluginManager().callEvent(playerItemDamageEvent);
+                            EventUtils.callEvent(new PlayerItemDamageEvent(player, item, 1));
                         } else breakerPlaySound.remove(block);
 
                         Bukkit.getScheduler().runTask(OraxenPlugin.get(), () ->
                                 player.removePotionEffect(PotionEffectType.SLOW_DIGGING));
+
+                        if (VersionUtil.isPaperServer()) item.damage(1, player);
+                        else Utils.editItemMeta(item, meta -> {
+                            if (meta instanceof Damageable damageable)
+                                damageable.setDamage(damageable.getDamage() + 1);
+                        });
+
                         breakerPerLocation.remove(location);
                         for (final Entity entity : world.getNearbyEntities(location, 16, 16, 16)) {
                             if (entity instanceof Player viewer) {
@@ -199,7 +198,6 @@ public class BreakerSystem {
     }
 
     private boolean blockDamageEventCancelled(Block block, Player player) {
-
         switch (block.getType()) {
             case NOTE_BLOCK -> {
                 NoteBlockMechanic mechanic = OraxenBlocks.getNoteBlockMechanic(block);

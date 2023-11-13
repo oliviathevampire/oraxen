@@ -4,55 +4,26 @@ import com.jeff_media.customblockdata.CustomBlockData;
 import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.api.OraxenBlocks;
 import io.th0rgal.oraxen.api.OraxenFurniture;
+import io.th0rgal.oraxen.config.Settings;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureMechanic;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.NoteBlockMechanic;
+import io.th0rgal.oraxen.nms.NMSHandlers;
 import org.apache.commons.lang3.Range;
-import org.bukkit.Axis;
-import org.bukkit.Bukkit;
-import org.bukkit.FluidCollisionMode;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.SoundCategory;
-import org.bukkit.Tag;
-import org.bukkit.World;
-import org.bukkit.block.Banner;
-import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
-import org.bukkit.block.BlockState;
+import org.bukkit.*;
 import org.bukkit.block.Sign;
-import org.bukkit.block.Skull;
-import org.bukkit.block.data.Ageable;
-import org.bukkit.block.data.Attachable;
-import org.bukkit.block.data.Bisected;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.block.data.Directional;
-import org.bukkit.block.data.FaceAttachable;
-import org.bukkit.block.data.MultipleFacing;
-import org.bukkit.block.data.Orientable;
-import org.bukkit.block.data.Rotatable;
-import org.bukkit.block.data.Waterlogged;
+import org.bukkit.block.*;
+import org.bukkit.block.data.*;
 import org.bukkit.block.data.type.Bed;
 import org.bukkit.block.data.type.Chest;
-import org.bukkit.block.data.type.CoralWallFan;
-import org.bukkit.block.data.type.Door;
-import org.bukkit.block.data.type.HangingSign;
-import org.bukkit.block.data.type.Ladder;
-import org.bukkit.block.data.type.Lantern;
 import org.bukkit.block.data.type.Lectern;
-import org.bukkit.block.data.type.Repeater;
-import org.bukkit.block.data.type.Sapling;
-import org.bukkit.block.data.type.SculkVein;
-import org.bukkit.block.data.type.Slab;
-import org.bukkit.block.data.type.Stairs;
-import org.bukkit.block.data.type.TrapDoor;
-import org.bukkit.block.data.type.Tripwire;
-import org.bukkit.block.data.type.TripwireHook;
-import org.bukkit.block.data.type.WallHangingSign;
+import org.bukkit.block.data.type.*;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.BlockInventoryHolder;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.BannerMeta;
 import org.bukkit.inventory.meta.BlockStateMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -84,24 +55,20 @@ public class BlockHelpers {
         if (sound.startsWith("block.wood") && mechanics.getBoolean("noteblock_and_block")) {
             return sound.replace("block.wood", "required.wood");
         } else if (sound.startsWith("block.stone") && mechanics.getBoolean("stringblock_and_furniture")) {
-                return sound.replace("block.stone", "required.stone");
-        }else return sound;
+            return sound.replace("block.stone", "required.stone");
+        } else return sound;
     }
 
     public static Location toBlockLocation(Location location) {
-        return new Location(location.getWorld(), location.getBlockX(), location.getBlockY(), location.getBlockZ());
+        return location.toBlockLocation();
     }
 
     public static Location toCenterLocation(Location location) {
-        return toBlockLocation(location).clone().add(0.5, 0.5, 0.5);
+        return location.toCenterLocation();
     }
 
     public static Location toCenterBlockLocation(Location location) {
-        return toCenterLocation(location).subtract(0,0.5,0);
-    }
-
-    public static Location toSimpleLocation(Location location) {
-        return new Location(location.getWorld(), location.getX(), location.getY(), location.getZ(), 0f, 0f);
+        return location.toCenterLocation().subtract(0,0.5,0);
     }
 
     public static boolean isStandingInside(final Player player, final Block block) {
@@ -167,31 +134,53 @@ public class BlockHelpers {
         };
     }
 
-    public static boolean correctAllBlockStates(Block block, Player player, BlockFace face, ItemStack item, boolean waterloggedBefore) {
+    public static BlockData correctAllBlockStates(Block placedAgainst, Player player, EquipmentSlot hand, BlockFace face, ItemStack item, BlockData newData) {
+        Block target = placedAgainst.getRelative(face);
+        BlockData correctedData;
+        if (NMSHandlers.getHandler() != null  && Settings.NMS_BLOCK_CORRECTION.toBool())
+            correctedData = NMSHandlers.getHandler().correctBlockStates(player, hand, item, placedAgainst, face);
+        else {
+            if (newData == null) return null;
+            // If not using NMS-method, the BlockData needs to be set beforehand
+            BlockData oldData = target.getBlockData();
+            target.setBlockData(newData);
+            correctedData = oldCorrectBlockData(placedAgainst.getRelative(face), player, face, item);
+            if (correctedData == null) target.setBlockData(oldData);
+            if (player.getGameMode() != GameMode.CREATIVE) item.setAmount(item.getAmount() - 1);
+            Utils.swingHand(player, hand);
+        }
+
+        if (target.getState() instanceof Sign sign) player.openSign(sign);
+
+        return correctedData;
+    }
+
+    private static BlockData oldCorrectBlockData(Block block, Player player, BlockFace face, ItemStack item) {
         BlockData data = block.getBlockData();
         BlockState state = block.getState();
         Material type = block.getType();
-        if (type == Material.SEAGRASS && !waterloggedBefore) return true;
-        if (data instanceof Tripwire) return false;
-        if (data instanceof Sapling && face != BlockFace.UP) return true;
-        if (data instanceof Ladder && (face == BlockFace.UP || face == BlockFace.DOWN)) return true;
-        if (type == Material.HANGING_ROOTS && face != BlockFace.DOWN) return true;
-        if (type.toString().endsWith("TORCH") && face == BlockFace.DOWN) return true;
-        if (data instanceof HangingSign && face == BlockFace.UP) return true;
-        if (((state instanceof Sign && !(data instanceof HangingSign)) || state instanceof Banner) && face == BlockFace.DOWN) return true;
-        if (data instanceof Ageable) return !handleAgeableBlocks(block, face);
+
+        if (type == Material.SEAGRASS) return null;
+        if (data instanceof Tripwire) return data;
+        if (data instanceof Sapling && face != BlockFace.UP) return null;
+        if (data instanceof Ladder && (face == BlockFace.UP || face == BlockFace.DOWN)) return null;
+        if (type == Material.HANGING_ROOTS && face != BlockFace.DOWN) return null;
+        if (type.toString().endsWith("TORCH") && face == BlockFace.DOWN) return null;
+        if (type.toString().endsWith("HANGING_SIGN") && face == BlockFace.UP) return null;
+        if (((state instanceof Sign && !type.toString().endsWith("HANGING_SIGN")) || state instanceof Banner) && face == BlockFace.DOWN) return null;
+        if (data instanceof Ageable) return !handleAgeableBlocks(block, face) ? data : null;
         if (!(data instanceof Door) && (data instanceof Bisected || data instanceof Slab)) handleHalfBlocks(block, player);
         if (data instanceof Rotatable) handleRotatableBlocks(block, player);
-        if (type.toString().contains("CORAL") && !type.toString().endsWith("CORAL_BLOCK") && face == BlockFace.DOWN) return true;
-        if (type.toString().endsWith("CORAL") && block.getRelative(BlockFace.DOWN).getType() == Material.AIR) return true;
+        if (type.toString().contains("CORAL") && !type.toString().endsWith("CORAL_BLOCK") && face == BlockFace.DOWN) return null;
+        if (type.toString().endsWith("CORAL") && block.getRelative(BlockFace.DOWN).getType() == Material.AIR) return null;
         if (type.toString().endsWith("_CORAL_FAN") && face != BlockFace.UP) block.setType(Material.valueOf(type.toString().replace("_CORAL_FAN", "_CORAL_WALL_FAN")));
         if (data instanceof Waterlogged) handleWaterlogged(block, face);
-        if ((data instanceof Bed || data instanceof Chest || data instanceof Bisected) && !(data instanceof Stairs) && !(data instanceof TrapDoor)) if (!handleDoubleBlocks(block, player)) return true;
+        if ((data instanceof Bed || data instanceof Chest || data instanceof Bisected) && !(data instanceof Stairs) && !(data instanceof TrapDoor)) if (!handleDoubleBlocks(block, player)) return null;
         if ((state instanceof Skull || state instanceof Sign || state instanceof Banner || type.toString().contains("TORCH")) && face != BlockFace.DOWN && face != BlockFace.UP) handleWallAttachable(block, face);
 
-        if (!(data instanceof Stairs) && !(data instanceof HangingSign) && (data instanceof Directional || data instanceof FaceAttachable || data instanceof MultipleFacing || data instanceof Attachable)) {
-            if (!(data instanceof SculkVein) && data instanceof MultipleFacing && face == BlockFace.UP) return true;
-            if (data instanceof CoralWallFan && face == BlockFace.DOWN) return true;
+        if (!(data instanceof Stairs) && !type.toString().endsWith("HANGING_SIGN") && (data instanceof Directional || data instanceof FaceAttachable || data instanceof MultipleFacing || data instanceof Attachable)) {
+            if (!(data instanceof SculkVein) && data instanceof MultipleFacing && face == BlockFace.UP) return null;
+            if (data instanceof CoralWallFan && face == BlockFace.DOWN) return null;
             handleDirectionalBlocks(block, face);
         }
 
@@ -200,36 +189,35 @@ public class BlockHelpers {
             else if (face == BlockFace.NORTH || face == BlockFace.SOUTH) orientable.setAxis(Axis.Z);
             else if (face == BlockFace.WEST || face == BlockFace.EAST) orientable.setAxis(Axis.X);
             else orientable.setAxis(Axis.Y);
-            block.setBlockData(orientable, false);
         }
 
         if (data instanceof Lantern lantern) {
-            if (face != BlockFace.DOWN) return true;
-            lantern.setHanging(true);
-            block.setBlockData(lantern, false);
+            lantern.setHanging(face == BlockFace.DOWN);
         }
 
         if (data instanceof Lectern lectern) {
-            ((Lectern) data).setFacing(player.getFacing().getOppositeFace());
-            block.setBlockData(lectern, false);
+            lectern.setFacing(player.getFacing().getOppositeFace());
         }
 
         if (type.toString().endsWith("ANVIL")) {
             if (face == BlockFace.UP || face == BlockFace.DOWN)
                 ((Directional) data).setFacing(getAnvilFacing(player.getFacing().getOppositeFace()));
             else ((Directional) data).setFacing(getAnvilFacing(face));
-            block.setBlockData(data, false);
         }
 
-        if (state instanceof BlockInventoryHolder invHolder) {
-            Inventory inv = ((BlockInventoryHolder) ((BlockStateMeta) Objects.requireNonNull(item.getItemMeta())).getBlockState()).getInventory();
-            for (ItemStack i : inv)
-                if (i != null) invHolder.getInventory().addItem(i);
+        if (state instanceof BlockInventoryHolder invHolder && item.hasItemMeta() && item.getItemMeta() instanceof BlockStateMeta blockStateMeta) {
+            Inventory inv = ((BlockInventoryHolder) blockStateMeta.getBlockState()).getInventory();
+            invHolder.getInventory().setContents(inv.getContents());
         }
 
         if (data instanceof Repeater repeater) {
             repeater.setFacing(player.getFacing().getOppositeFace());
-            block.setBlockData(repeater, false);
+        }
+
+        if (block.getState() instanceof Banner banner && item.hasItemMeta() && item.getItemMeta() instanceof BannerMeta bannerItem) {
+            banner.setBaseColor(Objects.requireNonNullElse(DyeColor.getByWoolData(item.getData().getData()), bannerItem.getBaseColor()));
+            banner.setPatterns(bannerItem.getPatterns());
+            if (!banner.update(false, false)) return null;
         }
 
         if (data instanceof TripwireHook hook) {
@@ -237,15 +225,12 @@ public class BlockHelpers {
                 hook.setFacing(player.getFacing().getOppositeFace());
             else {
                 List<BlockFace> solidFaces = hook.getFaces().stream().filter(f -> block.getRelative(f).getType().isSolid()).toList();
-                if (solidFaces.isEmpty()) return true;
+                if (solidFaces.isEmpty()) return null;
                 else hook.setFacing(solidFaces.get(0).getOppositeFace());
             }
-            block.setBlockData(hook, false);
         }
 
-        if (block.getState() instanceof Sign sign) player.openSign(sign);
-
-        return false;
+        return data;
     }
 
     private static void handleWaterlogged(Block block, BlockFace face) {
@@ -274,7 +259,10 @@ public class BlockHelpers {
 
         final BlockData data = block.getBlockData();
         if (data instanceof Directional directional) directional.setFacing(face);
-        if (data instanceof WallHangingSign hanging) hanging.setFacing(getWallHangingSignFacing(face.getOppositeFace()));
+        if (data.getMaterial().toString().endsWith("WALL_HANGING_SIGN")) {
+            assert data instanceof WallHangingSign;
+            ((WallHangingSign) data).setFacing(getWallHangingSignFacing(face.getOppositeFace()));
+        }
         block.setBlockData(data, false);
     }
 
@@ -329,7 +317,7 @@ public class BlockHelpers {
         return true;
     }
 
-    private static void handleHalfBlocks(Block block, Player player) {
+    public static void handleHalfBlocks(Block block, Player player) {
         final RayTraceResult eye = player.rayTraceBlocks(5.0, FluidCollisionMode.NEVER);
         final BlockData data = block.getBlockData();
         if (eye == null) return;
@@ -457,7 +445,7 @@ public class BlockHelpers {
         };
     }
 
-    public static BlockFace getWallHangingSignFacing(BlockFace face) {
+    private static BlockFace getWallHangingSignFacing(BlockFace face) {
         return switch (face) {
             case NORTH -> BlockFace.WEST;
             case SOUTH -> BlockFace.EAST;

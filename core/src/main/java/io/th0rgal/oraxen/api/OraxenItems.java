@@ -1,13 +1,13 @@
 package io.th0rgal.oraxen.api;
 
 import io.th0rgal.oraxen.OraxenPlugin;
-import io.th0rgal.oraxen.config.ConfigsManager;
 import io.th0rgal.oraxen.config.Message;
 import io.th0rgal.oraxen.items.ItemBuilder;
 import io.th0rgal.oraxen.items.ItemParser;
 import io.th0rgal.oraxen.items.ModelData;
 import io.th0rgal.oraxen.mechanics.MechanicFactory;
 import io.th0rgal.oraxen.mechanics.MechanicsManager;
+import io.th0rgal.oraxen.pack.generation.DuplicationHandler;
 import io.th0rgal.oraxen.utils.AdventureUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.bukkit.Material;
@@ -16,43 +16,27 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class OraxenItems {
 
-    private OraxenItems() {}
-
     public static final NamespacedKey ITEM_ID = new NamespacedKey(OraxenPlugin.get(), "id");
     // configuration sections : their OraxenItem wrapper
     private static Map<File, Map<String, ItemBuilder>> map;
-    private static ConfigsManager configsManager;
-    private static String[] items;
-
-    public static void loadItems(final ConfigsManager configsManager) {
-        OraxenItems.configsManager = configsManager;
-        loadItems();
-    }
+    private static Set<String> items;
 
     public static void loadItems() {
         ItemParser.MODEL_DATAS_BY_ID.clear();
         ModelData.DATAS.clear();
-        configsManager.assignAllUsedModelDatas();
-        map = configsManager.parseItemConfig();
-        final List<String> itemsList = new ArrayList<>();
+        OraxenPlugin.get().getConfigsManager().assignAllUsedModelDatas();
+        OraxenPlugin.get().getConfigsManager().parseAllItemTemplates();
+        map = OraxenPlugin.get().getConfigsManager().parseItemConfig();
+        items = new HashSet<>();
         for (final Map<String, ItemBuilder> subMap : map.values())
-            itemsList.addAll(subMap.keySet());
-        items = itemsList.toArray(new String[0]);
+            items.addAll(subMap.keySet());
     }
 
     public static String getIdByItem(final ItemBuilder item) {
@@ -65,11 +49,11 @@ public class OraxenItems {
     }
 
     public static boolean exists(final String itemId) {
-        return entryStream().anyMatch(entry -> entry.getKey().equals(itemId));
+        return items.contains(itemId);
     }
 
     public static boolean exists(final ItemStack itemStack) {
-        return entryStream().anyMatch(entry -> entry.getKey().equals(OraxenItems.getIdByItem(itemStack)));
+        return items.contains(OraxenItems.getIdByItem(itemStack));
     }
 
     public static Optional<ItemBuilder> getOptionalItemById(final String id) {
@@ -78,6 +62,10 @@ public class OraxenItems {
 
     public static ItemBuilder getItemById(final String id) {
         return getOptionalItemById(id).orElse(null);
+    }
+
+    public static ItemBuilder getBuilderByItem(ItemStack item) {
+        return getItemById(getIdByItem(item));
     }
 
     public static List<ItemBuilder> getUnexcludedItems() {
@@ -152,7 +140,7 @@ public class OraxenItems {
     }
 
     public static String[] getItemNames() {
-        return Arrays.stream(items).filter(item -> {
+        return items.stream().filter(item -> {
             ItemBuilder builder = OraxenItems.getItemById(item);
             return builder != null && builder.hasOraxenMeta() && !builder.getOraxenMeta().isExcludedFromCommands();
         }).toArray(String[]::new);

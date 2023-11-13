@@ -4,10 +4,10 @@ import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.api.OraxenItems;
 import io.th0rgal.oraxen.mechanics.MechanicFactory;
 import io.th0rgal.oraxen.utils.BlockHelpers;
+import io.th0rgal.oraxen.utils.EventUtils;
 import io.th0rgal.oraxen.utils.VectorUtils;
 import io.th0rgal.oraxen.utils.timers.Timer;
 import io.th0rgal.protectionlib.ProtectionLib;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.World;
@@ -117,11 +117,9 @@ public class EnergyBlastMechanicManager implements Listener {
                     for (Entity entity : playerLoc.getWorld().getNearbyEntities(playerLoc, 0.5, 0.5, 0.5))
                         if (entity instanceof LivingEntity livingEntity && entity != player) {
                             EntityDamageByEntityEvent event = new EntityDamageByEntityEvent(player, entity, EntityDamageEvent.DamageCause.MAGIC, mechanic.getDamage() * 3.0);
-                            Bukkit.getPluginManager().callEvent(event);
-                            if (!event.isCancelled()) {
-                                entity.setLastDamageCause(event);
-                                livingEntity.damage(mechanic.getDamage() * 3.0, player);
-                            }
+                            if (entity.isDead() || EventUtils.callEvent(event)) continue;
+                            entity.setLastDamageCause(event);
+                            livingEntity.damage(mechanic.getDamage() * 3.0, player);
                         }
                     this.cancel();
                     return;
@@ -130,14 +128,11 @@ public class EnergyBlastMechanicManager implements Listener {
                 playerLoc.add(dir);
                 for (Entity entity : playerLoc.getWorld().getNearbyEntities(playerLoc, radius, radius, radius))
                     if (entity instanceof LivingEntity livingEntity && entity != player) {
-                        EntityDamageByEntityEvent event = new EntityDamageByEntityEvent(player, entity, EntityDamageEvent.DamageCause.MAGIC, mechanic.getDamage());
-                        Bukkit.getPluginManager().callEvent(event);
-                        if (!event.isCancelled()) {
-                            entity.setLastDamageCause(event);
-                            livingEntity.damage(mechanic.getDamage(), player);
-                        }
+                        EntityDamageByEntityEvent event = new EntityDamageByEntityEvent(player, livingEntity, EntityDamageEvent.DamageCause.MAGIC, mechanic.getDamage());
+                        if (livingEntity.isDead() || !EventUtils.callEvent(event)) continue;
+                        livingEntity.setLastDamageCause(event);
+                        livingEntity.damage(mechanic.getDamage(), player);
                     }
-
             }
         }.runTaskTimer(OraxenPlugin.get(), 0, 1);
     }

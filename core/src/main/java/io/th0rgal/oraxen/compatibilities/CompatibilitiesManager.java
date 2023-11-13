@@ -1,6 +1,7 @@
 package io.th0rgal.oraxen.compatibilities;
 
 import io.th0rgal.oraxen.compatibilities.provided.lightapi.WrappedLightAPI;
+import io.th0rgal.oraxen.compatibilities.provided.miniplaceholders.MiniPlaceholderCompatibility;
 import io.th0rgal.oraxen.compatibilities.provided.mythicmobs.MythicMobsCompatibility;
 import io.th0rgal.oraxen.compatibilities.provided.placeholderapi.PlaceholderAPICompatibility;
 import io.th0rgal.oraxen.compatibilities.provided.worldedit.WrappedWorldEdit;
@@ -25,10 +26,12 @@ public class CompatibilitiesManager {
         new CompatibilityListener();
         addCompatibility("PlaceholderAPI", PlaceholderAPICompatibility.class, true);
         addCompatibility("MythicMobs", MythicMobsCompatibility.class, true);
+        addCompatibility("MiniPlaceholders", MiniPlaceholderCompatibility.class, true);
     }
 
     public static void disableCompatibilities() {
         WrappedWorldEdit.unregister();
+        MiniPlaceholderCompatibility.unregister();
 
         ACTIVE_COMPATIBILITY_PROVIDERS.forEach((pluginName, compatibilityProvider) -> disableCompatibility(pluginName));
     }

@@ -2,17 +2,10 @@ package io.th0rgal.oraxen.recipes;
 
 import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.config.Message;
-import io.th0rgal.oraxen.config.ResourcesManager;
 import io.th0rgal.oraxen.config.Settings;
 import io.th0rgal.oraxen.recipes.listeners.RecipesBuilderEvents;
 import io.th0rgal.oraxen.recipes.listeners.RecipesEventsManager;
-import io.th0rgal.oraxen.recipes.loaders.BlastingLoader;
-import io.th0rgal.oraxen.recipes.loaders.CampfireLoader;
-import io.th0rgal.oraxen.recipes.loaders.FurnaceLoader;
-import io.th0rgal.oraxen.recipes.loaders.ShapedLoader;
-import io.th0rgal.oraxen.recipes.loaders.ShapelessLoader;
-import io.th0rgal.oraxen.recipes.loaders.SmokingLoader;
-import io.th0rgal.oraxen.recipes.loaders.StonecuttingLoader;
+import io.th0rgal.oraxen.recipes.loaders.*;
 import io.th0rgal.oraxen.utils.AdventureUtils;
 import io.th0rgal.oraxen.utils.OraxenYaml;
 import io.th0rgal.oraxen.utils.logs.Logs;
@@ -49,7 +42,7 @@ public class RecipesManager {
         if (!recipesFolder.exists()) {
             recipesFolder.mkdirs();
             if (Settings.GENERATE_DEFAULT_CONFIGS.toBool())
-                new ResourcesManager(plugin).extractConfigsInFolder("recipes", "yml");
+                OraxenPlugin.get().getResourceManager().extractConfigsInFolder("recipes", "yml");
             else try {
                 new File(recipesFolder, "furnace.yml").createNewFile();
                 new File(recipesFolder, "shaped.yml").createNewFile();
@@ -82,7 +75,7 @@ public class RecipesManager {
         if (!recipesFolder.exists()) {
             recipesFolder.mkdirs();
             if (Settings.GENERATE_DEFAULT_CONFIGS.toBool())
-                new ResourcesManager(OraxenPlugin.get()).extractConfigsInFolder("recipes", "yml");
+                OraxenPlugin.get().getResourceManager().extractConfigsInFolder("recipes", "yml");
         }
         registerAllConfigRecipesFromFolder(recipesFolder);
         RecipesEventsManager.get().registerEvents();

@@ -5,16 +5,13 @@ import com.google.common.collect.Multimap;
 import com.jeff_media.morepersistentdatatypes.DataType;
 import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.api.OraxenItems;
+import io.th0rgal.oraxen.compatibilities.provided.ecoitems.WrappedEcoItem;
 import io.th0rgal.oraxen.compatibilities.provided.mmoitems.WrappedMMOItem;
 import io.th0rgal.oraxen.compatibilities.provided.mythiccrucible.WrappedCrucibleItem;
 import io.th0rgal.oraxen.config.Settings;
+import io.th0rgal.oraxen.utils.AdventureUtils;
 import io.th0rgal.oraxen.utils.OraxenYaml;
-import org.bukkit.Color;
-import org.bukkit.DyeColor;
-import org.bukkit.FireworkEffect;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
-import org.bukkit.OfflinePlayer;
+import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -22,28 +19,15 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.TropicalFish;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.Damageable;
-import org.bukkit.inventory.meta.FireworkEffectMeta;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.LeatherArmorMeta;
-import org.bukkit.inventory.meta.MapMeta;
-import org.bukkit.inventory.meta.PotionMeta;
-import org.bukkit.inventory.meta.SkullMeta;
-import org.bukkit.inventory.meta.TropicalFishBucketMeta;
+import org.bukkit.inventory.meta.*;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionData;
 import org.bukkit.potion.PotionEffect;
+import org.jetbrains.annotations.NotNull;
+
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 @SuppressWarnings("ALL")
 public class ItemBuilder {
@@ -89,7 +73,11 @@ public class ItemBuilder {
         this(wrapped.build());
     }
 
-    public ItemBuilder(final ItemStack itemStack) {
+    public ItemBuilder(WrappedEcoItem wrapped) {
+        this(wrapped.build());
+    }
+
+    public ItemBuilder(@NotNull final ItemStack itemStack) {
 
         this.itemStack = itemStack;
 
@@ -153,6 +141,10 @@ public class ItemBuilder {
 
     }
 
+    public Material getType() {
+        return type;
+    }
+
     public ItemBuilder setType(final Material type) {
         this.type = type;
         return this;
@@ -165,13 +157,21 @@ public class ItemBuilder {
         return this;
     }
 
+    public String getDisplayName() {
+        return displayName != null ? displayName : AdventureUtils.MINI_MESSAGE.serialize(itemStack.displayName());
+    }
+
     public ItemBuilder setDisplayName(final String displayName) {
         this.displayName = displayName;
         return this;
     }
 
+    public boolean hasLores() {
+        return lore != null && !lore.isEmpty();
+    }
+
     public List<String> getLore() {
-        return lore;
+        return lore != null ? lore : new ArrayList<>();
     }
 
     public ItemBuilder setLore(final List<String> lore) {
@@ -203,7 +203,7 @@ public class ItemBuilder {
      * @return true if the ItemBuilder has color that is not default LeatherMetaColor
      */
     public boolean hasColor() {
-        return color != null && !color.equals(Color.fromRGB(160, 101, 64));
+        return color != null && !color.equals(Bukkit.getItemFactory().getDefaultLeatherColor());
     }
 
     public Color getColor() {
@@ -253,6 +253,11 @@ public class ItemBuilder {
 
     public <T, Z> void addCustomTag(NamespacedKey key, PersistentDataType<T, Z> type, Z value) {
         persistentDataContainer.set(key, type, value);
+    }
+
+    public ItemBuilder removeCustomTag(NamespacedKey key) {
+        persistentDataContainer.remove(key);
+        return this;
     }
 
     public ItemBuilder setCustomModelData(final int customModelData) {
@@ -493,14 +498,13 @@ public class ItemBuilder {
             final ItemStack clone = built.clone();
             clone.setAmount(max);
             if (unstackable) handleUnstackable(clone);
-            ItemUpdater.updateItem(clone);
-            output[index] = clone;
+            output[index] = ItemUpdater.updateItem(clone);
         }
         if (rest != 0) {
             ItemStack clone = built.clone();
             clone.setAmount(rest);
             if (unstackable) handleUnstackable(clone);
-            output[iterations] = clone;
+            output[iterations] = ItemUpdater.updateItem(clone);
         }
         return output;
     }

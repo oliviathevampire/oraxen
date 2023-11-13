@@ -1,7 +1,9 @@
 package io.th0rgal.oraxen.utils.drops;
 
-import io.lumine.mythiccrucible.MythicCrucible;
 import io.th0rgal.oraxen.api.OraxenItems;
+import io.th0rgal.oraxen.compatibilities.provided.ecoitems.WrappedEcoItem;
+import io.th0rgal.oraxen.compatibilities.provided.mythiccrucible.WrappedCrucibleItem;
+import io.th0rgal.oraxen.items.ItemUpdater;
 import net.Indyuce.mmoitems.MMOItems;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -40,24 +42,29 @@ public class Loot {
     }
 
     public ItemStack getItemStack() {
-        if (itemStack != null) return itemStack;
+        if (itemStack != null) return ItemUpdater.updateItem(itemStack);
 
         if (config.containsKey("oraxen_item")) {
             String itemId = config.get("oraxen_item").toString();
             itemStack = OraxenItems.getItemById(itemId).build();
         } else if (config.containsKey("crucible_item")) {
-            String crucibleID = config.get("crucible_item").toString();
-            itemStack = MythicCrucible.core().getItemManager().getItemStack(crucibleID);
+            itemStack = new WrappedCrucibleItem(config.get("crucible_item").toString()).build();
         } else if (config.containsKey("mmoitems_id") && config.containsKey("mmoitems_type")) {
             String type = config.get("mmoitems_type").toString();
             String id = config.get("mmoitems_id").toString();
             itemStack = MMOItems.plugin.getItem(type, id);
+        } else if (config.containsKey("ecoitem")) {
+            itemStack = new WrappedEcoItem(config.get("ecoitem").toString()).build();
         } else if (config.containsKey("minecraft_type")) {
             String itemType = config.get("minecraft_type").toString();
             Material material = Material.getMaterial(itemType);
             itemStack = material != null ? new ItemStack(material) : null;
         } else itemStack = (ItemStack) config.get("minecraft_item");
-        return itemStack;
+        return ItemUpdater.updateItem(itemStack);
+    }
+
+    public void setItemStack(ItemStack itemStack) {
+        this.itemStack = itemStack;
     }
 
     public int getProbability() {
@@ -73,10 +80,14 @@ public class Loot {
             dropItems(location, amountMultiplier);
     }
 
-    private void dropItems(Location location, int amountMultiplier) {
+    public ItemStack getItem(int amountMultiplier) {
         ItemStack stack = getItemStack().clone();
         int dropAmount = ThreadLocalRandom.current().nextInt(minAmount, maxAmount + 1);
         stack.setAmount(stack.getAmount() * amountMultiplier * dropAmount);
-        if (location.getWorld() != null) location.getWorld().dropItemNaturally(location, stack);
+        return ItemUpdater.updateItem(stack);
+    }
+
+    private void dropItems(Location location, int amountMultiplier) {
+        if (location.getWorld() != null) location.getWorld().dropItemNaturally(location, getItem(amountMultiplier));
     }
 }

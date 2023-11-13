@@ -32,7 +32,7 @@ public class RecipesView {
         // Check if last page
         final boolean lastPage = filteredRecipes.size() - 1 == page;
         PaginatedGui paginatedGui = new PaginatedGui(6, 54, "", Arrays.stream(InteractionModifier.values()).collect(Collectors.toSet()));
-        paginatedGui.setItem(4, 0, new GuiItem(new ItemBuilder(currentRecipe.getResult()).build()));
+        paginatedGui.setItem(4, 0, new GuiItem(currentRecipe.getResult()));
 
         for (int i = 0; i < currentRecipe.getIngredients().size(); i++) {
             final ItemStack itemStack = currentRecipe.getIngredients().get(i);

@@ -2,16 +2,13 @@ package io.th0rgal.oraxen.pack.upload;
 
 import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.api.events.OraxenPackUploadEvent;
-import io.th0rgal.oraxen.compatibilities.CompatibilitiesManager;
 import io.th0rgal.oraxen.config.Message;
 import io.th0rgal.oraxen.config.Settings;
-import io.th0rgal.oraxen.pack.dispatch.AdvancedPackSender;
 import io.th0rgal.oraxen.pack.dispatch.BukkitPackSender;
 import io.th0rgal.oraxen.pack.dispatch.PackSender;
 import io.th0rgal.oraxen.pack.generation.ResourcePack;
 import io.th0rgal.oraxen.pack.receive.PackReceiver;
 import io.th0rgal.oraxen.pack.upload.hosts.HostingProvider;
-import io.th0rgal.oraxen.pack.upload.hosts.LocalHost;
 import io.th0rgal.oraxen.pack.upload.hosts.Polymath;
 import io.th0rgal.oraxen.utils.AdventureUtils;
 import io.th0rgal.oraxen.utils.logs.Logs;
@@ -19,6 +16,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -78,36 +76,26 @@ public class UploadManager {
                     AdventureUtils.tagResolver("url", hostingProvider.getPackURL()),
                     AdventureUtils.tagResolver("delay", String.valueOf(System.currentTimeMillis() - time)));
 
-            if (packSender == null) {
-                packSender = (CompatibilitiesManager.hasPlugin("ProtocolLib") && Settings.SEND_PACK_ADVANCED.toBool())
-                        ? new AdvancedPackSender(hostingProvider) : new BukkitPackSender(hostingProvider);
-            } else if (updatePackSender) {
+            if (packSender == null) packSender = new BukkitPackSender(hostingProvider);
+            else if (updatePackSender) {
                 packSender.unregister();
-                packSender = (CompatibilitiesManager.hasPlugin("ProtocolLib") && Settings.SEND_PACK_ADVANCED.toBool())
-                        ? new AdvancedPackSender(hostingProvider) : new BukkitPackSender(hostingProvider);
+                packSender = new BukkitPackSender(hostingProvider);
             }
 
-            if (isReload && !Settings.SEND_ON_RELOAD.toBool()) {
-                if (packSender != null) packSender.unregister();
-            }
+            if (isReload && !Settings.SEND_ON_RELOAD.toBool() && packSender != null) packSender.unregister();
             else if (Settings.SEND_PACK.toBool() || Settings.SEND_JOIN_MESSAGE.toBool()) {
                 packSender.register();
                 if (!hostingProvider.getPackURL().equals(url))
                     for (Player player : Bukkit.getOnlinePlayers())
                         packSender.sendPack(player);
                 url = hostingProvider.getPackURL();
-            } else {
-                if (packSender != null) {
-                    packSender.unregister();
-                }
-            }
+            } else if (packSender != null) packSender.unregister();
         });
     }
 
     private HostingProvider createHostingProvider() {
         HostingProvider provider = switch (Settings.UPLOAD_TYPE.toString().toLowerCase(Locale.ENGLISH)) {
             case "polymath" -> new Polymath(Settings.POLYMATH_SERVER.toString());
-            case "localhost" -> new LocalHost();
             case "external" -> createExternalProvider();
             default -> null;
         };
@@ -140,19 +128,7 @@ public class UploadManager {
 
     private HostingProvider constructExternalHostingProvider(final Class<?> target,
                                                              final ConfigurationSection options) {
-        final Class<? extends HostingProvider> implement = target.asSubclass(HostingProvider.class);
-        Constructor<? extends HostingProvider> constructor = null;
-        for(final Constructor<?> implementConstructor : implement.getConstructors()) {
-            Parameter[] parameters = implementConstructor.getParameters();
-            if(parameters.length == 0 || (parameters.length == 1 && parameters[0].getType().equals(ConfigurationSection.class))) {
-                constructor = (Constructor<? extends HostingProvider>) implementConstructor;
-                break;
-            }
-        }
-
-        if(constructor == null) {
-            throw new ProviderNotFoundException("Invalid provider: " + target);
-        }
+        Constructor<? extends HostingProvider> constructor = getConstructor(target);
 
         try {
             return constructor.getParameterCount() == 0 ? constructor.newInstance()
@@ -167,6 +143,23 @@ public class UploadManager {
             throw (ProviderNotFoundException) new ProviderNotFoundException("Exception in allocating instance.")
                     .initCause(e.getCause());
         }
+    }
+
+    @NotNull
+    @SuppressWarnings("unchecked")
+    private static Constructor<? extends HostingProvider> getConstructor(Class<?> target) {
+        final Class<? extends HostingProvider> implement = target.asSubclass(HostingProvider.class);
+        Constructor<? extends HostingProvider> constructor = null;
+        for (final Constructor<?> implementConstructor : implement.getConstructors()) {
+            Parameter[] parameters = implementConstructor.getParameters();
+            if (parameters.length == 0 || (parameters.length == 1 && parameters[0].getType().equals(ConfigurationSection.class))) {
+                constructor = (Constructor<? extends HostingProvider>) implementConstructor;
+                break;
+            }
+        }
+
+        if (constructor == null) throw new ProviderNotFoundException("Invalid provider: " + target);
+        return constructor;
     }
 
 }

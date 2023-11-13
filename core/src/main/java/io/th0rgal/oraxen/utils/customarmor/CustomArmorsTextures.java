@@ -11,6 +11,7 @@ import io.th0rgal.oraxen.utils.VirtualFile;
 import io.th0rgal.oraxen.utils.logs.Logs;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Color;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
 
@@ -18,21 +19,11 @@ import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.WritableRaster;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 public class CustomArmorsTextures {
 
@@ -70,6 +61,16 @@ public class CustomArmorsTextures {
             shaderType = ShaderType.FANCY;
         }
         //this.layer1Height = resolution * HEIGHT_RATIO;
+    }
+
+    public static boolean isSameArmorType(ItemStack firstItem, ItemStack secondItem) {
+        return Objects.equals(getArmorNameFromItem(firstItem), getArmorNameFromItem(secondItem));
+    }
+    public static String getArmorNameFromItem(ItemStack item) {
+        return getArmorNameFromId(OraxenItems.getIdByItem(item));
+    }
+    public static String getArmorNameFromId(String itemId) {
+        return StringUtils.substringBeforeLast(itemId, "_");
     }
 
     public boolean registerImage(File file) {
@@ -152,6 +153,11 @@ public class CustomArmorsTextures {
             OraxenPlugin.get().getLogger().warning("Error while reading " + name + ": " + e.getMessage());
             return false;
         }
+        if (original == null) {
+            OraxenPlugin.get().getLogger().warning("Error while reading " + name + ": Image is null");
+            return false;
+        }
+
         BufferedImage image = initLayer(original);
 
         boolean isAnimated = name.endsWith("_a.png");
@@ -207,8 +213,7 @@ public class CustomArmorsTextures {
             if (!(meta instanceof LeatherArmorMeta) && builder != null && builder.build().getType().toString().toLowerCase().endsWith(suffix)) {
                 Logs.logError("Material of " + prefix + suffix + " is not a LeatherArmor material!");
                 Logs.logWarning("Custom Armor requires that the item is LeatherArmor");
-                Logs.logWarning("You can add fake armor values via AttributeModifiers");
-                Logs.newline();
+                Logs.logWarning("You can add fake armor values via AttributeModifiers", true);
             }
 
             boolean missingArmor = switch (suffix) {
@@ -229,7 +234,7 @@ public class CustomArmorsTextures {
                 }
             }
 
-            boolean duplicateColor = allSpecifiedArmorColors.entrySet().stream().filter(e-> builder != null && e.getValue() == builder.getColor().asRGB()).toList().size() >= 2;
+            boolean duplicateColor = allSpecifiedArmorColors.entrySet().stream().filter(e-> builder != null && builder.hasColor() && e.getValue() == builder.getColor().asRGB()).toList().size() >= 2;
             if (builder != null && (!builder.hasColor() || duplicateColor  || shaderType == ShaderType.LESS_FANCY)) {
                 // If builder has no color or the shader-type is LESS_FANCY
                 // Then assign a color based on the armor ID

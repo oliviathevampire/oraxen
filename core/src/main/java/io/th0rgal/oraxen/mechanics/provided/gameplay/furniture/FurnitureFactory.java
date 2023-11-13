@@ -31,7 +31,7 @@ public class FurnitureFactory extends MechanicFactory {
         toolTypes = section.getStringList("tool_types");
         evolutionCheckDelay = section.getInt("evolution_check_delay");
         MechanicsManager.registerListeners(OraxenPlugin.get(), getMechanicID(),
-                new FurnitureListener(this),
+                new FurnitureListener(),
                 new FurnitureDamageListener(),
                 new FurnitureUpdater(),
                 new EvolutionListener(),
@@ -86,6 +86,16 @@ public class FurnitureFactory extends MechanicFactory {
     public static void unregisterEvolution() {
         if (evolutionTask != null)
             evolutionTask.cancel();
+    }
+
+    @Override
+    public FurnitureMechanic getMechanic(String itemID) {
+        return (FurnitureMechanic) super.getMechanic(itemID);
+    }
+
+    @Override
+    public FurnitureMechanic getMechanic(org.bukkit.inventory.ItemStack itemStack) {
+        return (FurnitureMechanic) super.getMechanic(itemStack);
     }
 
 }

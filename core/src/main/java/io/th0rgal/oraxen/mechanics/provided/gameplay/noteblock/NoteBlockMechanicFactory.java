@@ -8,8 +8,10 @@ import io.th0rgal.oraxen.mechanics.MechanicsManager;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.directional.DirectionalBlock;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.farmblock.FarmBlockTask;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.logstrip.LogStripListener;
+import io.th0rgal.oraxen.nms.NMSHandlers;
 import io.th0rgal.oraxen.utils.VersionUtil;
 import io.th0rgal.oraxen.utils.logs.Logs;
+import org.apache.commons.lang3.Range;
 import org.bukkit.Bukkit;
 import org.bukkit.Instrument;
 import org.bukkit.Material;
@@ -17,9 +19,8 @@ import org.bukkit.Note;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.type.NoteBlock;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.inventory.ItemStack;
 
-import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +36,7 @@ public class NoteBlockMechanicFactory extends MechanicFactory {
     private static FarmBlockTask farmBlockTask;
     public final int farmBlockCheckDelay;
     public final boolean customSounds;
+    private final boolean removeMineableTag;
 
     public NoteBlockMechanicFactory(ConfigurationSection section) {
         super(section);
@@ -45,6 +47,7 @@ public class NoteBlockMechanicFactory extends MechanicFactory {
         farmBlockCheckDelay = section.getInt("farmblock_check_delay");
         farmBlock = false;
         customSounds = OraxenPlugin.get().getConfigsManager().getMechanics().getConfigurationSection("custom_block_sounds").getBoolean("noteblock_and_block", true);
+        removeMineableTag = section.getBoolean("remove_mineable_tag", false);
 
         // this modifier should be executed when all the items have been parsed, just
         // before zipping the pack
@@ -60,16 +63,13 @@ public class NoteBlockMechanicFactory extends MechanicFactory {
 
         if (VersionUtil.isPaperServer()) {
             MechanicsManager.registerListeners(OraxenPlugin.get(), getMechanicID(), new NoteBlockMechanicListener.NoteBlockMechanicPaperListener());
-            File paperConfig = OraxenPlugin.get().getDataFolder().toPath().toAbsolutePath().getParent().getParent().resolve("config").resolve("paper-global.yml").toFile();
-            if (paperConfig.exists()) {
-                ConfigurationSection paperSection = YamlConfiguration.loadConfiguration(paperConfig).getConfigurationSection("block-updates");
-                if (paperSection != null && !paperSection.getBoolean("disable-noteblock-updates", false)) {
-                    MechanicsManager.registerListeners(OraxenPlugin.get(), getMechanicID(), new NoteBlockMechanicListener.NoteBlockMechanicPhysicsListener());
-                    Logs.logError("Papers block.updates.disable-noteblock-updates is not enabled.");
+            if (!NMSHandlers.isNoteblockUpdatesDisabled()) {
+                MechanicsManager.registerListeners(OraxenPlugin.get(), getMechanicID(), new NoteBlockMechanicListener.NoteBlockMechanicPhysicsListener());
+                if (VersionUtil.isSupportedVersionOrNewer("1.20.1")) {
+                    Logs.logError("Papers block-updates.disable-noteblock-updates is not enabled.");
                     Logs.logWarning("It is recommended to enable this setting for improved performance and prevent bugs with noteblocks");
                     Logs.logWarning("Otherwise Oraxen needs to listen to very taxing events, which also introduces some bugs");
-                    Logs.logWarning("You can enable this setting in ServerFolder/config/paper-global.yml");
-                    Logs.newline();
+                    Logs.logWarning("You can enable this setting in ServerFolder/config/paper-global.yml", true);
                 }
             }
         }
@@ -158,6 +158,9 @@ public class NoteBlockMechanicFactory extends MechanicFactory {
         return instance;
     }
 
+    public boolean removeMineableTag() {
+        return removeMineableTag;
+    }
 
     /**
      * Attempts to set the block directly to the model and texture of an Oraxen item.
@@ -180,6 +183,11 @@ public class NoteBlockMechanicFactory extends MechanicFactory {
     @Override
     public Mechanic parse(ConfigurationSection itemMechanicConfiguration) {
         NoteBlockMechanic mechanic = new NoteBlockMechanic(this, itemMechanicConfiguration);
+        if (!Range.between(1, 775).contains(mechanic.getCustomVariation())) {
+            Logs.logError("The custom variation of the block " + mechanic.getItemID() + " is not between 1 and 775!");
+            Logs.logWarning("The item has failed to build for now to prevent bugs and issues.");
+            return null;
+        }
         DirectionalBlock directional = mechanic.getDirectional();
         String modelName = mechanic.getModel(itemMechanicConfiguration.getParent().getParent());
 
@@ -196,6 +204,16 @@ public class NoteBlockMechanicFactory extends MechanicFactory {
         BLOCK_PER_VARIATION.put(mechanic.getCustomVariation(), mechanic);
         addToImplemented(mechanic);
         return mechanic;
+    }
+
+    @Override
+    public NoteBlockMechanic getMechanic(String itemID) {
+        return (NoteBlockMechanic) super.getMechanic(itemID);
+    }
+
+    @Override
+    public NoteBlockMechanic getMechanic(ItemStack itemStack) {
+        return (NoteBlockMechanic) super.getMechanic(itemStack);
     }
 
     /**

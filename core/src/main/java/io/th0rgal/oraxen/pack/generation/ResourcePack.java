@@ -15,10 +15,7 @@ import io.th0rgal.oraxen.items.OraxenMeta;
 import io.th0rgal.oraxen.pack.upload.UploadManager;
 import io.th0rgal.oraxen.sound.CustomSound;
 import io.th0rgal.oraxen.sound.SoundManager;
-import io.th0rgal.oraxen.utils.AdventureUtils;
-import io.th0rgal.oraxen.utils.Utils;
-import io.th0rgal.oraxen.utils.VirtualFile;
-import io.th0rgal.oraxen.utils.ZipUtils;
+import io.th0rgal.oraxen.utils.*;
 import io.th0rgal.oraxen.utils.customarmor.CustomArmorsTextures;
 import io.th0rgal.oraxen.utils.logs.Logs;
 import org.apache.commons.io.IOUtils;
@@ -26,7 +23,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -41,19 +37,13 @@ import java.util.zip.ZipInputStream;
 
 public class ResourcePack {
 
-    private Map<String, Collection<Consumer<File>>> packModifiers;
+    private final Map<String, Collection<Consumer<File>>> packModifiers;
     private static Map<String, VirtualFile> outputFiles;
     private CustomArmorsTextures customArmorsTextures;
-    private File packFolder;
-    private File pack;
-    JavaPlugin plugin;
+    private static final File packFolder = new File(OraxenPlugin.get().getDataFolder(), "pack");
+    private final File pack = new File(packFolder, packFolder.getName() + ".zip");
 
-    public ResourcePack(final JavaPlugin plugin) {
-        this.plugin = plugin;
-        clear();
-    }
-
-    public void clear() {
+    public ResourcePack() {
         // we use maps to avoid duplicate
         packModifiers = new HashMap<>();
         outputFiles = new HashMap<>();
@@ -63,21 +53,8 @@ public class ResourcePack {
         outputFiles.clear();
 
         customArmorsTextures = new CustomArmorsTextures((int) Settings.ARMOR_RESOLUTION.getValue());
-        packFolder = new File(plugin.getDataFolder(), "pack");
-        makeDirsIfNotExists(packFolder);
-        makeDirsIfNotExists(new File(packFolder, "assets"));
-        pack = new File(packFolder, packFolder.getName() + ".zip");
-        File assetsFolder = new File(packFolder, "assets");
-        File modelsFolder = new File(packFolder, "models");
-        File fontFolder = new File(packFolder, "font");
-        File optifineFolder = new File(packFolder, "optifine");
-        File langFolder = new File(packFolder, "lang");
-        File textureFolder = new File(packFolder, "textures");
-        File soundFolder = new File(packFolder, "sounds");
-
-        if (Settings.GENERATE_DEFAULT_ASSETS.toBool())
-            extractFolders(!modelsFolder.exists(), !textureFolder.exists(), !langFolder.exists(), !fontFolder.exists(),
-                    !soundFolder.exists(), !assetsFolder.exists(), !optifineFolder.exists());
+        makeDirsIfNotExists(packFolder, new File(packFolder, "assets"));
+        if (Settings.GENERATE_DEFAULT_ASSETS.toBool()) extractDefaultFolders();
         extractRequired();
 
         if (!Settings.GENERATE.toBool()) return;
@@ -93,14 +70,16 @@ public class ResourcePack {
             e.printStackTrace();
         }
 
-        extractInPackIfNotExists(plugin, new File(packFolder, "pack.mcmeta"));
-        extractInPackIfNotExists(plugin, new File(packFolder, "pack.png"));
+        extractInPackIfNotExists(new File(packFolder, "pack.mcmeta"));
+        extractInPackIfNotExists(new File(packFolder, "pack.png"));
 
         // Sorting items to keep only one with models (and generate it if needed)
         generatePredicates(extractTexturedItems());
         generateFont();
-        if (Settings.HIDE_SCOREBOARD_NUMBERS.toBool()) generateScoreboardFiles();
+        if (Settings.HIDE_SCOREBOARD_NUMBERS.toBool()) generateScoreboardHideNumbers();
+        if (Settings.HIDE_SCOREBOARD_BACKGROUND.toBool()) generateScoreboardHideBackground();
         if (Settings.GENERATE_ARMOR_SHADER_FILES.toBool()) CustomArmorsTextures.generateArmorShaderFiles();
+        if (Settings.TEXTURE_SLICER.toBool()) PackSlicer.slicePackFiles();
 
         for (final Collection<Consumer<File>> packModifiers : packModifiers.values())
             for (Consumer<File> packModifier : packModifiers)
@@ -163,7 +142,7 @@ public class ResourcePack {
 
         OraxenPlugin.foliaLib.getImpl().runNextTick(() -> {
             OraxenPackGeneratedEvent event = new OraxenPackGeneratedEvent(output);
-            Bukkit.getPluginManager().callEvent(event);
+            EventUtils.callEvent(event);
             ZipUtils.writeZipFile(pack, event.getOutput());
 
             UploadManager uploadManager = new UploadManager(OraxenPlugin.get());
@@ -193,9 +172,9 @@ public class ResourcePack {
         if (models.isEmpty() && !textures.isEmpty()) return Collections.emptySet();
 
         for (VirtualFile model : models) {
-            if (model.getPath().contains(" ") || !model.getPath().toLowerCase().equals(model.getPath())) {
+            if (!model.getPath().matches("[a-z0-9/._-]+")) {
                 Logs.logWarning("Found invalid model at <blue>" + model.getPath());
-                Logs.logError("Models cannot contain spaces or Capital Letters in the filepath or filename");
+                Logs.logError("Model-paths must only contain characters [a-z0-9/._-]");
                 malformedModels.add(model);
             }
 
@@ -228,8 +207,7 @@ public class ResourcePack {
                             if (!jsonTexture.startsWith("#") && !jsonTexture.startsWith("item/") && !jsonTexture.startsWith("block/") && !jsonTexture.startsWith("entity/")) {
                                 if (Material.matchMaterial(Utils.getFileNameOnly(jsonTexture).toUpperCase()) == null) {
                                     Logs.logWarning("Found invalid texture-path inside model-file <blue>" + model.getPath() + "</blue>: " + jsonTexture);
-                                    Logs.logWarning("Verify that you have a texture in said path.");
-                                    Logs.newline();
+                                    Logs.logWarning("Verify that you have a texture in said path.", true);
                                     malformedModels.add(model);
                                 }
                             }
@@ -270,12 +248,10 @@ public class ResourcePack {
             }
         }
 
-        Logs.newline();
         if (!malformedTextures.isEmpty() || !malformedModels.isEmpty()) {
             Logs.logError("Pack contains malformed texture(s) and/or model(s)");
-            Logs.logError("These need to be fixed, otherwise the resourcepack will be broken");
-        } else Logs.logSuccess("No broken models or textures were found in the resourcepack");
-        Logs.newline();
+            Logs.logError("These need to be fixed, otherwise the resourcepack will be broken", true);
+        } else Logs.logSuccess("No broken models or textures were found in the resourcepack", true);
 
         Set<String> malformedFiles = malformedTextures.stream().map(VirtualFile::getPath).collect(Collectors.toSet());
         malformedFiles.addAll(malformedModels.stream().map(VirtualFile::getPath).collect(Collectors.toSet()));
@@ -289,18 +265,19 @@ public class ResourcePack {
         return "assets/" + namespace + "/textures/" + texturePath;
     }
 
-    private void extractFolders(boolean extractModels, boolean extractTextures,
-                                boolean extractLang, boolean extractFonts, boolean extractSounds, boolean extractAssets, boolean extractOptifine) {
-        if (!extractModels && !extractTextures && !extractLang && !extractAssets && !extractOptifine && !extractFonts && !extractSounds)
-            return;
-
+    private final boolean extractAssets = !new File(packFolder, "assets").exists();
+    private final boolean extractModels = !new File(packFolder, "models").exists();
+    private final boolean extractFonts = !new File(packFolder, "font").exists();
+    private final boolean extractOptifine = !new File(packFolder, "optifine").exists();
+    private final boolean extractLang = !new File(packFolder, "lang").exists();
+    private final boolean extractTextures = !new File(packFolder, "textures").exists();
+    private final boolean extractSounds = !new File(packFolder, "sounds").exists();
+    private void extractDefaultFolders() {
         final ZipInputStream zip = ResourcesManager.browse();
         try {
             ZipEntry entry = zip.getNextEntry();
-            final ResourcesManager resourcesManager = new ResourcesManager(OraxenPlugin.get());
             while (entry != null) {
-                extract(entry, extractModels, extractTextures,
-                        extractLang, extractFonts, extractSounds, extractAssets, extractOptifine, resourcesManager);
+                extract(entry, OraxenPlugin.get().getResourceManager(), isSuitable(entry.getName()));
                 entry = zip.getNextEntry();
             }
             zip.closeEntry();
@@ -310,6 +287,17 @@ public class ResourcePack {
         }
     }
 
+    private boolean isSuitable(String entryName) {
+        String name = StringUtils.substringAfter(entryName, "pack/").split("/")[0];
+        if (name.equals("textures") && extractTextures) return true;
+        if (name.equals("models") && extractModels) return true;
+        if (name.equals("font") && extractFonts) return true;
+        if (name.equals("optifine") && extractOptifine) return true;
+        if (name.equals("lang") && extractLang) return true;
+        if (name.equals("sounds") && extractSounds) return true;
+        return name.equals("assets") && extractAssets;
+    }
+
     private void extractRequired() {
         final ZipInputStream zip = ResourcesManager.browse();
         try {
@@ -317,7 +305,7 @@ public class ResourcePack {
             final ResourcesManager resourcesManager = new ResourcesManager(OraxenPlugin.get());
             while (entry != null) {
                 if (entry.getName().startsWith("pack/textures/models/armor/leather_layer_") || entry.getName().startsWith("pack/textures/required") || entry.getName().startsWith("pack/models/required")) {
-                    resourcesManager.extractFileIfTrue(entry, !OraxenPlugin.get().getDataFolder().toPath().resolve(entry.getName()).toFile().exists());
+                    OraxenPlugin.get().getResourceManager().extractFileIfTrue(entry, !OraxenPlugin.get().getDataFolder().toPath().resolve(entry.getName()).toFile().exists());
                 }
                 entry = zip.getNextEntry();
             }
@@ -328,18 +316,8 @@ public class ResourcePack {
         }
     }
 
-    private void extract(ZipEntry entry, boolean extractModels, boolean extractTextures,
-                         boolean extractLang, boolean extractFonts,
-                         boolean extractSounds, boolean extractAssets,
-                         boolean extractOptifine, ResourcesManager resourcesManager) {
+    private void extract(ZipEntry entry, ResourcesManager resourcesManager, boolean isSuitable) {
         final String name = entry.getName();
-        final boolean isSuitable = (extractModels && name.startsWith("pack/models"))
-                || (extractTextures && name.startsWith("pack/textures"))
-                || (extractLang && name.startsWith("pack/lang"))
-                || (extractFonts && name.startsWith("pack/font"))
-                || (extractSounds && name.startsWith("pack/sounds"))
-                || (extractAssets && name.startsWith("/pack/assets"))
-                || (extractOptifine && name.startsWith("pack/optifine"));
         resourcesManager.extractFileIfTrue(entry, isSuitable);
     }
 
@@ -391,13 +369,17 @@ public class ResourcePack {
         return pack;
     }
 
-    private void extractInPackIfNotExists(final JavaPlugin plugin, final File file) {
-        if (!file.exists()) plugin.saveResource("pack/" + file.getName(), true);
+    public File getPackFolder() {
+        return packFolder;
     }
 
-    private void makeDirsIfNotExists(final File folder) {
-        if (!folder.exists())
-            folder.mkdirs();
+    private void extractInPackIfNotExists(final File file) {
+        if (!file.exists()) OraxenPlugin.get().saveResource("pack/" + file.getName(), true);
+    }
+
+    private void makeDirsIfNotExists(final File... folders) {
+        for (final File folder : folders)
+            if (!folder.exists()) folder.mkdirs();
     }
 
     private void generatePredicates(final Map<Material, List<ItemBuilder>> texturedItems) {
@@ -428,6 +410,8 @@ public class ResourcePack {
         }
         output.add("providers", providers);
         writeStringToVirtual("assets/minecraft/font", "default.json", output.toString());
+        if (Settings.FIX_FORCE_UNICODE_GLYPHS.toBool())
+            writeStringToVirtual("assets/minecraft/font", "uniform.json", output.toString());
     }
 
     private void generateSound(List<VirtualFile> output) {
@@ -599,7 +583,7 @@ public class ResourcePack {
         File globalLangFile = new File(packFolder, "lang/global.json");
         JsonObject globalLang = new JsonObject();
         String content = "";
-        if (!globalLangFile.exists()) plugin.saveResource("pack/lang/global.json", false);
+        if (!globalLangFile.exists()) OraxenPlugin.get().saveResource("pack/lang/global.json", false);
 
         try {
             content = Files.readString(globalLangFile.toPath(), StandardCharsets.UTF_8);
@@ -654,10 +638,14 @@ public class ResourcePack {
             "th_th", "tl_ph", "tlh_aa", "tok", "tr_tr", "tt_ru", "uk_ua", "val_es",
             "vec_it", "vi_vn", "yi_de", "yo_ng", "zh_cn", "zh_hk", "zh_tw", "zlm_arab"));
 
-    private void generateScoreboardFiles() {
-        Map<String, String> scoreboardShaderFiles = Map.of("assets/minecraft/shaders/core/rendertype_text.json", getScoreboardJson(), "assets/minecraft/shaders/core/rendertype_text.vsh", getScoreboardVsh());
-        for (Map.Entry<String, String> entry : scoreboardShaderFiles.entrySet())
-            writeStringToVirtual(StringUtils.removeEnd(Utils.getParentDirs(entry.getKey()), "/"), Utils.removeParentDirs(entry.getKey()), entry.getValue());
+    private void generateScoreboardHideNumbers() {
+        writeStringToVirtual("assets/minecraft/shaders/core/", "rendertype_text.json", getScoreboardJson());
+        writeStringToVirtual("assets/minecraft/shaders/post/", "deferred_text.vsh", getScoreboardVsh());
+    }
+
+    private void generateScoreboardHideBackground() {
+        String fileName = VersionUtil.isSupportedVersionOrNewer("1.20.1") ? "rendertype_gui.vsh" : "position_color.fsh";
+        writeStringToVirtual("assets/minecraft/shaders/core/", fileName, getScoreboardBackground());
     }
 
     private String getScoreboardVsh() {
@@ -732,5 +720,70 @@ public class ResourcePack {
                      ]
                  }
                 """;
+    }
+
+    private String getScoreboardBackground() {
+        if (VersionUtil.isSupportedVersionOrNewer("1.20.1"))
+            return """
+                    #version 150
+                                        
+                    in vec3 Position;
+                    in vec4 Color;
+                                        
+                    uniform mat4 ModelViewMat;
+                    uniform mat4 ProjMat;
+                                        
+                    out vec4 vertexColor;
+                                        
+                    void main() {
+                    	gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
+                                        
+                    	vertexColor = Color;
+                    	
+                    	//Isolating Scoreboard Display
+                    	if(gl_Position.y > -0.5 && gl_Position.y < 0.85 && gl_Position.x > 0.0 && gl_Position.x <= 1.0 && Position.z == 0.0) {
+                    		//vertexColor = vec4(vec3(0.0,0.0,1.0),1.0); // Debugger
+                    		vertexColor.a = 0.0;
+                    	}
+                    	else {
+                        	//vertexColor = vec4(vec3(1.0,0.0,0.0),1.0);
+                    	}
+                    }
+                    """;
+        else return """
+                #version 150
+                                
+                in vec4 vertexColor;
+                                
+                uniform vec4 ColorModulator;
+                                
+                out vec4 fragColor;
+                                
+                bool isgray(vec4 a) {
+                    return a.r == 0 && a.g == 0 && a.b == 0 && a.a < 0.3 && a.a > 0.29;
+                }
+                                
+                bool isdarkgray(vec4 a) {
+                	return a.r == 0 && a.g == 0 && a.b == 0 && a.a == 0.4;
+                }
+                                
+                void main() {
+                                
+                    vec4 color = vertexColor;
+                	
+                    if (color.a == 0.0) {
+                        discard;
+                    }
+                	
+                    fragColor = color * ColorModulator;
+                	
+                	if(isgray(fragColor)){
+                		discard;
+                	}
+                	if(isdarkgray(fragColor)){
+                		discard;
+                	}
+                }
+                // Made by Reytz#9806 for minecraft 1.18.2""";
     }
 }
