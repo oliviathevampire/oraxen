@@ -59,10 +59,8 @@ public class OraxenMeta {
         this.castModel = readModelName(section, "cast_model");
         this.chargedModel = readModelName(section, "charged_model");
         this.fireworkModel = readModelName(section, "firework_model");
-        this.pullingModels = section.isList("pulling_models")
-                ? section.getStringList("pulling_models") : null;
-        this.damagedModels = section.isList("damaged_models")
-                ? section.getStringList("damaged_models") : null;
+        this.pullingModels = section.isList("pulling_models") ? section.getStringList("pulling_models") : null;
+        this.damagedModels = section.isList("damaged_models") ? section.getStringList("damaged_models") : null;
 
         // By adding the textures to pullingModels aswell,
         // we can use the same code for both pullingModels

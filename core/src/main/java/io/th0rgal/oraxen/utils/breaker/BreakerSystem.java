@@ -22,7 +22,6 @@ import io.th0rgal.oraxen.mechanics.provided.gameplay.stringblock.StringBlockMech
 import io.th0rgal.oraxen.utils.BlockHelpers;
 import io.th0rgal.oraxen.utils.EventUtils;
 import io.th0rgal.oraxen.utils.Utils;
-import io.th0rgal.oraxen.utils.VersionUtil;
 import io.th0rgal.oraxen.utils.blocksounds.BlockSounds;
 import io.th0rgal.protectionlib.ProtectionLib;
 import org.bukkit.*;
@@ -154,17 +153,20 @@ public class BreakerSystem {
 
                         if (EventUtils.callEvent(new BlockBreakEvent(block, player)) && ProtectionLib.canBreak(player, block.getLocation())) {
                             modifier.breakBlock(player, block, item);
-                            EventUtils.callEvent(new PlayerItemDamageEvent(player, item, 1));
+                            try {
+                                item.damage(1, player);
+                            } catch (Exception e) {
+                                Utils.editItemMeta(item, meta -> {
+                                    if (meta instanceof Damageable damageable) {
+                                        EventUtils.callEvent(new PlayerItemDamageEvent(player, item, 1));
+                                        damageable.setDamage(damageable.getDamage() + 1);
+                                    }
+                                });
+                            }
                         } else breakerPlaySound.remove(block);
 
                         Bukkit.getScheduler().runTask(OraxenPlugin.get(), () ->
                                 player.removePotionEffect(PotionEffectType.SLOW_DIGGING));
-
-                        if (VersionUtil.isPaperServer()) item.damage(1, player);
-                        else Utils.editItemMeta(item, meta -> {
-                            if (meta instanceof Damageable damageable)
-                                damageable.setDamage(damageable.getDamage() + 1);
-                        });
 
                         breakerPerLocation.remove(location);
                         for (final Entity entity : world.getNearbyEntities(location, 16, 16, 16)) {

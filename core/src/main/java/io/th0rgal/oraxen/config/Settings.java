@@ -1,7 +1,9 @@
 package io.th0rgal.oraxen.config;
 
 import io.th0rgal.oraxen.OraxenPlugin;
+import io.th0rgal.oraxen.utils.AdventureUtils;
 import io.th0rgal.oraxen.utils.logs.Logs;
+import net.kyori.adventure.text.Component;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 
@@ -143,8 +145,16 @@ public enum Settings {
         return (String) getValue();
     }
 
+    public Component toComponent() {
+        return AdventureUtils.MINI_MESSAGE.deserialize(toString());
+    }
+
     public Boolean toBool() {
         return (Boolean) getValue();
+    }
+
+    public int toInt() {
+        return (int) getValue();
     }
 
     public List<String> toStringList() {
@@ -154,5 +164,4 @@ public enum Settings {
     public ConfigurationSection toConfigSection() {
         return OraxenPlugin.get().getConfigsManager().getSettings().getConfigurationSection(path);
     }
-
 }

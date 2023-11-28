@@ -29,7 +29,6 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.RayTraceResult;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -103,9 +102,7 @@ public class BlockHelpers {
         return new CustomBlockData(block, plugin);
     }
 
-    public static final List<Material> REPLACEABLE_BLOCKS = Arrays
-            .asList(Material.SNOW, Material.VINE, Material.GRASS, Material.TALL_GRASS, Material.SEAGRASS, Material.FERN,
-                    Material.LARGE_FERN, Material.AIR);
+    public static final List<Material> REPLACEABLE_BLOCKS = Tag.REPLACEABLE.getValues().stream().toList();
 
     public static boolean isReplaceable(Block block) {
         return REPLACEABLE_BLOCKS.contains(block.getType());
@@ -145,9 +142,12 @@ public class BlockHelpers {
     public static BlockData correctAllBlockStates(Block placedAgainst, Player player, EquipmentSlot hand, BlockFace face, ItemStack item, BlockData newData) {
         Block target = placedAgainst.getRelative(face);
         BlockData correctedData;
-        if (NMSHandlers.getHandler() != null  && Settings.NMS_BLOCK_CORRECTION.toBool())
-            correctedData = NMSHandlers.getHandler().correctBlockStates(player, hand, item, placedAgainst, face);
-        else {
+        if (NMSHandlers.getHandler() != null  && Settings.NMS_BLOCK_CORRECTION.toBool()) {
+            //TODO Fix boats, currently Item#use in BoatItem calls PlayerInteractEvent
+            // thus causing a StackOverflow, find a workaround
+            if (Tag.ITEMS_BOATS.isTagged(item.getType())) return null;
+            correctedData = NMSHandlers.getHandler().correctBlockStates(player, hand, item);
+        } else {
             if (newData == null) return null;
             // If not using NMS-method, the BlockData needs to be set beforehand
             BlockData oldData = target.getBlockData();
