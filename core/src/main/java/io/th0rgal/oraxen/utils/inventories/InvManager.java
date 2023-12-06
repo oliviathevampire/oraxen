@@ -7,7 +7,6 @@ import java.util.List;
 
 public class InvManager {
 
-    private PaginatedGui itemsView;
     private RecipesView recipesView;
 
     public InvManager() {
@@ -15,12 +14,7 @@ public class InvManager {
     }
 
     public void regen() {
-        itemsView = new ItemsView().create();
         recipesView = new RecipesView();
-    }
-
-    public PaginatedGui getItemsView() {
-        return itemsView;
     }
 
     public PaginatedGui getRecipesShowcase(final int page, final List<CustomRecipe> filteredRecipes) {

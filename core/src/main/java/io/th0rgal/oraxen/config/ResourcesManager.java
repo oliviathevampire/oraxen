@@ -3,7 +3,6 @@ package io.th0rgal.oraxen.config;
 import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.utils.OraxenYaml;
 import io.th0rgal.oraxen.utils.ReflectionUtils;
-import io.th0rgal.oraxen.utils.logs.Logs;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -25,23 +24,23 @@ public class ResourcesManager {
     private Entry<File, YamlConfiguration> settings;
     private Entry<File, YamlConfiguration> mechanics;
 
-    public YamlConfiguration getSettings() {
-        return getSettingsEntry().getValue();
+    public YamlConfiguration settings() {
+        return settingsEntry().getValue();
     }
 
-    public Entry<File, YamlConfiguration> getSettingsEntry() {
-        return settings != null ? settings : (settings = getEntry("settings.yml"));
+    public Entry<File, YamlConfiguration> settingsEntry() {
+        return settings != null ? settings : (settings = entry("settings.yml"));
     }
 
-    public YamlConfiguration getMechanics() {
-        return getMechanicsEntry().getValue();
+    public YamlConfiguration mechanics() {
+        return mechanicsEntry().getValue();
     }
 
-    public Entry<File, YamlConfiguration> getMechanicsEntry() {
-        return mechanics != null ? mechanics : (mechanics = getEntry("mechanics.yml"));
+    public Entry<File, YamlConfiguration> mechanicsEntry() {
+        return mechanics != null ? mechanics : (mechanics = entry("mechanics.yml"));
     }
 
-    public Entry<File, YamlConfiguration> getEntry(String fileName) {
+    public Entry<File, YamlConfiguration> entry(String fileName) {
         File file = extractConfiguration(fileName);
         return new AbstractMap.SimpleEntry<>(file, OraxenYaml.loadConfiguration(file));
     }

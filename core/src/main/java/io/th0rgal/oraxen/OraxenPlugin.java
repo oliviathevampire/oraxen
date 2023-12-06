@@ -13,7 +13,6 @@ import io.th0rgal.oraxen.config.*;
 import io.th0rgal.oraxen.font.FontManager;
 import io.th0rgal.oraxen.font.packets.InventoryPacketListener;
 import io.th0rgal.oraxen.font.packets.TitlePacketListener;
-import io.th0rgal.oraxen.gestures.GestureManager;
 import io.th0rgal.oraxen.hud.HudManager;
 import io.th0rgal.oraxen.items.ItemUpdater;
 import io.th0rgal.oraxen.mechanics.MechanicsManager;
@@ -35,7 +34,6 @@ import io.th0rgal.oraxen.utils.inventories.InvManager;
 import io.th0rgal.oraxen.utils.logs.Logs;
 import io.th0rgal.protectionlib.ProtectionLib;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
-import net.minecraft.server.packs.resources.ResourceManager;
 import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -50,7 +48,6 @@ import java.util.jar.JarFile;
 public class OraxenPlugin extends JavaPlugin {
 
     private static OraxenPlugin oraxen;
-    private static GestureManager gestureManager;
     private ConfigsManager configsManager;
     private ResourcesManager resourceManager;
     private BukkitAudiences audience;
@@ -116,7 +113,6 @@ public class OraxenPlugin extends JavaPlugin {
         hudManager = new HudManager(configsManager);
         fontManager = new FontManager(configsManager);
         soundManager = new SoundManager(configsManager.getSound());
-        gestureManager = new GestureManager();
         OraxenItems.loadItems();
         fontManager.registerEvents();
         fontManager.verifyRequired(); // Verify the required glyph is there
@@ -124,7 +120,7 @@ public class OraxenPlugin extends JavaPlugin {
         hudManager.registerTask();
         hudManager.parsedHudDisplays = hudManager.generateHudDisplays();
         pluginManager.registerEvents(new ItemUpdater(), this);
-        resourcePack.generate();
+        resourcePack.generate(false);
         RecipesManager.load(this);
         invManager = new InvManager();
         ArmorEquipEvent.registerListener(this);
@@ -137,6 +133,7 @@ public class OraxenPlugin extends JavaPlugin {
         CompatibilitiesManager.enableNativeCompatibilities();
         if (VersionUtil.isCompiled()) NoticeUtils.compileNotice();
         if (VersionUtil.isLeaked()) NoticeUtils.leakNotice();
+//        if (VersionUtil.isFoliaServer()) NoticeUtils.foliaNotice();
     }
 
     private void postLoading() {
@@ -170,10 +167,6 @@ public class OraxenPlugin extends JavaPlugin {
 
     public ProtocolManager getProtocolManager() {
         return protocolManager;
-    }
-
-    public GestureManager getGesturesManager() {
-        return gestureManager;
     }
 
     public BukkitAudiences getAudience() {
@@ -225,7 +218,7 @@ public class OraxenPlugin extends JavaPlugin {
         this.soundManager = soundManager;
     }
 
-    public InvManager getInvManager() {
+    public InvManager invManager() {
         return invManager;
     }
 

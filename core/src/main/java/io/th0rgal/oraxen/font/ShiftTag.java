@@ -7,13 +7,13 @@ import net.kyori.adventure.text.minimessage.tag.resolver.ArgumentQueue;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 
 public class ShiftTag {
-    private static final String SHIFT = "shift";
-    private static final String SHIFT_SHORT = "s";
+    public static final String SHIFT = "shift";
+    public static final String SHIFT_SHORT = "s";
 
     public static final TagResolver RESOLVER = TagResolver.resolver(SHIFT, (args, ctx) -> shiftTag(args));
     public static final TagResolver RESOLVER_SHORT = TagResolver.resolver(SHIFT_SHORT, (args, ctx) -> shiftTag(args));
 
-    private static Tag shiftTag(final ArgumentQueue args) {
+    public static Tag shiftTag(final ArgumentQueue args) {
         int length = 0;
         try {
             length = Integer.parseInt(args.popOr("A shift value is required").value());

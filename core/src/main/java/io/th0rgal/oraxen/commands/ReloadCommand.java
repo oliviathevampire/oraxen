@@ -29,7 +29,7 @@ public class ReloadCommand {
     public static void reloadItems(@Nullable CommandSender sender) {
         Message.RELOAD.send(sender, AdventureUtils.tagResolver("reloaded", "items"));
         OraxenItems.loadItems();
-        OraxenPlugin.get().getInvManager().regen();
+        OraxenPlugin.get().invManager().regen();
         Bukkit.getPluginManager().callEvent(new OraxenItemsLoadedEvent());
 
         if (Settings.UPDATE_ITEMS.toBool() && Settings.UPDATE_ITEMS_ON_RELOAD.toBool()) {
@@ -71,11 +71,6 @@ public class ReloadCommand {
         hudManager.restartTask();
     }
 
-    public static void reloadGestures(@Nullable CommandSender sender) {
-        Message.RELOAD.send(sender, AdventureUtils.tagResolver("reloaded", "gestures"));
-        OraxenPlugin.get().getGesturesManager().reload();
-    }
-
     public static void reloadRecipes(@Nullable CommandSender sender) {
         Message.RELOAD.send(sender, AdventureUtils.tagResolver("reloaded", "recipes"));
         RecipesManager.reload();
@@ -86,22 +81,26 @@ public class ReloadCommand {
                 .withAliases("rl")
                 .withPermission("oraxen.command.reload")
                 .withArguments(new TextArgument("type").replaceSuggestions(
-                        ArgumentSuggestions.strings("items", "pack", "hud", "recipes", "messages", "all")))
+                        ArgumentSuggestions.strings("items", "pack", "hud", "recipes", "messages", "all", "configs")))
                 .executes((sender, args) -> {
                     switch (((String) args.get("type")).toUpperCase()) {
                         case "HUD" -> reloadHud(sender);
                         case "ITEMS" -> reloadItems(sender);
                         case "PACK" -> reloadPack(sender);
                         case "RECIPES" -> reloadRecipes(sender);
-                        case "CONFIGS" -> OraxenPlugin.get().reloadConfigs();
-                        default -> {
+                        case "CONFIGS" -> {
                             MechanicsManager.unloadListeners();
                             MechanicsManager.registerNativeMechanics();
                             OraxenPlugin.get().reloadConfigs();
+                        }
+                        default -> {
+                            reloadHud(sender);
                             reloadItems(sender);
                             reloadPack(sender);
-                            reloadHud(sender);
                             reloadRecipes(sender);
+                            MechanicsManager.unloadListeners();
+                            MechanicsManager.registerNativeMechanics();
+                            OraxenPlugin.get().reloadConfigs();
                         }
                     }
                     for (Player player : Bukkit.getOnlinePlayers()) {

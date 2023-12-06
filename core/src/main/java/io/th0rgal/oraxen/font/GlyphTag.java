@@ -12,8 +12,8 @@ import org.bukkit.entity.Player;
 
 public class GlyphTag {
 
-    static final String GLYPH = "glyph";
-    private static final String GLYPH_SHORT = "g";
+    public static final String GLYPH = "glyph";
+    public static final String GLYPH_SHORT = "g";
     public static final TagResolver RESOLVER = TagResolver.resolver(GLYPH, (args, ctx) -> glyphTag(null, args));
     public static final TagResolver RESOLVER_SHORT = TagResolver.resolver(GLYPH_SHORT, (args, ctx) -> glyphTag(null, args));
 

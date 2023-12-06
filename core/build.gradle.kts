@@ -17,7 +17,6 @@ dependencies {
     implementation("org.bstats:bstats-bukkit:3.0.0")
     implementation("dev.triumphteam:triumph-gui:3.1.5") { exclude("net.kyori") }
     implementation("io.th0rgal:protectionlib:1.3.6")
-    implementation("com.github.stefvanschie.inventoryframework:IF:0.10.9")
     implementation("com.jeff-media:custom-block-data:2.2.2")
     implementation("com.jeff_media:MorePersistentDataTypes:2.4.0")
     implementation("com.jeff-media:persistent-data-serializer:1.0")
@@ -38,56 +37,18 @@ java {
 }
 
 publishing {
-    val publishData = PublishData(project)
     publications {
         create<MavenPublication>("maven") {
             groupId = rootProject.group.toString()
             artifactId = rootProject.name
-            version = publishData.getVersion()
-
+            version = pluginVersion
             from(components["java"])
         }
     }
-
-    repositories {}
-}
-
-class PublishData(private val project: Project) {
-    var type: Type = getReleaseType()
-    var hashLength: Int = 7
-
-    private fun getReleaseType(): Type {
-        val branch = getCheckedOutBranch()
-        println("Branch: $branch")
-        return when {
-            branch.contentEquals("master") -> Type.RELEASE
-            branch.contentEquals("develop") -> Type.SNAPSHOT
-            else -> Type.DEV
+    repositories {
+        maven {
+            name = "oraxen"
+            this.isAllowInsecureProtocol = true
         }
-    }
-
-    private fun getCheckedOutGitCommitHash(): String =
-        System.getenv("GITHUB_SHA")?.substring(0, hashLength) ?: "local"
-
-    private fun getCheckedOutBranch(): String =
-        System.getenv("GITHUB_REF")?.replace("refs/heads/", "") ?: grgitService.service.get().grgit.branch.current().name
-
-    fun getVersion(): String = getVersion(false)
-
-    fun getVersion(appendCommit: Boolean): String =
-        type.append(getVersionString(), appendCommit, getCheckedOutGitCommitHash())
-
-    private fun getVersionString(): String =
-        (rootProject.version as String).removeSuffix("-SNAPSHOT").removeSuffix("-DEV")
-
-    fun getRepository(): String = type.repo
-
-    enum class Type(private val append: String, val repo: String, private val addCommit: Boolean) {
-        RELEASE("", "https://repo.oraxen.com/releases/", false),
-        DEV("-DEV", "https://repo.oraxen.com/development/", true),
-        SNAPSHOT("-SNAPSHOT", "https://repo.oraxen.com/snapshots/", true);
-
-        fun append(name: String, appendCommit: Boolean, commitHash: String): String =
-            name.plus(append).plus(if (appendCommit && addCommit) "-".plus(commitHash) else "")
     }
 }
