@@ -8,6 +8,7 @@ import io.th0rgal.oraxen.config.Settings;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureMechanic;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.NoteBlockMechanic;
 import io.th0rgal.oraxen.nms.NMSHandlers;
+import io.th0rgal.oraxen.utils.drops.Drop;
 import org.apache.commons.lang3.Range;
 import org.bukkit.*;
 import org.bukkit.block.Sign;
@@ -19,12 +20,14 @@ import org.bukkit.block.data.type.Lectern;
 import org.bukkit.block.data.type.*;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
+import org.bukkit.event.player.PlayerItemDamageEvent;
 import org.bukkit.inventory.BlockInventoryHolder;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BannerMeta;
 import org.bukkit.inventory.meta.BlockStateMeta;
+import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.RayTraceResult;
@@ -139,10 +142,20 @@ public class BlockHelpers {
         };
     }
 
+    public enum BlockCorrection {
+        NMS, LEGACY;
+
+        public static boolean useNMS() {
+            return get() == NMS;
+        }
+        public static BlockCorrection get() {
+            return Objects.equals(Settings.BLOCK_CORRECTION.toString(), "NMS") ? NMS : LEGACY;
+        }
+    }
     public static BlockData correctAllBlockStates(Block placedAgainst, Player player, EquipmentSlot hand, BlockFace face, ItemStack item, BlockData newData) {
         Block target = placedAgainst.getRelative(face);
         BlockData correctedData;
-        if (NMSHandlers.getHandler() != null  && Settings.NMS_BLOCK_CORRECTION.toBool()) {
+        if (NMSHandlers.getHandler() != null  && BlockCorrection.useNMS()) {
             //TODO Fix boats, currently Item#use in BoatItem calls PlayerInteractEvent
             // thus causing a StackOverflow, find a workaround
             if (Tag.ITEMS_BOATS.isTagged(item.getType())) return null;

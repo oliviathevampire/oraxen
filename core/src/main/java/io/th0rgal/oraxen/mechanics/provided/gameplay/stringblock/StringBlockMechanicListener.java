@@ -5,11 +5,14 @@ import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.api.OraxenBlocks;
 import io.th0rgal.oraxen.api.OraxenFurniture;
 import io.th0rgal.oraxen.api.OraxenItems;
+import io.th0rgal.oraxen.api.events.noteblock.OraxenNoteBlockPlaceEvent;
 import io.th0rgal.oraxen.api.events.stringblock.OraxenStringBlockInteractEvent;
 import io.th0rgal.oraxen.api.events.stringblock.OraxenStringBlockPlaceEvent;
 import io.th0rgal.oraxen.compatibilities.provided.lightapi.WrappedLightAPI;
 import io.th0rgal.oraxen.mechanics.MechanicFactory;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.limitedplacing.LimitedPlacing;
+import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.NoteBlockMechanicFactory;
+import io.th0rgal.oraxen.mechanics.provided.gameplay.stringblock.sapling.SaplingMechanic;
 import io.th0rgal.oraxen.utils.BlockHelpers;
 import io.th0rgal.oraxen.utils.EventUtils;
 import io.th0rgal.oraxen.utils.Utils;
@@ -265,11 +268,7 @@ public class StringBlockMechanicListener implements Listener {
             }
         } else if (blockAbove.getType() == Material.TRIPWIRE) {
             if (!OraxenBlocks.isOraxenStringBlock(blockAbove)) return;
-            event.setCancelled(true);
-
             OraxenBlocks.remove(blockAbove.getLocation(), player);
-            block.setType(Material.AIR); // This doesn't affect furniture and noteblock as they are handled by other functions
-            event.setDropItems(false);
         }
     }
 
@@ -285,17 +284,17 @@ public class StringBlockMechanicListener implements Listener {
             if (block.getType() == Material.TRIPWIRE) {
                 StringBlockMechanic mechanicBelow = OraxenBlocks.getStringMechanic(blockBelow);
                 if (OraxenBlocks.isOraxenStringBlock(block)) {
-                    OraxenBlocks.remove(block.getLocation(), null);
+                    OraxenBlocks.remove(block.getLocation(), null, true);
                     event.blockList().remove(block);
                 }
                 else if (mechanicBelow != null && mechanicBelow.isTall()) {
-                    OraxenBlocks.remove(blockBelow.getLocation(), null);
+                    OraxenBlocks.remove(blockBelow.getLocation(), null, true);
                     event.blockList().remove(block);
                 }
             } else {
                 if (!OraxenBlocks.isOraxenStringBlock(blockAbove)) return;
-
-                OraxenBlocks.remove(blockAbove.getLocation(), null);
+                
+                OraxenBlocks.remove(blockAbove.getLocation(), null, true);
                 event.blockList().remove(block);
             }
         });
@@ -303,21 +302,17 @@ public class StringBlockMechanicListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onWaterUpdate(final BlockFromToEvent event) {
-        if (!event.getBlock().isLiquid()) return;
-        for (BlockFace f : BlockFace.values()) {
-            if (!f.isCartesian() || f == BlockFace.SELF) continue; // Only take N/S/W/E
-            final Block changed = event.getToBlock().getRelative(f);
-            final Block changedBelow = changed.getRelative(BlockFace.DOWN);
+        final Block changed = event.getToBlock();
+        final Block changedBelow = changed.getRelative(BlockFace.DOWN);
+        if (!event.getBlock().isLiquid() || changed.getType() != Material.TRIPWIRE) return;
 
-            if (changed.getType() == Material.TRIPWIRE) {
-                StringBlockMechanic mechanicBelow = OraxenBlocks.getStringMechanic(changedBelow);
-                if (OraxenBlocks.isOraxenStringBlock(changed)) {
-                    OraxenBlocks.remove(changed.getLocation(), null);
-                } else if (mechanicBelow != null && mechanicBelow.isTall()) {
-                    OraxenBlocks.remove(changedBelow.getLocation(), null);
-                }
-            }
-        }
+        event.setCancelled(true);
+        StringBlockMechanic mechanicBelow = OraxenBlocks.getStringMechanic(changedBelow);
+        if (OraxenBlocks.isOraxenStringBlock(changed))
+            OraxenBlocks.remove(changed.getLocation(), null, true);
+        else if (mechanicBelow != null && mechanicBelow.isTall())
+            OraxenBlocks.remove(changedBelow.getLocation(), null, true);
+
     }
 
     @EventHandler(priority = EventPriority.LOWEST)

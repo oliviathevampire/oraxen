@@ -43,6 +43,9 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.craftbukkit.v1_20_R1.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_20_R1.inventory.CraftItemStack;
@@ -100,7 +103,7 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
         if (serverPlayer.getCooldowns().isOnCooldown(nmsStack.getItem())) return null;
 
         if (!(nmsStack.getItem() instanceof BlockItem blockItem)) {
-            nmsStack.getItem().use(serverPlayer.level(), serverPlayer, hand);
+            serverPlayer.gameMode.useItem(serverPlayer, serverPlayer.level(), nmsStack, hand);
             return null;
         }
 

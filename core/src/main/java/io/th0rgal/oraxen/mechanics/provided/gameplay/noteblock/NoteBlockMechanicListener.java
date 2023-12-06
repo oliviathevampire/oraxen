@@ -16,6 +16,7 @@ import io.th0rgal.oraxen.utils.Utils;
 import io.th0rgal.oraxen.utils.VersionUtil;
 import io.th0rgal.oraxen.utils.breaker.BreakerSystem;
 import io.th0rgal.oraxen.utils.breaker.HardnessModifier;
+import io.th0rgal.oraxen.utils.logs.Logs;
 import io.th0rgal.protectionlib.ProtectionLib;
 import org.bukkit.*;
 import org.bukkit.block.Block;
@@ -244,7 +245,7 @@ public class NoteBlockMechanicListener implements Listener {
             return;
         }
 
-        if (!Settings.NMS_BLOCK_CORRECTION.toBool()) {
+        if (!BlockHelpers.BlockCorrection.useNMS()) {
             final boolean bucketCheck = type.toString().endsWith("_BUCKET");
             final String bucketBlock = type.toString().replace("_BUCKET", "");
             EntityType bucketEntity;
@@ -304,7 +305,6 @@ public class NoteBlockMechanicListener implements Listener {
         }
 
         BlockData data = NoteBlockMechanicFactory.createNoteBlockData(customVariation);
-
         makePlayerPlaceBlock(player, event.getHand(), event.getItem(), placedAgainst, face, data);
     }
 
@@ -497,7 +497,6 @@ public class NoteBlockMechanicListener implements Listener {
             blockPlaceEvent.setCancelled(true);
         if (BlockHelpers.isStandingInside(player, target) || !ProtectionLib.canBuild(player, target.getLocation()))
             blockPlaceEvent.setCancelled(true);
-
         if (target.getLocation().getBlockY() >= target.getWorld().getMaxHeight() || target.getLocation().getBlockY() <= target.getWorld().getMinHeight())
             blockPlaceEvent.setCancelled(true);
         if (!EventUtils.callEvent(blockPlaceEvent) || !blockPlaceEvent.canBuild()) return;

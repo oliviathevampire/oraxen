@@ -9,6 +9,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -145,17 +146,12 @@ public class Utils {
         else player.swingOffHand();
     }
 
-    /**
-     * @param itemStack The ItemStack to edit the ItemMeta of
-     * @param function  The function-block to edit the ItemMeta in
-     * @return The original ItemStack with the new ItemMeta
-     */
-    public static ItemStack editItemMeta(ItemStack itemStack, Consumer<ItemMeta> function) {
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta == null) return itemStack;
-        function.accept(meta);
-        itemStack.setItemMeta(meta);
-        return itemStack;
+    public static float customRound(double value, float step) {
+        float roundedValue = Math.round(value / step) * step;
+        float remainder = (float) (value % step);
+
+        if (remainder > step / 2) roundedValue += step;
+        return Float.parseFloat(String.format("%.2f", roundedValue).replace(",", "."));
     }
 
 }
