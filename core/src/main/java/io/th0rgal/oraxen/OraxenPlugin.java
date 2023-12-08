@@ -30,7 +30,6 @@ import io.th0rgal.oraxen.utils.actions.ClickActionManager;
 import io.th0rgal.oraxen.utils.armorequipevent.ArmorEquipEvent;
 import io.th0rgal.oraxen.utils.breaker.BreakerSystem;
 import io.th0rgal.oraxen.utils.customarmor.CustomArmorListener;
-import io.th0rgal.oraxen.utils.inventories.InvManager;
 import io.th0rgal.oraxen.utils.logs.Logs;
 import io.th0rgal.protectionlib.ProtectionLib;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
@@ -55,7 +54,6 @@ public class OraxenPlugin extends JavaPlugin {
     private FontManager fontManager;
     private HudManager hudManager;
     private SoundManager soundManager;
-    private InvManager invManager;
     private ResourcePack resourcePack;
     private ClickActionManager clickActionManager;
     private ProtocolManager protocolManager;
@@ -122,7 +120,6 @@ public class OraxenPlugin extends JavaPlugin {
         pluginManager.registerEvents(new ItemUpdater(), this);
         resourcePack.generate(false);
         RecipesManager.load(this);
-        invManager = new InvManager();
         ArmorEquipEvent.registerListener(this);
         new CommandsManager().loadCommands();
         postLoading();
@@ -216,10 +213,6 @@ public class OraxenPlugin extends JavaPlugin {
 
     public void setSoundManager(final SoundManager soundManager) {
         this.soundManager = soundManager;
-    }
-
-    public InvManager invManager() {
-        return invManager;
     }
 
     public ResourcePack getResourcePack() {
