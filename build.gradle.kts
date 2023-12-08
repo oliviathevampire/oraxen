@@ -65,7 +65,6 @@ allprojects {
         maven("https://hub.jeff-media.com/nexus/repository/jeff-media-public/") // CustomBlockData
         maven("https://repo.triumphteam.dev/snapshots") // actions-code, actions-spigot
         maven("https://mvn.lumine.io/repository/maven-public/") { metadataSources { artifact() } }// MythicMobs
-        //maven("https://mvn.lumine.io/repository/maven/") // PlayerAnimator
         maven("https://repo.mineinabyss.com/releases") // PlayerAnimator
         maven("https://s01.oss.sonatype.org/content/repositories/snapshots") // commandAPI snapshots
         maven("https://repo.auxilor.io/repository/maven-public/") // EcoItems
@@ -73,8 +72,7 @@ allprojects {
         maven("https://repo.oraxen.com/releases")
         maven("https://repo.oraxen.com/snapshots")
         maven("https://jitpack.io") // JitPack
-        maven("https://repo.unnamed.team/repository/unnamed-public/") // Creative
-        maven("https://nexuslite.gcnt.net/repos/other/") // FoliaLib
+        maven("https://nexus.phoenixdevt.fr/repository/maven-public/") //MMOItems
 
         mavenLocal()
     }
@@ -101,7 +99,7 @@ allprojects {
         compileOnly(files("../libs/compile/BSP.jar"))
         compileOnly("dev.jorel:commandapi-bukkit-shade:$commandApiVersion")
         compileOnly("io.lumine:MythicLib:1.1.6")
-        compileOnly("net.Indyuce:MMOItems:6.7.3")
+        compileOnly("net.Indyuce:MMOItems-API:6.9.5-SNAPSHOT")
         compileOnly("org.joml:joml:1.10.5") // Because pre 1.19.4 api does not have this in the server-jar
         compileOnly("com.willfp:EcoItems:5.23.0")
         compileOnly("com.willfp:eco:6.65.5")

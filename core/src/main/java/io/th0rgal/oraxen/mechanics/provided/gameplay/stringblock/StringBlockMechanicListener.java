@@ -293,7 +293,6 @@ public class StringBlockMechanicListener implements Listener {
                 }
             } else {
                 if (!OraxenBlocks.isOraxenStringBlock(blockAbove)) return;
-                
                 OraxenBlocks.remove(blockAbove.getLocation(), null, true);
                 event.blockList().remove(block);
             }

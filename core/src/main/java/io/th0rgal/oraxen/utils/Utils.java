@@ -1,5 +1,6 @@
 package io.th0rgal.oraxen.utils;
 
+import io.th0rgal.oraxen.utils.logs.Logs;
 import org.bukkit.Color;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
@@ -153,5 +154,4 @@ public class Utils {
         if (remainder > step / 2) roundedValue += step;
         return Float.parseFloat(String.format("%.2f", roundedValue).replace(",", "."));
     }
-
 }
