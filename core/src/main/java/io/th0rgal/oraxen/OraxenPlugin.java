@@ -14,7 +14,6 @@ import io.th0rgal.oraxen.hud.HudManager;
 import io.th0rgal.oraxen.items.ItemUpdater;
 import io.th0rgal.oraxen.mechanics.MechanicsManager;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureFactory;
-import io.th0rgal.oraxen.new_commands.CommandManager;
 import io.th0rgal.oraxen.nms.NMSHandlers;
 import io.th0rgal.oraxen.pack.generation.ResourcePack;
 import io.th0rgal.oraxen.pack.upload.UploadManager;
@@ -57,7 +56,6 @@ public class OraxenPlugin extends JavaPlugin {
     private ResourcePack resourcePack;
     private ClickActionManager clickActionManager;
     private ProtocolManager protocolManager;
-    private CommandManager commandManager;
     public static boolean supportsDisplayEntities;
 
     public OraxenPlugin() {
@@ -120,7 +118,6 @@ public class OraxenPlugin extends JavaPlugin {
         RecipesManager.load(this);
         invManager = new InvManager();
         ArmorEquipEvent.registerListener(this);
-        commandManager = new CommandManager(this);
         new CommandsManager().loadCommands();
         postLoading();
         try {

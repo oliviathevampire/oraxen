@@ -15,6 +15,11 @@ import io.th0rgal.oraxen.nms.NMSHandlers;
 import io.th0rgal.oraxen.utils.AdventureUtils;
 import io.th0rgal.oraxen.utils.VersionUtil;
 import io.th0rgal.oraxen.utils.logs.Logs;
+import io.th0rgal.oraxen.font.GlyphTag;
+import io.th0rgal.oraxen.nms.GlyphHandlers;
+import io.th0rgal.oraxen.nms.NMSHandlers;
+import io.th0rgal.oraxen.utils.AdventureUtils;
+import io.th0rgal.oraxen.utils.VersionUtil;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import net.kyori.adventure.text.Component;
@@ -259,6 +264,9 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
                 }
             }.runTask(OraxenPlugin.get());
         }
+
+        if (VersionUtil.isPaperServer())
+            Bukkit.getPluginManager().registerEvents(new GlyphListener(), OraxenPlugin.get());
     }
 
 
@@ -355,7 +363,7 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
             try {
                 JsonElement element = JsonParser.parseString(string);
                 if (element.isJsonObject())
-                    return super.writeUtf(NMSHandlers.formatJsonString(element.getAsJsonObject()), maxLength);
+                    return super.writeUtf(GlyphHandlers.formatJsonString(element.getAsJsonObject()), maxLength);
             } catch (Exception ignored) {
 
             }
@@ -371,7 +379,7 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
                     try {
                         JsonElement element = JsonParser.parseString(string);
                         if (element.isJsonObject())
-                            return NMSHandlers.formatJsonString(element.getAsJsonObject());
+                            return GlyphHandlers.formatJsonString(element.getAsJsonObject());
                     } catch (Exception ignored) {
                     }
                     return string;
@@ -406,14 +414,13 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
 
         @Override
         public @NotNull String readUtf(int i) {
-            return NMSHandlers.verifyFor(supplier.get(), super.readUtf(i));
+            return GlyphHandlers.verifyFor(supplier.get(), super.readUtf(i));
         }
 
         @Override
         public @Nullable CompoundTag readNbt(@NotNull NbtAccounter nbtAccounter) {
             CompoundTag compound = (CompoundTag) super.readNbt(nbtAccounter);
-            if (compound != null) transform(compound, string -> NMSHandlers.verifyFor(supplier.get(), string));
-
+            if (compound != null) transform(compound, string -> GlyphHandlers.verifyFor(supplier.get(), string));
             return compound;
         }
     }

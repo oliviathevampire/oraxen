@@ -33,6 +33,7 @@ SUPPORTED_VERSIONS.forEach {
         }
 
         dependencies {
+            compileOnly("io.papermc.paper:paper-api:" + it.serverVersion)
             implementation(project(":core"))
             paperDevBundle(it.serverVersion)
         }
@@ -46,7 +47,7 @@ val foliaPluginPath = project.findProperty("oraxen_folia_plugin_path")?.toString
 val spigotPluginPath = project.findProperty("oraxen_spigot_plugin_path")?.toString()
 val pluginVersion: String by project
 val commandApiVersion = "9.3.0"
-val adventureVersion = "4.15.0-SNAPSHOT"
+val adventureVersion = "4.14.0"
 val platformVersion = "4.3.1"
 group = "io.th0rgal"
 version = pluginVersion
@@ -81,7 +82,6 @@ allprojects {
     dependencies {
         val actionsVersion = "1.0.0-SNAPSHOT"
 
-        compileOnly("io.papermc.paper:paper-api:1.20.4-R0.1-SNAPSHOT")
         compileOnly("net.kyori:adventure-text-minimessage:$adventureVersion")
         compileOnly("net.kyori:adventure-text-serializer-plain:$adventureVersion")
         compileOnly("net.kyori:adventure-text-serializer-ansi:$adventureVersion")

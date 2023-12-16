@@ -249,7 +249,6 @@ Pack:
           console: [ ]
           player: [ ]
           opped_player: [ ]
-
 Misc:
   # If this is set to true, Oraxen will reset recipes on reload. This might create conflicts with other plugins
   # but this makes the things easier if you want to try your oraxen recipes.
