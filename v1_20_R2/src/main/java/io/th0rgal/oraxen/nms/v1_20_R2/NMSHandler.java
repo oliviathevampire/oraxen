@@ -14,12 +14,10 @@ import io.th0rgal.oraxen.font.GlyphTag;
 import io.th0rgal.oraxen.nms.NMSHandlers;
 import io.th0rgal.oraxen.utils.AdventureUtils;
 import io.th0rgal.oraxen.utils.VersionUtil;
-import io.th0rgal.oraxen.utils.logs.Logs;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import net.kyori.adventure.text.Component;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.*;
@@ -38,7 +36,6 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.context.DirectionalPlaceContext;
 import net.minecraft.world.item.context.UseOnContext;
@@ -47,9 +44,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.craftbukkit.v1_20_R2.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_20_R2.inventory.CraftItemStack;
@@ -70,9 +64,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
-
-    private final Map<Channel, ChannelHandler> encoder = Collections.synchronizedMap(new WeakHashMap<>());
-    private final Map<Channel, ChannelHandler> decoder = Collections.synchronizedMap(new WeakHashMap<>());
 
     @Override
     public boolean tripwireUpdatesDisabled() {
@@ -176,10 +167,13 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
         }).collect(HashMap::new, Map::putAll, Map::putAll);
     }
 
+    private final Map<Channel, ChannelHandler> encoder = Collections.synchronizedMap(new WeakHashMap<>());
+    private final Map<Channel, ChannelHandler> decoder = Collections.synchronizedMap(new WeakHashMap<>());
+
     @Override
     public void setupNmsGlyphs() {
         if (!Settings.NMS_GLYPHS.toBool()) return;
-        List<Connection> networkManagers = MinecraftServer.getServer().getConnection().getConnections();
+        final List<Connection> connections = MinecraftServer.getServer().getConnection().getConnections();
         List<ChannelFuture> channelFutures;
 
         try {
@@ -192,7 +186,7 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
             e1.printStackTrace();
         }
 
-        final List<ChannelFuture> futures = channelFutures;
+        final List<ChannelFuture> finalChannelFutures = channelFutures;
 
         // Handle connected channels
         ChannelInitializer<Channel> endInitProtocol = new ChannelInitializer<>() {
@@ -200,7 +194,7 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
             protected void initChannel(@NotNull Channel channel) {
                 try {
                     // This can take a while, so we need to stop the main thread from interfering
-                    synchronized (networkManagers) {
+                    synchronized (connections) {
                         // Stop injecting channels
                         channel.eventLoop().submit(() -> inject(channel));
                     }
@@ -221,24 +215,21 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
                     }
                 }
 
-                if (handler == null) {
-                    channel.pipeline().addLast(endInitProtocol);
-                } else {
-                    Class<?> clazz = handler.getClass();
+                if (handler != null) {
                     Method initChannel = ChannelInitializer.class.getDeclaredMethod("initChannel", Channel.class);
                     initChannel.setAccessible(true);
-                    Field original = clazz.getDeclaredField("original");
+                    Field original = handler.getClass().getDeclaredField("original");
                     original.setAccessible(true);
-                    ChannelInitializer<Channel> initializer = (ChannelInitializer<Channel>) original.get(handler);
+                    ChannelInitializer<?> initializer = (ChannelInitializer<?>) original.get(handler);
                     ChannelInitializer<Channel> miniInit = new ChannelInitializer<>() {
                         @Override
-                        protected void initChannel(@NotNull Channel ch) throws Exception {
-                            initChannel.invoke(initializer, ch);
+                        protected void initChannel(@NotNull Channel channel) throws Exception {
+                            initChannel.invoke(initializer, channel);
                             channel.eventLoop().submit(() -> inject(channel));
                         }
                     };
                     original.set(handler, miniInit);
-                }
+                } else channel.pipeline().addLast(endInitProtocol);
             }
         };
 
@@ -252,12 +243,12 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
         };
 
         try {
-            bind(futures, serverChannelHandler);
+            bind(channelFutures, serverChannelHandler);
         } catch (IllegalArgumentException ex) {
             new BukkitRunnable() {
                 @Override
                 public void run() {
-                    bind(futures, serverChannelHandler);
+                    bind(finalChannelFutures, serverChannelHandler);
                 }
             }.runTask(OraxenPlugin.get());
         }
@@ -289,52 +280,34 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
         uninject(channel);
     }
 
+    private void inject(Channel channel) {
+        // Replace the vanilla PacketEncoder with our own
+        if (!encoder.containsKey(channel) && !(channel.pipeline().get("encoder") instanceof CustomPacketEncoder))
+            encoder.put(channel, channel.pipeline().replace("encoder", "encoder", new CustomPacketEncoder()));
+
+        // Replace the vanilla PacketDecoder with our own
+        if (!decoder.containsKey(channel) && (channel.pipeline().get("decoder") instanceof CustomPacketDecoder))
+            decoder.put(channel, channel.pipeline().replace("decoder", "decoder", new CustomPacketDecoder()));
+    }
+
     private void uninject(Channel channel) {
         if (encoder.containsKey(channel)) {
             // Replace our custom packet encoder with the default one that the player had
             ChannelHandler previousHandler = encoder.remove(channel);
-            if (previousHandler instanceof PacketEncoder) {
-                // PacketEncoder is not shareable, so we can't re-add it back. Instead, we'll have to create a new instance
-                channel.pipeline().replace("encoder", "encoder", new PacketEncoder(Connection.ATTRIBUTE_CLIENTBOUND_PROTOCOL));
-            } else channel.pipeline().replace("encoder", "encoder", previousHandler);
+            ChannelHandler handler = (previousHandler instanceof PacketEncoder) ? new PacketEncoder(Connection.ATTRIBUTE_CLIENTBOUND_PROTOCOL) : previousHandler;
+            if (handler != null) channel.pipeline().replace("encoder", "encoder", handler);
         }
 
         if (decoder.containsKey(channel)) {
             ChannelHandler previousHandler = decoder.remove(channel);
-            if (previousHandler instanceof PacketDecoder) {
-                channel.pipeline().replace("decoder", "decoder", new PacketDecoder(Connection.ATTRIBUTE_SERVERBOUND_PROTOCOL));
-            } else {
-                channel.pipeline().replace("decoder", "decoder", previousHandler);
-            }
-        }
-    }
-
-    private void inject(Channel channel) {
-        if (!encoder.containsKey(channel)) {
-            // Replace the vanilla PacketEncoder with our own
-            ChannelHandler handler = channel.pipeline().get("encoder");
-            if (!(handler instanceof CustomPacketEncoder)) {
-                encoder.put(channel, channel.pipeline().replace("encoder", "encoder", new CustomPacketEncoder()));
-            }
-        }
-
-        if (!decoder.containsKey(channel)) {
-            // Replace the vanilla PacketDecoder with our own
-            ChannelHandler handler = channel.pipeline().get("decoder");
-            if (!(handler instanceof CustomPacketDecoder)) {
-                decoder.put(channel, channel.pipeline().replace("decoder", "decoder", new CustomPacketDecoder()));
-            }
+            ChannelHandler handler = (previousHandler instanceof PacketDecoder) ? new PacketDecoder(Connection.ATTRIBUTE_CLIENTBOUND_PROTOCOL) : previousHandler;
+            if (handler != null) channel.pipeline().replace("decoder", "decoder", handler);
         }
     }
 
     private void bind(List<ChannelFuture> channelFutures, ChannelInboundHandlerAdapter serverChannelHandler) {
-        for (ChannelFuture future : channelFutures) {
-            future.channel().pipeline().addFirst(serverChannelHandler);
-        }
-
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            inject(player);
-        }
+        for (ChannelFuture future : channelFutures) future.channel().pipeline().addFirst(serverChannelHandler);
+        for (Player player : Bukkit.getOnlinePlayers()) inject(player);
     }
 
     private static class CustomDataSerializer extends FriendlyByteBuf {

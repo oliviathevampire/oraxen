@@ -2,9 +2,6 @@ package io.th0rgal.oraxen;
 
 import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.ProtocolManager;
-import com.ticxo.playeranimator.PlayerAnimatorImpl;
-import dev.jorel.commandapi.CommandAPI;
-import dev.jorel.commandapi.CommandAPIBukkitConfig;
 import io.th0rgal.oraxen.api.OraxenItems;
 import io.th0rgal.oraxen.api.events.OraxenItemsLoadedEvent;
 import io.th0rgal.oraxen.commands.CommandsManager;
@@ -17,6 +14,7 @@ import io.th0rgal.oraxen.hud.HudManager;
 import io.th0rgal.oraxen.items.ItemUpdater;
 import io.th0rgal.oraxen.mechanics.MechanicsManager;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureFactory;
+import io.th0rgal.oraxen.new_commands.CommandManager;
 import io.th0rgal.oraxen.nms.NMSHandlers;
 import io.th0rgal.oraxen.pack.generation.ResourcePack;
 import io.th0rgal.oraxen.pack.upload.UploadManager;
@@ -30,6 +28,7 @@ import io.th0rgal.oraxen.utils.actions.ClickActionManager;
 import io.th0rgal.oraxen.utils.armorequipevent.ArmorEquipEvent;
 import io.th0rgal.oraxen.utils.breaker.BreakerSystem;
 import io.th0rgal.oraxen.utils.customarmor.CustomArmorListener;
+import io.th0rgal.oraxen.utils.inventories.InvManager;
 import io.th0rgal.oraxen.utils.logs.Logs;
 import io.th0rgal.protectionlib.ProtectionLib;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
@@ -54,9 +53,11 @@ public class OraxenPlugin extends JavaPlugin {
     private FontManager fontManager;
     private HudManager hudManager;
     private SoundManager soundManager;
+    private InvManager invManager;
     private ResourcePack resourcePack;
     private ClickActionManager clickActionManager;
     private ProtocolManager protocolManager;
+    private CommandManager commandManager;
     public static boolean supportsDisplayEntities;
 
     public OraxenPlugin() {
@@ -78,14 +79,11 @@ public class OraxenPlugin extends JavaPlugin {
 
     @Override
     public void onLoad() {
-        CommandAPI.onLoad(new CommandAPIBukkitConfig(this).silentLogs(true));
     }
 
     @Override
     public void onEnable() {
-        CommandAPI.onEnable();
         ProtectionLib.init(this);
-        PlayerAnimatorImpl.initialize(this);
         audience = BukkitAudiences.create(this);
         clickActionManager = new ClickActionManager(this);
         supportsDisplayEntities = VersionUtil.isSupportedVersionOrNewer("1.19.4");
@@ -120,7 +118,9 @@ public class OraxenPlugin extends JavaPlugin {
         pluginManager.registerEvents(new ItemUpdater(), this);
         resourcePack.generate(false);
         RecipesManager.load(this);
+        invManager = new InvManager();
         ArmorEquipEvent.registerListener(this);
+        commandManager = new CommandManager(this);
         new CommandsManager().loadCommands();
         postLoading();
         try {
@@ -213,6 +213,10 @@ public class OraxenPlugin extends JavaPlugin {
 
     public void setSoundManager(final SoundManager soundManager) {
         this.soundManager = soundManager;
+    }
+
+    public InvManager invManager() {
+        return invManager;
     }
 
     public ResourcePack getResourcePack() {

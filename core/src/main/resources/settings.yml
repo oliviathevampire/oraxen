@@ -194,6 +194,62 @@ Pack:
           player: [ ]
           opped_player: [ ]
 
+    failed_reload: #1.20.3+ only
+      actions:
+        message:
+          enabled: false
+          # KICK / CHAT / ACTION_BAR / TITLE
+          type: ACTION_BAR
+          # Click and Hover elements are only available by using the CHAT type
+          content: "<red>You failed to reload the ResourcePack</red>"
+        # If you need to send commands
+        commands:
+          console: [ ]
+          player: [ ]
+          opped_player: [ ]
+
+    downloaded: #1.20.3+ only
+      actions:
+        message:
+          enabled: false
+          # KICK / CHAT / ACTION_BAR / TITLE
+          type: ACTION_BAR
+          # Click and Hover elements are only available by using the CHAT type
+          content: "<#55ffa4><bold>ResourcePack downloaded"
+        # If you need to send commands
+        commands:
+          console: [ ]
+          player: [ ]
+          opped_player: [ ]
+
+    invalid_url: #1.20.3+ only
+      actions:
+        message:
+          enabled: false
+          # KICK / CHAT / ACTION_BAR / TITLE
+          type: ACTION_BAR
+          # Click and Hover elements are only available by using the CHAT type
+          content: "<red>Invalid ResourcePack URL</red>"
+        # If you need to send commands
+        commands:
+          console: [ ]
+          player: [ ]
+          opped_player: [ ]
+
+    discarded: #1.20.3+ only
+      actions:
+        message:
+          enabled: false
+          # KICK / CHAT / ACTION_BAR / TITLE
+          type: ACTION_BAR
+          # Click and Hover elements are only available by using the CHAT type
+          content: "<red>ResourcePack got discarded</red>"
+        # If you need to send commands
+        commands:
+          console: [ ]
+          player: [ ]
+          opped_player: [ ]
+
 Misc:
   # If this is set to true, Oraxen will reset recipes on reload. This might create conflicts with other plugins
   # but this makes the things easier if you want to try your oraxen recipes.

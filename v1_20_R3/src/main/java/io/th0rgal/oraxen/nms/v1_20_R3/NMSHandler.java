@@ -1,4 +1,4 @@
-package io.th0rgal.oraxen.nms.v1_20_R1;
+package io.th0rgal.oraxen.nms.v1_20_R3;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
@@ -6,6 +6,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.codec.MessageToByteEncoder;
+import io.netty.util.Attribute;
 import io.papermc.paper.configuration.GlobalConfiguration;
 import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.config.Settings;
@@ -13,18 +14,20 @@ import io.th0rgal.oraxen.font.GlyphTag;
 import io.th0rgal.oraxen.nms.NMSHandlers;
 import io.th0rgal.oraxen.utils.AdventureUtils;
 import io.th0rgal.oraxen.utils.VersionUtil;
+import io.th0rgal.oraxen.utils.logs.Logs;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import net.kyori.adventure.text.Component;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.*;
 import net.minecraft.network.*;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.PacketFlow;
+import net.minecraft.network.protocol.common.ClientboundUpdateTagsPacket;
 import net.minecraft.network.protocol.game.ClientboundPlayerChatPacket;
-import net.minecraft.network.protocol.game.ClientboundUpdateTagsPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -35,6 +38,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.context.DirectionalPlaceContext;
 import net.minecraft.world.item.context.UseOnContext;
@@ -43,16 +47,19 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.craftbukkit.v1_20_R1.entity.CraftPlayer;
-import org.bukkit.craftbukkit.v1_20_R1.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.v1_20_R3.entity.CraftPlayer;
+import org.bukkit.craftbukkit.v1_20_R3.inventory.CraftItemStack;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -69,12 +76,12 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
 
     @Override
     public boolean tripwireUpdatesDisabled() {
-        return VersionUtil.isPaperServer() && VersionUtil.matchesServer("1.20.1")  && GlobalConfiguration.get().blockUpdates.disableTripwireUpdates;
+        return VersionUtil.isPaperServer() && GlobalConfiguration.get().blockUpdates.disableTripwireUpdates;
     }
 
     @Override
     public boolean noteblockUpdatesDisabled() {
-        return VersionUtil.isPaperServer() && VersionUtil.matchesServer("1.20.1") && GlobalConfiguration.get().blockUpdates.disableNoteblockUpdates;
+        return VersionUtil.isPaperServer() && GlobalConfiguration.get().blockUpdates.disableNoteblockUpdates;
     }
 
 
@@ -89,15 +96,13 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
     }
 
     @Override
-    @javax.annotation.Nullable
+    @Nullable
     public BlockData correctBlockStates(Player player, EquipmentSlot slot, ItemStack itemStack) {
         InteractionHand hand = slot == EquipmentSlot.HAND ? InteractionHand.MAIN_HAND : InteractionHand.OFF_HAND;
         net.minecraft.world.item.ItemStack nmsStack = CraftItemStack.asNMSCopy(itemStack);
         ServerPlayer serverPlayer = ((CraftPlayer) player).getHandle();
         BlockHitResult hitResult = getPlayerPOVHitResult(serverPlayer.level(), serverPlayer, ClipContext.Fluid.NONE);
         BlockPlaceContext placeContext = new BlockPlaceContext(new UseOnContext(serverPlayer, hand, hitResult));
-
-        if (serverPlayer.getCooldowns().isOnCooldown(nmsStack.getItem())) return null;
 
         if (!(nmsStack.getItem() instanceof BlockItem blockItem)) {
             serverPlayer.gameMode.useItem(serverPlayer, serverPlayer.level(), nmsStack, hand);
@@ -228,7 +233,6 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
                         protected void initChannel(@NotNull Channel ch) throws Exception {
                             initChannel.invoke(initializer, ch);
                             channel.eventLoop().submit(() -> inject(channel));
-                            inject(ch);
                         }
                     };
                     original.set(handler, miniInit);
@@ -256,6 +260,7 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
             }.runTask(OraxenPlugin.get());
         }
     }
+
 
     @Override
     public void inject(Player player) {
@@ -288,14 +293,14 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
             ChannelHandler previousHandler = encoder.remove(channel);
             if (previousHandler instanceof PacketEncoder) {
                 // PacketEncoder is not shareable, so we can't re-add it back. Instead, we'll have to create a new instance
-                channel.pipeline().replace("encoder", "encoder", new PacketEncoder(PacketFlow.CLIENTBOUND));
+                channel.pipeline().replace("encoder", "encoder", new PacketEncoder(Connection.ATTRIBUTE_CLIENTBOUND_PROTOCOL));
             } else channel.pipeline().replace("encoder", "encoder", previousHandler);
         }
 
         if (decoder.containsKey(channel)) {
             ChannelHandler previousHandler = decoder.remove(channel);
             if (previousHandler instanceof PacketDecoder) {
-                channel.pipeline().replace("decoder", "decoder", new PacketDecoder(PacketFlow.SERVERBOUND));
+                channel.pipeline().replace("decoder", "decoder", new PacketDecoder(Connection.ATTRIBUTE_SERVERBOUND_PROTOCOL));
             } else {
                 channel.pipeline().replace("decoder", "decoder", previousHandler);
             }
@@ -303,18 +308,31 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
     }
 
     private void inject(Channel channel) {
-        // Replace the vanilla PacketEncoder with our own
-        if (!encoder.containsKey(channel) && !(channel.pipeline().get("encoder") instanceof CustomPacketEncoder))
-            encoder.put(channel, channel.pipeline().replace("encoder", "encoder", new CustomPacketEncoder()));
+        if (!encoder.containsKey(channel)) {
+            // Replace the vanilla PacketEncoder with our own
+            ChannelHandler handler = channel.pipeline().get("encoder");
+            if (!(handler instanceof CustomPacketEncoder)) {
+                encoder.put(channel, channel.pipeline().replace("encoder", "encoder", new CustomPacketEncoder()));
+            }
+        }
 
-        // Replace the vanilla PacketDecoder with our own
-        if (!decoder.containsKey(channel) && !(channel.pipeline().get("decoder") instanceof CustomPacketDecoder))
-            decoder.put(channel, channel.pipeline().replace("decoder", "decoder", new CustomPacketDecoder()));
+        if (!decoder.containsKey(channel)) {
+            // Replace the vanilla PacketDecoder with our own
+            ChannelHandler handler = channel.pipeline().get("decoder");
+            if (!(handler instanceof CustomPacketDecoder)) {
+                decoder.put(channel, channel.pipeline().replace("decoder", "decoder", new CustomPacketDecoder()));
+            }
+        }
     }
 
     private void bind(List<ChannelFuture> channelFutures, ChannelInboundHandlerAdapter serverChannelHandler) {
-        for (ChannelFuture future : channelFutures) future.channel().pipeline().addFirst(serverChannelHandler);
-        for (Player player : Bukkit.getOnlinePlayers()) inject(player);
+        for (ChannelFuture future : channelFutures) {
+            future.channel().pipeline().addFirst(serverChannelHandler);
+        }
+
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            inject(player);
+        }
     }
 
     private static class CustomDataSerializer extends FriendlyByteBuf {
@@ -345,10 +363,11 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
             return super.writeUtf(string, maxLength);
         }
 
+        @NotNull
         @Override
-        public @NotNull FriendlyByteBuf writeNbt(CompoundTag compound) {
-            if (compound != null) {
-                transform(compound, string -> {
+        public FriendlyByteBuf writeNbt(@Nullable Tag tag) {
+            /*if (tag != null) {
+                transform((CompoundTag) tag, string -> {
                     try {
                         JsonElement element = JsonParser.parseString(string);
                         if (element.isJsonObject())
@@ -357,9 +376,9 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
                     }
                     return string;
                 });
-            }
+            }*/
 
-            return super.writeNbt(compound);
+            return super.writeNbt(tag);
         }
 
         private void transform(CompoundTag compound, Function<String, String> transformer) {
@@ -378,9 +397,9 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
                 else if (base instanceof StringTag) {
                     String transformed = transformer.apply(base.getAsString());
                     if (base.getAsString().equals(transformed)) continue;
-                    int index = list.indexOf(base);
-                    list.add(index, StringTag.valueOf(transformed));
-                    list.remove(index + 1);
+                    //int index = list.indexOf(base);
+                    //list.add(index, StringTag.valueOf(transformed));
+                    //list.remove(index + 1);
                 }
             }
         }
@@ -392,7 +411,7 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
 
         @Override
         public @Nullable CompoundTag readNbt(@NotNull NbtAccounter nbtAccounter) {
-            CompoundTag compound = super.readNbt(nbtAccounter);
+            CompoundTag compound = (CompoundTag) super.readNbt(nbtAccounter);
             if (compound != null) transform(compound, string -> NMSHandlers.verifyFor(supplier.get(), string));
 
             return compound;
@@ -405,11 +424,11 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
 
         @Override
         protected void encode(ChannelHandlerContext ctx, Packet<?> msg, ByteBuf out) {
-            ConnectionProtocol enumProt = ctx.channel().attr(Connection.ATTRIBUTE_PROTOCOL).get();
+            ConnectionProtocol enumProt = ctx.channel().attr(Connection.ATTRIBUTE_SERVERBOUND_PROTOCOL).get().protocol();
             if (enumProt == null) {
                 throw new RuntimeException("ConnectionProtocol unknown: " + msg);
             }
-            int integer = enumProt.getPacketId(this.protocolDirection, msg);
+            int integer = enumProt.codec(protocolDirection).packetId(msg);
 
             FriendlyByteBuf packetDataSerializer = new CustomDataSerializer(() -> player, out);
             packetDataSerializer.writeVarInt(integer);
@@ -435,14 +454,15 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
         private Player player;
 
         @Override
-        protected void decode(ChannelHandlerContext ctx, ByteBuf msg, List<Object> out) throws Exception {
+        protected void decode(ChannelHandlerContext ctx, ByteBuf msg, List<Object> out) throws IOException {
             final ByteBuf bufCopy = msg.copy();
             if (msg.readableBytes() == 0) return;
 
+            Attribute<ConnectionProtocol.CodecData<?>> attribute = ctx.channel().attr(Connection.ATTRIBUTE_SERVERBOUND_PROTOCOL);
+            ConnectionProtocol.CodecData<?> codecData = attribute.get();
             CustomDataSerializer dataSerializer = new CustomDataSerializer(() -> player, msg);
             int packetID = dataSerializer.readVarInt();
-            ConnectionProtocol protocol = ctx.channel().attr(Connection.ATTRIBUTE_PROTOCOL).get();
-            Packet<?> packet = protocol.createPacket(PacketFlow.SERVERBOUND, packetID, dataSerializer);
+            Packet<?> packet = codecData.createPacket(packetID, dataSerializer);
 
             if (packet == null) {
                 throw new IOException("Bad packet id " + packetID);
@@ -453,7 +473,7 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
             } else if (packet instanceof ClientboundPlayerChatPacket) {
                 FriendlyByteBuf serializer = new FriendlyByteBuf(bufCopy);
                 serializer.readVarInt();
-                packet = protocol.createPacket(PacketFlow.SERVERBOUND, packetID, serializer);
+                packet = codecData.createPacket(packetID, serializer);
             }
             out.add(packet);
         }

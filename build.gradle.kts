@@ -7,7 +7,7 @@ plugins {
     //id("com.github.johnrengelman.shadow") version "8.1.1"
     id("xyz.jpenilla.run-paper") version "2.2.0"
     id("net.minecrell.plugin-yml.bukkit") version "0.6.0" // Generates plugin.yml
-    id("io.papermc.paperweight.userdev") version "1.5.6" apply false
+    id("io.papermc.paperweight.userdev") version "1.5.11" apply false
     alias(libs.plugins.shadowjar)
     alias(libs.plugins.mia.publication)
 //    alias(libs.plugins.mia.copyjar)
@@ -17,7 +17,8 @@ class NMSVersion(val nmsVersion: String, val serverVersion: String)
 infix fun String.toNms(that: String): NMSVersion = NMSVersion(this, that)
 val SUPPORTED_VERSIONS: List<NMSVersion> = listOf(
     "v1_20_R1" toNms "1.20.1-R0.1-SNAPSHOT",
-    "v1_20_R2" toNms "1.20.2-R0.1-SNAPSHOT"
+    "v1_20_R2" toNms "1.20.2-R0.1-SNAPSHOT",
+    "v1_20_R3" toNms "1.20.4-R0.1-SNAPSHOT"
 )
 
 SUPPORTED_VERSIONS.forEach {
@@ -44,8 +45,8 @@ val devPluginPath = project.findProperty("oraxen_dev_plugin_path")?.toString()
 val foliaPluginPath = project.findProperty("oraxen_folia_plugin_path")?.toString()
 val spigotPluginPath = project.findProperty("oraxen_spigot_plugin_path")?.toString()
 val pluginVersion: String by project
-val commandApiVersion = "9.2.0"
-val adventureVersion = "4.14.0"
+val commandApiVersion = "9.3.0"
+val adventureVersion = "4.15.0-SNAPSHOT"
 val platformVersion = "4.3.1"
 group = "io.th0rgal"
 version = pluginVersion
@@ -80,13 +81,13 @@ allprojects {
     dependencies {
         val actionsVersion = "1.0.0-SNAPSHOT"
 
-        compileOnly("io.papermc.paper:paper-api:1.20.2-R0.1-SNAPSHOT")
+        compileOnly("io.papermc.paper:paper-api:1.20.4-R0.1-SNAPSHOT")
         compileOnly("net.kyori:adventure-text-minimessage:$adventureVersion")
         compileOnly("net.kyori:adventure-text-serializer-plain:$adventureVersion")
         compileOnly("net.kyori:adventure-text-serializer-ansi:$adventureVersion")
         compileOnly("net.kyori:adventure-platform-bukkit:$platformVersion")
-        compileOnly("com.comphenix.protocol:ProtocolLib:5.1.0")
-        compileOnly("me.clip:placeholderapi:2.11.4")
+        compileOnly("com.comphenix.protocol:ProtocolLib:5.2.0-SNAPSHOT")
+        compileOnly("me.clip:placeholderapi:2.11.5")
         compileOnly("com.github.BeYkeRYkt:LightAPI:5.3.0-Bukkit")
         compileOnly("me.gabytm.util:actions-core:$actionsVersion")
         compileOnly("org.springframework:spring-expression:6.0.6")
@@ -94,19 +95,16 @@ allprojects {
         compileOnly("io.lumine:MythicCrucible:1.6.0-SNAPSHOT")
         compileOnly("com.sk89q.worldedit:worldedit-bukkit:7.2.0")
         compileOnly("commons-io:commons-io:2.11.0")
-        compileOnly("com.ticxo.modelengine:ModelEngine:R4.0.1")
-        compileOnly("com.ticxo.modelengine:api:R3.1.8")
+        compileOnly("com.ticxo.modelengine:ModelEngine:R4.0.3")
+        compileOnly("com.ticxo.modelengine:api:R3.1.9")
         compileOnly(files("../libs/compile/BSP.jar"))
         compileOnly("dev.jorel:commandapi-bukkit-shade:$commandApiVersion")
         compileOnly("io.lumine:MythicLib:1.1.6")
         compileOnly("net.Indyuce:MMOItems-API:6.9.5-SNAPSHOT")
-        compileOnly("org.joml:joml:1.10.5") // Because pre 1.19.4 api does not have this in the server-jar
-        compileOnly("com.willfp:EcoItems:5.23.0")
-        compileOnly("com.willfp:eco:6.65.5")
-        compileOnly("com.willfp:libreforge:4.36.0")
+        compileOnly("com.willfp:EcoItems:5.36.0")
+        compileOnly("com.willfp:eco:6.67.2")
+        compileOnly("com.willfp:libreforge:4.49.2")
         compileOnly("io.github.miniplaceholders:miniplaceholders-api:2.2.1")
-
-        implementation("com.tcoded:FoliaLib:0.3.1")
     }
 }
 
