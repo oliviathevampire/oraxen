@@ -4,12 +4,12 @@ import dev.jorel.commandapi.CommandAPICommand;
 import dev.jorel.commandapi.arguments.ArgumentSuggestions;
 import dev.jorel.commandapi.arguments.IntegerArgument;
 import dev.jorel.commandapi.arguments.TextArgument;
+import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.config.Message;
 import io.th0rgal.oraxen.recipes.CustomRecipe;
 import io.th0rgal.oraxen.recipes.builders.*;
 import io.th0rgal.oraxen.recipes.listeners.RecipesEventsManager;
 import io.th0rgal.oraxen.utils.AdventureUtils;
-import io.th0rgal.oraxen.utils.inventories.RecipesView;
 import org.apache.commons.lang3.ArrayUtils;
 import org.bukkit.entity.Player;
 
@@ -42,7 +42,7 @@ public class RecipesCommand {
                             Message.RECIPE_NO_RECIPE.send(sender);
                             return;
                         }
-                        OraxenPlugin.get().getInvManager().getRecipesShowcase(player,0, recipes).show(player);
+                        OraxenPlugin.get().invManager().getRecipesShowcase(player,0, recipes).open(player);
                     } else
                         Message.NOT_PLAYER.send(sender);
                 });

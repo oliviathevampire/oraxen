@@ -2,12 +2,12 @@ package io.th0rgal.oraxen.commands;
 
 import dev.jorel.commandapi.CommandAPICommand;
 import dev.jorel.commandapi.arguments.*;
+import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.api.OraxenItems;
 import io.th0rgal.oraxen.config.Message;
 import io.th0rgal.oraxen.items.ItemBuilder;
 import io.th0rgal.oraxen.items.ItemUpdater;
 import io.th0rgal.oraxen.utils.AdventureUtils;
-import io.th0rgal.oraxen.utils.inventories.ItemsView;
 import org.bukkit.Color;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -89,7 +89,7 @@ public class CommandsManager {
                 .withPermission("oraxen.command.inventory.view")
                 .executes((sender, args) -> {
                     if (sender instanceof Player player)
-                        OraxenPlugin.get().getInvManager().getItemsView(player).show(player);
+                        OraxenPlugin.get().invManager().getItemsView(player).open(player);
                     else
                         Message.NOT_PLAYER.send(sender);
                 });
