@@ -7,9 +7,11 @@ import io.netty.channel.*;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.codec.MessageToByteEncoder;
 import io.netty.util.Attribute;
+import io.netty.util.AttributeKey;
 import io.papermc.paper.adventure.PaperAdventure;
 import io.papermc.paper.configuration.GlobalConfiguration;
 import io.papermc.paper.event.player.AsyncChatDecorateEvent;
+import io.papermc.paper.util.ObfHelper;
 import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.config.Settings;
 import io.th0rgal.oraxen.nms.GlyphHandlers;
@@ -34,6 +36,7 @@ import net.minecraft.server.network.ServerConnectionListener;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.TagNetworkSerialization;
 import net.minecraft.util.Mth;
+import net.minecraft.util.profiling.jfr.JvmProfiler;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.BlockItem;
@@ -64,6 +67,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.Function;
+
+import static net.minecraft.server.rcon.PktUtils.MAX_PACKET_SIZE;
 
 public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
 
@@ -330,7 +335,7 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
             try {
                 JsonElement element = JsonParser.parseString(string);
                 if (element.isJsonObject())
-                    return super.writeUtf(GlyphHandlers.formatJsonString(element.getAsJsonObject()), maxLength);
+                    return super.writeUtf(GlyphHandlers.formatJsonString(element.getAsJsonObject(), null), maxLength);
             } catch (Exception ignored) {
             }
 
@@ -339,21 +344,28 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
 
         @Override
         public @NotNull String readUtf(int i) {
-            Component component = AdventureUtils.MINI_MESSAGE_EMPTY.deserialize(super.readUtf(i));
+            String string = super.readUtf(i);
+            Component component;
+            try {
+                component = AdventureUtils.MINI_MESSAGE_EMPTY.deserialize(string);
+            } catch (Exception e) {
+                component = AdventureUtils.LEGACY_SERIALIZER.deserialize(string);
+            }
+
             return AdventureUtils.MINI_MESSAGE_EMPTY.serialize(GlyphHandlers.transform(component, player, true));
         }
 
         @NotNull
         @Override
         public FriendlyByteBuf writeNbt(@Nullable Tag tag) {
-            if (tag instanceof CompoundTag compoundTag) transform(compoundTag, GlyphHandlers.transformer());
+            if (tag instanceof CompoundTag compoundTag) transform(compoundTag, GlyphHandlers.transformer(null));
             return super.writeNbt(tag);
         }
 
         @Override
         public @Nullable CompoundTag readNbt() {
             CompoundTag compound = super.readNbt();
-            if (compound != null) transform(compound, string -> GlyphHandlers.verifyFor(player, string));
+            if (compound != null) transform(compound, GlyphHandlers.transformer(player));
 
             return compound;
         }
@@ -388,30 +400,31 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
             this.player = player;
         }
 
-        private final PacketFlow protocolDirection = PacketFlow.CLIENTBOUND;
+        private final AttributeKey<ConnectionProtocol.CodecData<?>> protocolDirection = Connection.ATTRIBUTE_CLIENTBOUND_PROTOCOL;
 
         @Override
-        public void encode(ChannelHandlerContext ctx, Packet<?> msg, ByteBuf out) {
+        public void encode(ChannelHandlerContext ctx, Packet<?> packet, ByteBuf byteBuf) {
             if (ctx.channel() == null) throw new RuntimeException("Channel is null");
-            ConnectionProtocol.CodecData<?> enumProt = ctx.channel().attr(Connection.ATTRIBUTE_CLIENTBOUND_PROTOCOL).get();
-            if (enumProt == null) throw new RuntimeException("ConnectionProtocol unknown: " + out);
-            if (msg == null) throw new RuntimeException("No packet to encode for: " + out);
-            int packetId = enumProt.protocol().codec(protocolDirection).packetId(msg);
+            Attribute<ConnectionProtocol.CodecData<?>> attribute = ctx.channel().attr(protocolDirection);
+            ConnectionProtocol.CodecData<?> codecData = attribute.get();
+            int packetId = codecData.packetId(packet);
 
-            FriendlyByteBuf packetDataSerializer = new FriendlyByteBuf(out); //new CustomDataSerializer(player, out);
+            FriendlyByteBuf packetDataSerializer = new CustomDataSerializer(player, byteBuf);
             packetDataSerializer.writeVarInt(packetId);
 
             try {
                 int integer2 = packetDataSerializer.writerIndex();
-                msg.write(packetDataSerializer);
+                packet.write(packetDataSerializer);
                 int integer3 = packetDataSerializer.writerIndex() - integer2;
                 if (integer3 > 8388608) {
-                    throw new IllegalArgumentException("Packet too big (is " + integer3 + ", should be less than 8388608): " + msg);
+                    throw new IllegalArgumentException("Packet too big (is " + integer3 + ", should be less than 8388608): " + packet);
                 }
+                ProtocolSwapHandler.swapProtocolIfNeeded(attribute, packet);
             } catch (Exception e) {
-                if (msg.isSkippable()) throw new SkipPacketException(e);
+                if (packet.isSkippable()) throw new SkipPacketException(e);
                 throw e;
             }
+            ProtocolSwapHandler.swapProtocolIfNeeded(attribute, packet);
         }
     }
 

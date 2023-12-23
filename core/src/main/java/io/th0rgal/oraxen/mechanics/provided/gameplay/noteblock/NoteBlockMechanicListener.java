@@ -18,6 +18,7 @@ import io.th0rgal.oraxen.utils.breaker.BreakerSystem;
 import io.th0rgal.oraxen.utils.breaker.HardnessModifier;
 import io.th0rgal.oraxen.utils.logs.Logs;
 import io.th0rgal.protectionlib.ProtectionLib;
+import org.apache.commons.lang3.Range;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -220,7 +221,7 @@ public class NoteBlockMechanicListener implements Listener {
         if (!player.isSneaking() && BlockHelpers.isInteractable(block)) return;
 
         NoteBlockMechanic mechanic = OraxenBlocks.getNoteBlockMechanic(block);
-        if (mechanic == null) return;
+        if (mechanic == null || OraxenBlocks.isOraxenNoteBlock(item)) return;
         if (mechanic.isDirectional() && !mechanic.getDirectional().isParentBlock())
             mechanic = mechanic.getDirectional().getParentMechanic();
 
@@ -228,7 +229,6 @@ public class NoteBlockMechanicListener implements Listener {
         if (!EventUtils.callEvent(new OraxenNoteBlockInteractEvent(mechanic, player, item, hand, block, blockFace))) event.setCancelled(true);
         if (item == null) return;
 
-        Block relative = block.getRelative(blockFace);
         Material type = item.getType();
         if (type == Material.AIR) return;
 
@@ -487,17 +487,16 @@ public class NoteBlockMechanicListener implements Listener {
         if (BlockHelpers.isReplaceable(type)) target = placedAgainst;
         else {
             target = placedAgainst.getRelative(face);
-            if (!target.getType().isAir() && !target.isLiquid() && target.getType() != Material.LIGHT) return;
+            if (!BlockHelpers.isReplaceable(target.getType())) return;
         }
 
         final NoteBlockMechanic againstMechanic = OraxenBlocks.getNoteBlockMechanic(placedAgainst);
         final BlockPlaceEvent blockPlaceEvent = new BlockPlaceEvent(target, target.getState(), placedAgainst, item, player, true, hand);
-
         if (againstMechanic != null && (againstMechanic.isStorage() || againstMechanic.hasClickActions()))
             blockPlaceEvent.setCancelled(true);
         if (BlockHelpers.isStandingInside(player, target) || !ProtectionLib.canBuild(player, target.getLocation()))
             blockPlaceEvent.setCancelled(true);
-        if (target.getLocation().getBlockY() >= target.getWorld().getMaxHeight() || target.getLocation().getBlockY() <= target.getWorld().getMinHeight())
+        if (!Range.between(target.getWorld().getMinHeight(), target.getWorld().getMaxHeight() - 1).contains(target.getY()))
             blockPlaceEvent.setCancelled(true);
         if (!EventUtils.callEvent(blockPlaceEvent) || !blockPlaceEvent.canBuild()) return;
 

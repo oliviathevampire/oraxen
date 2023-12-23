@@ -1,8 +1,7 @@
-package io.th0rgal.oraxen.nms.v1_20_R1;
+package io.th0rgal.oraxen.nms.v1_19_R3;
 
 import io.papermc.paper.event.player.AsyncChatDecorateEvent;
 import io.th0rgal.oraxen.nms.GlyphHandlers;
-import io.th0rgal.oraxen.utils.logs.Logs;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
