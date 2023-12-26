@@ -6,7 +6,6 @@ import io.th0rgal.oraxen.api.OraxenBlocks;
 import io.th0rgal.oraxen.api.OraxenItems;
 import io.th0rgal.oraxen.api.events.noteblock.OraxenNoteBlockInteractEvent;
 import io.th0rgal.oraxen.api.events.noteblock.OraxenNoteBlockPlaceEvent;
-import io.th0rgal.oraxen.config.Settings;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.limitedplacing.LimitedPlacing;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.directional.DirectionalBlock;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.storage.StorageMechanic;
@@ -16,17 +15,13 @@ import io.th0rgal.oraxen.utils.Utils;
 import io.th0rgal.oraxen.utils.VersionUtil;
 import io.th0rgal.oraxen.utils.breaker.BreakerSystem;
 import io.th0rgal.oraxen.utils.breaker.HardnessModifier;
-import io.th0rgal.oraxen.utils.logs.Logs;
 import io.th0rgal.protectionlib.ProtectionLib;
 import org.apache.commons.lang3.Range;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.block.data.Directional;
-import org.bukkit.block.data.Levelled;
 import org.bukkit.block.data.type.NoteBlock;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.FallingBlock;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
@@ -46,7 +41,6 @@ import org.bukkit.util.RayTraceResult;
 
 import java.util.*;
 
-import static io.th0rgal.oraxen.utils.BlockHelpers.getAnvilFacing;
 import static io.th0rgal.oraxen.utils.BlockHelpers.isLoaded;
 
 public class NoteBlockMechanicListener implements Listener {
@@ -232,49 +226,7 @@ public class NoteBlockMechanicListener implements Listener {
         Material type = item.getType();
         if (type == Material.AIR) return;
 
-        if (type == Material.BUCKET && relative.getBlockData() instanceof Levelled levelled && levelled.getLevel() == levelled.getMaximumLevel()) {
-            final Sound sound;
-            if (relative.getType() == Material.WATER) sound = Sound.ITEM_BUCKET_FILL;
-            else sound = Sound.valueOf("ITEM_BUCKET_FILL_" + relative.getType());
-
-            if (player.getGameMode() != GameMode.CREATIVE)
-                item.setType(Objects.requireNonNull(Material.getMaterial(relative.getType() + "_BUCKET")));
-
-            player.playSound(relative.getLocation(), sound, 1.0f, 1.0f);
-            relative.setType(Material.AIR, true);
-            return;
-        }
-
-        if (!BlockHelpers.BlockCorrection.useNMS()) {
-            final boolean bucketCheck = type.toString().endsWith("_BUCKET");
-            final String bucketBlock = type.toString().replace("_BUCKET", "");
-            EntityType bucketEntity;
-            try {
-                bucketEntity = EntityType.valueOf(bucketBlock);
-            } catch (IllegalArgumentException e) {
-                bucketEntity = null;
-            }
-
-            if (bucketCheck && type != Material.MILK_BUCKET) {
-                if (bucketEntity == null)
-                    type = Material.getMaterial(bucketBlock);
-                else {
-                    type = Material.WATER;
-                    player.getWorld().spawnEntity(relative.getLocation().add(0.5, 0.0, 0.5), bucketEntity);
-                }
-            }
-
-            if (type != null && type.hasGravity() && relative.getRelative(BlockFace.DOWN).getType().isAir()) {
-                BlockData data = type.createBlockData();
-                if (type.toString().endsWith("ANVIL")) ((Directional) data).setFacing(getAnvilFacing(event.getBlockFace()));
-                BlockHelpers.playCustomBlockSound(relative.getLocation(), data.getSoundGroup().getPlaceSound().getKey().toString(), data.getSoundGroup().getVolume(), data.getSoundGroup().getPitch());
-                block.getWorld().spawnFallingBlock(BlockHelpers.toCenterBlockLocation(relative.getLocation()), data);
-                if (player.getGameMode() != GameMode.CREATIVE) item.setAmount(item.getAmount() - 1);
-                return;
-            }
-        }
-
-        BlockData newData = type != null && type.isBlock() ? type.createBlockData() : null;
+        BlockData newData = type.isBlock() ? type.createBlockData() : null;
         makePlayerPlaceBlock(player, event.getHand(), item, block, event.getBlockFace(), newData);
     }
 
