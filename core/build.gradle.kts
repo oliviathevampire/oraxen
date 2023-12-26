@@ -27,7 +27,7 @@ dependencies {
     implementation("me.gabytm.util:actions-spigot:$actionsVersion") { exclude(group = "com.google.guava") }
     implementation("cloud.commandframework:cloud-paper:1.8.4")
 
-    paperweight.paperDevBundle("1.20.2-R0.1-SNAPSHOT")
+    paperweight.paperDevBundle("1.20.4-R0.1-SNAPSHOT")
 }
 
 configurations.all {

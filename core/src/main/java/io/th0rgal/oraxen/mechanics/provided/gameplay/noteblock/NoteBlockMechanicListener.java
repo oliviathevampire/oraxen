@@ -109,7 +109,7 @@ public class NoteBlockMechanicListener implements Listener {
             // This GameEvent only exists in 1.19
             // If server is 1.18 check if its there and if not return
             // If 1.19 we can check if this event is fired
-        if (!VersionUtil.isSupportedVersionOrNewer("1.19")) return;
+        if (!VersionUtil.atOrAbove("1.19")) return;
         if (event.getEvent() != GameEvent.NOTE_BLOCK_PLAY) return;
         if (block.getType() != Material.NOTE_BLOCK) return;
         NoteBlock data = (NoteBlock) block.getBlockData().clone();
@@ -275,13 +275,8 @@ public class NoteBlockMechanicListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onBreakingCustomBlock(final BlockBreakEvent event) {
-        final Block block = event.getBlock();
-
-        NoteBlockMechanic mechanic = OraxenBlocks.getNoteBlockMechanic(block);
-        if (mechanic == null) return;
-        if (OraxenBlocks.remove(block.getLocation(), event.getPlayer())) {
+        if (OraxenBlocks.remove(event.getBlock().getLocation(), event.getPlayer()))
             event.setDropItems(false);
-        }
     }
 
     @EventHandler

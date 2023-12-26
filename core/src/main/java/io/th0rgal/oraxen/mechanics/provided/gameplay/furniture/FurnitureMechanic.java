@@ -476,7 +476,7 @@ public class FurnitureMechanic extends Mechanic {
         // 1.20 Fixes this, will break for 1.19.4 but added disclaimer in console
         float pitch;
         float alterYaw;
-        if (VersionUtil.isSupportedVersionOrNewer("1.20.1")) {
+        if (VersionUtil.atOrAbove("1.20.1")) {
             pitch = isFixed && hasLimitedPlacing() && (limitedPlacing.isFloor() || limitedPlacing.isRoof()) ? -90 : 0;
             alterYaw = yaw;
         } else {
@@ -611,7 +611,8 @@ public class FurnitureMechanic extends Mechanic {
         if (mechanic == null) return entity.getLocation().getYaw();
 
         if (entity instanceof ItemFrame itemFrame) {
-            if (mechanic.limitedPlacing.isWall() && itemFrame.getFacing().getModY() == 0) return entity.getLocation().getYaw();
+            if (mechanic.hasLimitedPlacing() && mechanic.limitedPlacing.isWall() && itemFrame.getFacing().getModY() == 0)
+                return entity.getLocation().getYaw();
             else return rotationToYaw(itemFrame.getRotation());
         } else return entity.getLocation().getYaw();
     }

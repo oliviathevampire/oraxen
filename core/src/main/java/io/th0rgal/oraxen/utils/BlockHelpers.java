@@ -109,8 +109,8 @@ public class BlockHelpers {
     public static final Set<Material> UNBREAKABLE_BLOCKS = Sets.newHashSet(Material.BEDROCK, Material.BARRIER, Material.NETHER_PORTAL, Material.END_PORTAL_FRAME, Material.END_PORTAL, Material.END_GATEWAY);
 
     static {
-        if (VersionUtil.isSupportedVersionOrNewer("1.19")) UNBREAKABLE_BLOCKS.add(Material.REINFORCED_DEEPSLATE);
-        if (VersionUtil.isSupportedVersionOrNewer("1.20")) {
+        if (VersionUtil.atOrAbove("1.19")) UNBREAKABLE_BLOCKS.add(Material.REINFORCED_DEEPSLATE);
+        if (VersionUtil.atOrAbove("1.20")) {
             REPLACEABLE_BLOCKS = Tag.REPLACEABLE.getValues().stream().toList();
         } else REPLACEABLE_BLOCKS = Arrays.asList(
                 Material.SNOW, Material.VINE, Material.valueOf("GRASS"), Material.TALL_GRASS, Material.SEAGRASS, Material.FERN,
@@ -128,7 +128,6 @@ public class BlockHelpers {
     }
 
     public static boolean isReplaceable(Material material) {
-        Logs.debug("type: " + material);
         return REPLACEABLE_BLOCKS.contains(material);
     }
 
@@ -172,7 +171,6 @@ public class BlockHelpers {
             //TODO Fix boats, currently Item#use in BoatItem calls PlayerInteractEvent
             // thus causing a StackOverflow, find a workaround
             if (Tag.ITEMS_BOATS.isTagged(item.getType())) return null;
-            Logs.debug("Using NMS");
             correctedData = NMSHandlers.getHandler().correctBlockStates(player, hand, item);
         } else {
             if (newData == null) return null;

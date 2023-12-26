@@ -88,7 +88,7 @@ public class OraxenPlugin extends JavaPlugin {
         ProtectionLib.init(this);
         audience = BukkitAudiences.create(this);
         clickActionManager = new ClickActionManager(this);
-        supportsDisplayEntities = VersionUtil.isSupportedVersionOrNewer("1.19.4");
+        supportsDisplayEntities = VersionUtil.atOrAbove("1.19.4");
         reloadConfigs();
 
         if (Settings.KEEP_UP_TO_DATE.toBool())
