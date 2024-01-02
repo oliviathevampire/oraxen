@@ -1,5 +1,6 @@
 package io.th0rgal.oraxen.compatibilities;
 
+import io.th0rgal.oraxen.compatibilities.provided.blocklocker.BlockLockerCompatibility;
 import io.th0rgal.oraxen.compatibilities.provided.bossshoppro.BossShopProCompatibility;
 import io.th0rgal.oraxen.compatibilities.provided.lightapi.WrappedLightAPI;
 import io.th0rgal.oraxen.compatibilities.provided.miniplaceholders.MiniPlaceholderCompatibility;
@@ -30,6 +31,7 @@ public class CompatibilitiesManager {
         addCompatibility("BossShopPro", BossShopProCompatibility.class, true);
         addCompatibility("MythicMobs", MythicMobsCompatibility.class, true);
         addCompatibility("MiniPlaceholders", MiniPlaceholderCompatibility.class, true);
+        addCompatibility("BlockLocker", BlockLockerCompatibility.class, true);
     }
 
     public static void disableCompatibilities() {
