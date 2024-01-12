@@ -50,7 +50,7 @@ import static io.th0rgal.oraxen.mechanics.provided.gameplay.block.BlockMechanicF
 public class BreakerSystem {
 
     public static final List<HardnessModifier> MODIFIERS = new ArrayList<>();
-    private final Map<Location, BukkitScheduler> breakerPerLocation = new HashMap<>();
+    private final Map<UUID, BukkitScheduler> breakerPerLocation = new HashMap<>();
     private final Map<Location, BukkitTask> breakerPlaySound = new HashMap<>();
     private final ProtocolManager protocolManager;
     private final PacketAdapter listener = new PacketAdapter(OraxenPlugin.get(),
@@ -87,9 +87,8 @@ public class BreakerSystem {
                     break;
                 }
             }
-            if (triggeredModifier == null) return;
-            final long period = triggeredModifier.getPeriod(player, block, item);
-            if (period == 0) return;
+            final long period = triggeredModifier != null ? triggeredModifier.getPeriod(player, block, item) : 0;
+            //if (period == 0) return;
 
             NoteBlockMechanic noteMechanic = OraxenBlocks.getNoteBlockMechanic(block);
             StringBlockMechanic stringMechanic = OraxenBlocks.getStringMechanic(block);
@@ -115,7 +114,7 @@ public class BreakerSystem {
                 // Methods for sending multi-barrier block-breaks
                 final List<Location> furnitureBarrierLocations = furnitureBarrierLocations(furnitureMechanic, block);
 
-                Bukkit.getScheduler().runTask(OraxenPlugin.get(), () ->
+                if (period != 0) Bukkit.getScheduler().runTask(OraxenPlugin.get(), () ->
                         player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_DIGGING,
                                 (int) (period * 11),
                                 Integer.MAX_VALUE,
@@ -134,7 +133,7 @@ public class BreakerSystem {
                 // If the relevant damage event is cancelled, return
                 if (blockDamageEventCancelled(block, player)) return;
 
-                breakerPerLocation.put(location, scheduler);
+                breakerPerLocation.put(player.getUniqueId(), scheduler);
                 final HardnessModifier modifier = triggeredModifier;
                 startBlockHitSound(block);
 
@@ -143,13 +142,12 @@ public class BreakerSystem {
 
                     @Override
                     public void accept(final BukkitTask bukkitTask) {
-                        if (!breakerPerLocation.containsKey(location)) {
+                        if (!player.isOnline() || !breakerPerLocation.containsKey(player.getUniqueId())) {
                             bukkitTask.cancel();
                             return;
                         }
 
-                        if (item.getEnchantmentLevel(Enchantment.DIG_SPEED) >= 5)
-                            value = 10;
+                        if (period == 0) value = 10;
 
                         for (final Entity entity : world.getNearbyEntities(location, 16, 16, 16)) {
                             if (entity instanceof Player viewer) {
@@ -169,7 +167,7 @@ public class BreakerSystem {
                         Bukkit.getScheduler().runTask(OraxenPlugin.get(), () ->
                                 player.removePotionEffect(PotionEffectType.SLOW_DIGGING));
 
-                        stopBlockBreaker(block);
+                        stopBlockBreaker(player);
                         stopBlockHitSound(block);
                         for (final Entity entity : world.getNearbyEntities(location, 16, 16, 16)) {
                             if (entity instanceof Player viewer) {
@@ -190,7 +188,7 @@ public class BreakerSystem {
                     for (final Entity entity : world.getNearbyEntities(location, 16, 16, 16))
                         if (entity instanceof Player viewer)
                             sendBlockBreak(viewer, location, 10);
-                    stopBlockBreaker(block);
+                    stopBlockBreaker(player);
                     stopBlockHitSound(block);
                 });
             }
@@ -260,10 +258,11 @@ public class BreakerSystem {
         protocolManager.sendServerPacket(player, packet);
     }
 
-    private void stopBlockBreaker(Block block) {
-        if (breakerPerLocation.containsKey(block.getLocation())) {
-            breakerPerLocation.get(block.getLocation()).cancelTasks(OraxenPlugin.get());
-            breakerPerLocation.remove(block.getLocation());
+    private void stopBlockBreaker(Player player) {
+        UUID uuid = player.getUniqueId();
+        if (breakerPerLocation.containsKey(uuid)) {
+            breakerPerLocation.get(uuid).cancelTasks(OraxenPlugin.get());
+            breakerPerLocation.remove(uuid);
         }
     }
 
