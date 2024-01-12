@@ -49,6 +49,7 @@ val pluginVersion: String by project
 val commandApiVersion = "9.3.0"
 val adventureVersion = "4.15.0"
 val platformVersion = "4.3.2"
+val googleGsonVersion = "2.10.1"
 group = "io.th0rgal"
 version = pluginVersion
 
@@ -89,18 +90,20 @@ allprojects {
         compileOnly("net.kyori:adventure-platform-bukkit:$platformVersion")
         compileOnly("com.comphenix.protocol:ProtocolLib:5.2.0-SNAPSHOT")
         compileOnly("me.clip:placeholderapi:2.11.5")
-        compileOnly("com.github.BeYkeRYkt:LightAPI:5.3.0-Bukkit")
+        compileOnly("com.github.LinsMinecraftStudio.LighterAPI:lightapi-bukkit-common:5.4.0-SNAPSHOT")
         compileOnly("me.gabytm.util:actions-core:$actionsVersion")
         compileOnly("org.springframework:spring-expression:6.0.6")
-        compileOnly("io.lumine:Mythic-Dist:5.2.0-SNAPSHOT")
+        compileOnly("io.lumine:Mythic-Dist:5.3.5")
         compileOnly("io.lumine:MythicCrucible:1.6.0-SNAPSHOT")
         compileOnly("com.sk89q.worldedit:worldedit-bukkit:7.2.0")
         compileOnly("commons-io:commons-io:2.11.0")
+        compileOnly("com.google.code.gson:gson:$googleGsonVersion")
         compileOnly("com.ticxo.modelengine:ModelEngine:R4.0.3")
         compileOnly("com.ticxo.modelengine:api:R3.1.9")
         compileOnly(files("../libs/compile/BSP.jar"))
         compileOnly("dev.jorel:commandapi-bukkit-shade:$commandApiVersion")
-        compileOnly("io.lumine:MythicLib:1.1.6")
+        compileOnly("io.lumine:MythicLib:1.1.6") // Remove and add deps needed for Polymath
+        compileOnly("io.lumine:MythicLib-dist:1.6.2-SNAPSHOT")
         compileOnly("net.Indyuce:MMOItems-API:6.9.5-SNAPSHOT")
         compileOnly("com.willfp:EcoItems:5.36.0")
         compileOnly("com.willfp:eco:6.67.2")
@@ -139,7 +142,7 @@ tasks {
     }
 
     runServer {
-        minecraftVersion("1.20")
+        minecraftVersion("1.18.2")
     }
 
     shadowJar {
@@ -206,6 +209,7 @@ bukkit {
         "net.kyori:adventure-text-serializer-plain:$adventureVersion",
         "net.kyori:adventure-text-serializer-ansi:$adventureVersion",
         "net.kyori:adventure-platform-bukkit:$platformVersion",
+        "com.google.code.gson:gson:$googleGsonVersion"
     )
 }
 

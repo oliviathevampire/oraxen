@@ -48,9 +48,9 @@ public class ItemUtils {
         damage = isTool(itemStack) ? damage : 0;
 
         if (damage == 0) return itemStack;
-        try {
+        if (VersionUtil.isPaperServer() && VersionUtil.atOrAbove("1.19"))
             return player.damageItemStack(itemStack, damage);
-        } catch (Exception e) {
+        else {
             int finalDamage = damage;
             return editItemMeta(itemStack, meta -> {
                 if (meta instanceof Damageable damageable && EventUtils.callEvent(new PlayerItemDamageEvent(player, itemStack, finalDamage))) {
@@ -81,5 +81,9 @@ public class ItemUtils {
                     true;
             default -> false;
         };
+    }
+
+    public static boolean hasInventoryParent(Material material) {
+        return Tag.WALLS.isTagged(material) || Tag.FENCES.isTagged(material) || Tag.BUTTONS.isTagged(material) || material == Material.PISTON || material == Material.STICKY_PISTON || (VersionUtil.atOrAbove("1.20") && material == Material.CHISELED_BOOKSHELF) || material == Material.BROWN_MUSHROOM_BLOCK || material == Material.RED_MUSHROOM_BLOCK || material == Material.MUSHROOM_STEM;
     }
 }

@@ -327,8 +327,8 @@ public class ResourcePack {
         final Map<Material, List<ItemBuilder>> texturedItems = new HashMap<>();
         for (final Map.Entry<String, ItemBuilder> entry : OraxenItems.getEntries()) {
             final ItemBuilder item = entry.getValue();
-            if (item.getOraxenMeta().hasPackInfos()) {
-                OraxenMeta oraxenMeta = item.getOraxenMeta();
+            OraxenMeta oraxenMeta = item.getOraxenMeta();
+            if (item.hasOraxenMeta() && oraxenMeta.hasPackInfos()) {
                 if (oraxenMeta.shouldGenerateModel()) {
                     writeStringToVirtual(oraxenMeta.getModelPath(),
                             item.getOraxenMeta().getModelName() + ".json",

@@ -409,7 +409,7 @@ public class StringBlockMechanicListener implements Listener {
             target.setBlockData(oldData);
             return;
         }
-
+        
         if (mechanic != null) {
             OraxenBlocks.place(mechanic.getItemID(), target.getLocation());
 
