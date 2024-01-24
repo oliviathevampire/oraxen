@@ -15,9 +15,7 @@ import io.th0rgal.oraxen.utils.Utils;
 import io.th0rgal.oraxen.utils.VersionUtil;
 import io.th0rgal.oraxen.utils.breaker.BreakerSystem;
 import io.th0rgal.oraxen.utils.breaker.HardnessModifier;
-import io.th0rgal.oraxen.utils.breaker.ToolTypeSpeedModifier;
 import io.th0rgal.oraxen.utils.drops.Drop;
-import io.th0rgal.oraxen.utils.logs.Logs;
 import io.th0rgal.protectionlib.ProtectionLib;
 import org.apache.commons.lang3.Range;
 import org.bukkit.*;
@@ -34,7 +32,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.*;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
-import org.bukkit.event.entity.EntityPlaceEvent;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryCreativeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -442,12 +439,9 @@ public class NoteBlockMechanicListener implements Listener {
         }
 
         // Store oldData incase event(s) is cancelled, set the target blockData
-        final BlockData oldData = target.getBlockData();
-        target.setBlockData(newData);
-        final NoteBlockMechanic againstMechanic = OraxenBlocks.getNoteBlockMechanic(placedAgainst);
-        // Store oldData incase event(s) is cancelled, set the target blockData
         // newData might be null in some scenarios
         final BlockData oldData = target.getBlockData();
+        final NoteBlockMechanic againstMechanic = OraxenBlocks.getNoteBlockMechanic(placedAgainst);
         if (newData != null) {
             target.setBlockData(newData);
             final BlockPlaceEvent blockPlaceEvent = new BlockPlaceEvent(target, target.getState(), placedAgainst, item, player, true, hand);
