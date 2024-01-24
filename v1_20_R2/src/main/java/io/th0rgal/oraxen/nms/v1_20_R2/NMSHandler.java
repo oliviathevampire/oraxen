@@ -173,7 +173,7 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
     private final Map<Channel, ChannelHandler> decoder = Collections.synchronizedMap(new WeakHashMap<>());
     @Override
     public void setupNmsGlyphs() {
-        if (!Settings.NMS_GLYPHS.toBool()) return;
+        if (!GlyphHandlers.isNms()) return;
         final List<Connection> connections = MinecraftServer.getServer().getConnection().getConnections();
         List<ChannelFuture> channelFutures;
 
@@ -261,7 +261,7 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
 
     @Override
     public void inject(Player player) {
-        if (player == null || !Settings.NMS_GLYPHS.toBool()) return;
+        if (player == null || !GlyphHandlers.isNms()) return;
         Channel channel = ((CraftPlayer) player).getHandle().connection.connection.channel;
 
         channel.eventLoop().submit(() -> inject(channel, player));
@@ -269,7 +269,7 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
 
     @Override
     public void uninject(Player player) {
-        if (player == null || !Settings.NMS_GLYPHS.toBool()) return;
+        if (player == null || !GlyphHandlers.isNms()) return;
         Channel channel = ((CraftPlayer) player).getHandle().connection.connection.channel;
 
         uninject(channel);

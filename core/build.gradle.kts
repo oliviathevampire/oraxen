@@ -8,6 +8,7 @@ plugins {
 
 val pluginVersion = project.property("pluginVersion") as String
 tasks {
+    publish.get().dependsOn(shadowJar)
     shadowJar.get().archiveFileName.set("oraxen-${pluginVersion}.jar")
     build.get().dependsOn(shadowJar)
 }
@@ -30,10 +31,6 @@ dependencies {
     paperweight.paperDevBundle("1.20.4-R0.1-SNAPSHOT")
 }
 
-configurations.all {
-    resolutionStrategy.cacheChangingModulesFor(0, "seconds")
-}
-
 java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(17))
 }
@@ -50,7 +47,9 @@ publishing {
             groupId = rootProject.group.toString()
             artifactId = rootProject.name
             version = pluginVersion
-            from(components["java"])
+
+            //from(components["java"])
+            artifact(tasks.shadowJar.get().apply { archiveClassifier.set("") })
         }
     }
     repositories {
