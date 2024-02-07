@@ -408,7 +408,6 @@ public class NoteBlockMechanicListener implements Listener {
                 if (mechanic.isDirectional() && !mechanic.getDirectional().isParentBlock())
                     mechanic = mechanic.getDirectional().getParentMechanic();
 
-                Drop drop = mechanic.getDrop();
                 float speedMultiplier = NoteBlockMechanicFactory.getInstance().getSpeedMultiplier(player, block);
                 float damage = speedMultiplier / mechanic.getHardness() / 30;
 

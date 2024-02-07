@@ -14,7 +14,6 @@ import io.th0rgal.oraxen.hud.HudManager;
 import io.th0rgal.oraxen.items.ItemUpdater;
 import io.th0rgal.oraxen.mechanics.MechanicsManager;
 import io.th0rgal.oraxen.recipes.RecipesManager;
-import io.th0rgal.oraxen.utils.AdventureUtils;
 import io.th0rgal.oraxen.utils.logs.Logs;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -27,7 +26,7 @@ import org.jetbrains.annotations.Nullable;
 public class ReloadCommand {
 
     public static void reloadItems(@Nullable CommandSender sender) {
-        Message.RELOAD.send(sender, AdventureUtils.tagResolver("reloaded", "items"));
+        Message.ITEM_RELOAD.send(sender);
         OraxenItems.loadItems();
         Bukkit.getPluginManager().callEvent(new OraxenItemsLoadedEvent());
 
@@ -60,7 +59,7 @@ public class ReloadCommand {
     }
 
     public static void reloadHud(@Nullable CommandSender sender) {
-        Message.RELOAD.send(sender, AdventureUtils.tagResolver("reloaded", "hud"));
+        Message.HUD_RELOAD.send(sender);
         OraxenPlugin.get().reloadConfigs();
         HudManager hudManager = new HudManager(OraxenPlugin.get().getConfigsManager());
         OraxenPlugin.get().setHudManager(hudManager);
@@ -71,8 +70,16 @@ public class ReloadCommand {
     }
 
     public static void reloadRecipes(@Nullable CommandSender sender) {
-        Message.RELOAD.send(sender, AdventureUtils.tagResolver("reloaded", "recipes"));
+        Message.RECIPE_RELOAD.send(sender);
         RecipesManager.reload();
+    }
+
+    public static void reloadConfigs(@Nullable CommandSender sender) {
+        Message.CONFIG_RELOAD.send(sender);
+        MechanicsManager.unloadListeners();
+        MechanicsManager.registerNativeMechanics();
+        OraxenPlugin.get().reloadConfigs();
+        OraxenPlugin.get().invManager().regen();
     }
 
     CommandAPICommand getReloadCommand() {
@@ -87,19 +94,13 @@ public class ReloadCommand {
                         case "ITEMS" -> reloadItems(sender);
                         case "PACK" -> reloadPack(sender);
                         case "RECIPES" -> reloadRecipes(sender);
-                        case "CONFIGS" -> {
-                            MechanicsManager.unloadListeners();
-                            MechanicsManager.registerNativeMechanics();
-                            OraxenPlugin.get().reloadConfigs();
-                        }
+                        case "CONFIGS" -> reloadConfigs(sender);
                         default -> {
+                            reloadConfigs(sender);
                             reloadHud(sender);
                             reloadItems(sender);
                             reloadPack(sender);
                             reloadRecipes(sender);
-                            MechanicsManager.unloadListeners();
-                            MechanicsManager.registerNativeMechanics();
-                            OraxenPlugin.get().reloadConfigs();
                         }
                     }
                     for (Player player : Bukkit.getOnlinePlayers()) {

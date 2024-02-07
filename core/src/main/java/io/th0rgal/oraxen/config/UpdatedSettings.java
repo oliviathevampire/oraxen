@@ -22,6 +22,8 @@ public enum UpdatedSettings {
     UNICODE_COMPLETIONS("Misc.unicode_completions", "Glyphs.unicode_completions"),
     WORLDEDIT_NOTEBLOCKS("Plugin.worldedit.noteblock_mechanic", "WorldEdit.noteblock_mechanic"),
     WORLDEDIT_STRINGBLOCKS("Plugin.worldedit.stringblock_mechanic", "WorldEdit.stringblock_mechanic"),
+    MENU_TITLE("oraxen_inventory.main_menu_title", "oraxen_inventory.menu_info.title"),
+    MENU_ROWS("oraxen_inventory.menu_rows", "oraxen_inventory.menu_info.rows"),
     ;
 
     private final String path;

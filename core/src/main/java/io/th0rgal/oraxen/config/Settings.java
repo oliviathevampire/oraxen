@@ -127,8 +127,25 @@ public enum Settings {
 
     // Inventory
     ORAXEN_INV_LAYOUT("oraxen_inventory.menu_layout"),
-    ORAXEN_INV_ROWS("oraxen_inventory.menu_rows"),
-    ORAXEN_INV_TITLE("oraxen_inventory.main_menu_title");
+    ORAXEN_INV_TITLE("oraxen_inventory.menu_info.title"),
+    ORAXEN_INV_ROWS("oraxen_inventory.menu_info.rows"),
+    ORAXEN_INV_AVAILABLE_SLOTS("oraxen_inventory.menu_info.available_slots"),
+    ORAXEN_INV_PLAY_BUTTON_SOUND("oraxen_inventory.menu_info.play_button_sound"),
+
+    ORAXEN_INV_PREVIOUS_PAGE_ICON("oraxen_inventory.menu_info.previous_page_button.icon"),
+    ORAXEN_INV_PREVIOUS_PAGE_ROW("oraxen_inventory.menu_info.previous_page_button.row"),
+    ORAXEN_INV_PREVIOUS_PAGE_COLUMN("oraxen_inventory.menu_info.previous_page_button.col"),
+    ORAXEN_INV_PREVIOUS_PAGE_NAME("oraxen_inventory.menu_info.previous_page_button.name"),
+
+    ORAXEN_INV_NEXT_PAGE_ICON("oraxen_inventory.menu_info.next_page_button.icon"),
+    ORAXEN_INV_NEXT_PAGE_ROW("oraxen_inventory.menu_info.next_page_button.row"),
+    ORAXEN_INV_NEXT_PAGE_COLUMN("oraxen_inventory.menu_info.next_page_button.col"),
+    ORAXEN_INV_NEXT_PAGE_NAME("oraxen_inventory.menu_info.next_page_button.name"),
+
+    ORAXEN_INV_EXIT_ICON("oraxen_inventory.menu_info.exit_button.icon"),
+    ORAXEN_INV_EXIT_ROW("oraxen_inventory.menu_info.exit_button.row"),
+    ORAXEN_INV_EXIT_COLUMN("oraxen_inventory.menu_info.exit_button.col"),
+    ORAXEN_INV_EXIT_NAME("oraxen_inventory.menu_info.exit_button.name");
 
     private final String path;
 

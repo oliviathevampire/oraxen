@@ -46,7 +46,8 @@ public class ItemsView {
             if (slot == -1) continue;
             GuiItem guiItem = new GuiItem(getItemStack(entry.getKey()).getLeft(), e -> {
                 entry.getValue().open(e.getWhoClicked());
-                ((Player)e.getWhoClicked()).playSound(e.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+                if(Settings.ORAXEN_INV_PLAY_BUTTON_SOUND.toBool())
+                    ((Player)e.getWhoClicked()).playSound(e.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
             });
             pageItems.add(slot, guiItem);
         }
@@ -56,7 +57,8 @@ public class ItemsView {
             if (getItemStack(entry.getKey()).getRight() != -1) continue;
             pageItems.add(new GuiItem(getItemStack(entry.getKey()).getLeft(), e -> {
                 entry.getValue().open(e.getWhoClicked());
-                ((Player)e.getWhoClicked()).playSound(e.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+                if(Settings.ORAXEN_INV_PLAY_BUTTON_SOUND.toBool())
+                    ((Player)e.getWhoClicked()).playSound(e.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
             }));
         }
 
@@ -66,35 +68,84 @@ public class ItemsView {
         if (mainGui.getPagesNum() > 1) {
             mainGui.setItem(6, 2, new GuiItem((OraxenItems.exists("arrow_previous_icon")
                     ? OraxenItems.getItemById("arrow_previous_icon")
-                    : new ItemBuilder(Material.ARROW).setDisplayName(AdventureUtils.parseLegacyThroughMiniMessage("<gray>Previous page"))
+                    : new ItemBuilder(Material.ARROW).setDisplayName(AdventureUtils.parseMiniMessage("<gray>Previous page"))
             ).build(), event -> {
                 mainGui.previous();
-                ((Player)event.getWhoClicked()).playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+                if(Settings.ORAXEN_INV_PLAY_BUTTON_SOUND.toBool())
+                    ((Player)event.getWhoClicked()).playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
             }));
 
             mainGui.setItem(6, 8, new GuiItem((OraxenItems.exists("arrow_next_icon")
                     ? OraxenItems.getItemById("arrow_next_icon")
-                    : new ItemBuilder(Material.ARROW).setDisplayName(AdventureUtils.parseLegacyThroughMiniMessage("<gray>Next page"))
+                    : new ItemBuilder(Material.ARROW).setDisplayName(AdventureUtils.parseMiniMessage("<gray>Next page"))
             ).build(), event -> {
                 mainGui.next();
-                ((Player)event.getWhoClicked()).playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+                if(Settings.ORAXEN_INV_PLAY_BUTTON_SOUND.toBool())
+                    ((Player)event.getWhoClicked()).playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
             }));
+//            mainGui.setItem(Settings.ORAXEN_INV_PREVIOUS_PAGE_ROW.toInt(), Settings.ORAXEN_INV_PREVIOUS_PAGE_COLUMN.toInt(),
+//                    new GuiItem(
+//                            (OraxenItems.exists(Settings.ORAXEN_INV_PREVIOUS_PAGE_ICON.toString())
+//                                    ? OraxenItems.getItemById(Settings.ORAXEN_INV_PREVIOUS_PAGE_ICON.toString())
+//                                    : new ItemBuilder(Material.ARROW).setDisplayName(AdventureUtils.parseMiniMessage(
+//                                        Settings.ORAXEN_INV_PREVIOUS_PAGE_NAME.toString()
+//                                    )
+//                            )).build(),
+//                            event -> {
+//                                mainGui.previous();
+//                                if(Settings.ORAXEN_INV_PLAY_BUTTON_SOUND.toBool())
+//                                    ((Player)event.getWhoClicked()).playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+//                            }
+//                    )
+//            );
+//
+//            mainGui.setItem(Settings.ORAXEN_INV_NEXT_PAGE_ROW.toInt(), Settings.ORAXEN_INV_NEXT_PAGE_COLUMN.toInt(),
+//                    new GuiItem(
+//                            (OraxenItems.exists(Settings.ORAXEN_INV_NEXT_PAGE_ICON.toString())
+//                                    ? OraxenItems.getItemById(Settings.ORAXEN_INV_NEXT_PAGE_ICON.toString())
+//                                    : new ItemBuilder(Material.ARROW).setDisplayName(AdventureUtils.parseMiniMessage(
+//                                        Settings.ORAXEN_INV_NEXT_PAGE_NAME.toString()
+//                                    )
+//                            )).build(),
+//                            event -> {
+//                                mainGui.next();
+//                                if(Settings.ORAXEN_INV_PLAY_BUTTON_SOUND.toBool())
+//                                    ((Player)event.getWhoClicked()).playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+//                            }
+//                    )
+//            );
         }
 
         mainGui.setItem(6, 5, new GuiItem((OraxenItems.exists("exit_icon")
-                ? OraxenItems.getItemById("exit_icon").setDisplayName(AdventureUtils.parseLegacyThroughMiniMessage("<red>Exit"))
-                : new ItemBuilder(Material.BARRIER).setDisplayName(AdventureUtils.parseLegacyThroughMiniMessage("<red>Exit"))
+                ? OraxenItems.getItemById("exit_icon").setDisplayName(AdventureUtils.parseMiniMessage("<red>Exit"))
+                : new ItemBuilder(Material.BARRIER).setDisplayName(AdventureUtils.parseMiniMessage("<red>Exit"))
         ).build(), event -> {
             event.getWhoClicked().closeInventory();
             ((Player)event.getWhoClicked()).playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
         }));
+        /*mainGui.setItem(Settings.ORAXEN_INV_EXIT_ROW.toInt(), Settings.ORAXEN_INV_EXIT_COLUMN.toInt(),
+                new GuiItem(
+                        (OraxenItems.exists(Settings.ORAXEN_INV_EXIT_ICON.toString())
+                                ? OraxenItems.getItemById(Settings.ORAXEN_INV_EXIT_ICON.toString())
+                                : new ItemBuilder(Material.BARRIER).setDisplayName(AdventureUtils.parseMiniMessage(
+                                        Settings.ORAXEN_INV_EXIT_NAME.toString()
+                                )
+                        )).build(),
+                        event -> {
+                            event.getWhoClicked().closeInventory();
+                            if(Settings.ORAXEN_INV_PLAY_BUTTON_SOUND.toBool())
+                                ((Player)event.getWhoClicked()).playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+                        }
+                )
+        );*/
 
         return mainGui;
     }
 
     private PaginatedGui createSubGUI(final String fileName, final List<ItemBuilder> items) {
         final PaginatedGui gui = Gui.paginated().rows(6).pageSize(45).title(AdventureUtils.MINI_MESSAGE.deserialize(settings.getString(
-                String.format("oraxen_inventory.menu_layout.%s.title", Utils.removeExtension(fileName)), Settings.ORAXEN_INV_TITLE.toString()
+                String.format("oraxen_inventory.menu_layout.%s.title", Utils.removeExtension(fileName)),
+                Settings.ORAXEN_INV_TITLE.toString()
         ).replace("<main_menu_title>", Settings.ORAXEN_INV_TITLE.toString()))).create();
         gui.disableAllInteractions();
 
@@ -106,7 +157,8 @@ public class ItemsView {
             GuiItem guiItem = new GuiItem(itemStack);
             guiItem.setAction(e -> {
                 e.getWhoClicked().getInventory().addItem(ItemUpdater.updateItem(guiItem.getItemStack()));
-                ((Player)e.getWhoClicked()).playSound(e.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+                if(Settings.ORAXEN_INV_PLAY_BUTTON_SOUND.toBool())
+                    ((Player)e.getWhoClicked()).playSound(e.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
             });
             gui.addItem(guiItem);
         }
@@ -115,28 +167,30 @@ public class ItemsView {
         if (gui.getPagesNum() > 1) {
             gui.setItem(6, 2, new GuiItem((OraxenItems.exists("arrow_previous_icon")
                     ? OraxenItems.getItemById("arrow_previous_icon")
-                    : new ItemBuilder(Material.ARROW).setDisplayName(AdventureUtils.parseLegacyThroughMiniMessage("<gray>Previous page"))
+                    : new ItemBuilder(Material.ARROW).setDisplayName(AdventureUtils.parseMiniMessage("<gray>Previous page"))
             ).build(), event -> {
                 gui.previous();
-
-                ((Player)event.getWhoClicked()).playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+                if(Settings.ORAXEN_INV_PLAY_BUTTON_SOUND.toBool())
+                    ((Player)event.getWhoClicked()).playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
             }));
 
             gui.setItem(6, 8, new GuiItem((OraxenItems.exists("arrow_next_icon")
                     ? OraxenItems.getItemById("arrow_next_icon")
-                    : new ItemBuilder(Material.ARROW).setDisplayName(AdventureUtils.parseLegacyThroughMiniMessage("<gray>Next page"))
+                    : new ItemBuilder(Material.ARROW).setDisplayName(AdventureUtils.parseMiniMessage("<gray>Next page"))
             ).build(), event -> {
                 gui.next();
-                ((Player)event.getWhoClicked()).playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+                if(Settings.ORAXEN_INV_PLAY_BUTTON_SOUND.toBool())
+                    ((Player)event.getWhoClicked()).playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
             }));
         }
 
         gui.setItem(6, 5, new GuiItem((OraxenItems.exists("exit_icon")
-                ? OraxenItems.getItemById("exit_icon").setDisplayName(AdventureUtils.parseLegacyThroughMiniMessage("<red>Back to main menu"))
-                : new ItemBuilder(Material.BARRIER).setDisplayName(AdventureUtils.parseLegacyThroughMiniMessage("<red>Back to main menu"))
+                ? OraxenItems.getItemById("exit_icon").setDisplayName(AdventureUtils.parseMiniMessage("<red>Back to main menu"))
+                : new ItemBuilder(Material.BARRIER).setDisplayName(AdventureUtils.parseMiniMessage("<red>Back to main menu"))
         ).build(), event -> {
             mainGui.open(event.getWhoClicked());
-            ((Player)event.getWhoClicked()).playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+            if(Settings.ORAXEN_INV_PLAY_BUTTON_SOUND.toBool())
+                ((Player)event.getWhoClicked()).playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
         }));
 
         return gui;
@@ -164,12 +218,13 @@ public class ItemsView {
                         .setDisplayName(displayName)
                         .build();
             }
+            e.printStackTrace();
         }
 
         if (itemStack == null)
             // avoid possible bug if isOraxenItems is available but can't be an itemstack
             itemStack = new ItemBuilder(Material.PAPER).setDisplayName(displayName).build();
 
-        return Pair.of(itemStack, settings.getInt(String.format("oraxen_inventory.menu_layout.%s.slot", Utils.removeExtension(file.getName())), -1) - 1);
+        return Pair.of(itemStack, Math.max(settings.getInt(String.format("oraxen_inventory.menu_layout.%s.slot", Utils.removeExtension(file.getName())), -1) - 1, -1));
     }
 }

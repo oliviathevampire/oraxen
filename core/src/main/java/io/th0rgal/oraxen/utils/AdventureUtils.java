@@ -69,6 +69,10 @@ public class AdventureUtils {
         return MINI_MESSAGE.deserialize(MINI_MESSAGE.serialize(message).replaceAll("\\\\(?!u)(?!n)(?!\")", ""));
     }
 
+    public static Component parseMiniMessageTest(String message) {
+        return MINI_MESSAGE.deserialize(MINI_MESSAGE.serialize(MINI_MESSAGE.deserialize(message)).replaceAll("\\\\(?!u)(?!n)(?!\")", ""));
+    }
+
     public static Component parseMiniMessage(Component message, TagResolver tagResolver) {
         return MINI_MESSAGE.deserialize(MINI_MESSAGE.serialize(message).replaceAll("\\\\(?!u)(?!n)(?!\")", ""), tagResolver);
     }

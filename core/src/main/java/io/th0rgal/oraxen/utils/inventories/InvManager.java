@@ -11,7 +11,7 @@ import java.util.UUID;
 
 public class InvManager {
 
-    private Map<UUID, PaginatedGui> itemsViews = new HashMap<>();
+    private final Map<UUID, PaginatedGui> itemsViews = new HashMap<>();
 
     public InvManager() {
         regen();
