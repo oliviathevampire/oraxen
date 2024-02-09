@@ -1,6 +1,5 @@
 package io.th0rgal.oraxen.items;
 
-import io.th0rgal.oraxen.api.OraxenFurniture;
 import io.th0rgal.oraxen.api.OraxenItems;
 import io.th0rgal.oraxen.compatibilities.provided.ecoitems.WrappedEcoItem;
 import io.th0rgal.oraxen.compatibilities.provided.mmoitems.WrappedMMOItem;
@@ -9,10 +8,9 @@ import io.th0rgal.oraxen.config.Settings;
 import io.th0rgal.oraxen.mechanics.Mechanic;
 import io.th0rgal.oraxen.mechanics.MechanicFactory;
 import io.th0rgal.oraxen.mechanics.MechanicsManager;
-import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureMechanic;
 import io.th0rgal.oraxen.utils.AdventureUtils;
 import io.th0rgal.oraxen.utils.Utils;
-import io.th0rgal.oraxen.utils.logs.Logs;
+import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
@@ -121,6 +119,7 @@ public class ItemParser {
         if (section.contains("unbreakable")) item.setUnbreakable(section.getBoolean("unbreakable", false));
         if (section.contains("unstackable")) item.setUnstackable(section.getBoolean("unstackable", false));
         if (section.contains("color")) item.setColor(Utils.toColor(section.getString("color", "#FFFFFF")));
+        if (section.contains("trim_pattern")) item.setTrim(Key.key(section.getString("trim_pattern", "")));
 
         parseMiscOptions(item);
         parseVanillaSections(item);
