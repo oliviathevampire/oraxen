@@ -1,4 +1,4 @@
-plugins {
+wplugins {
     id("java")
     id("io.papermc.paperweight.userdev") version "1.5.11"
     id("maven-publish")

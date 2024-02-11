@@ -92,7 +92,6 @@ allprojects {
         compileOnly("net.kyori:adventure-platform-bukkit:$platformVersion")
         compileOnly("com.comphenix.protocol:ProtocolLib:5.2.0-SNAPSHOT")
         compileOnly("me.clip:placeholderapi:2.11.5")
-        compileOnly("com.github.LinsMinecraftStudio.LighterAPI:lightapi-bukkit-common:5.4.0-SNAPSHOT")
         compileOnly("me.gabytm.util:actions-core:$actionsVersion")
         compileOnly("org.springframework:spring-expression:6.0.10")
         compileOnly("io.lumine:Mythic-Dist:5.3.5")

@@ -417,6 +417,3 @@ oraxen_inventory:
     tools:
       icon: iron_serpe
       displayname: "<green>Tools"
-    weapons:
-      icon: energy_crystal_sword
-      displayname: "<green>Weapons"
