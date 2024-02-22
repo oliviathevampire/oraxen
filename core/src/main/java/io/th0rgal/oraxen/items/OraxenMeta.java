@@ -56,6 +56,7 @@ public class OraxenMeta {
     public void setPackInfos(ConfigurationSection section) {
         this.hasPackInfos = true;
         this.modelName = readModelName(section, "model");
+        Logs.debug("model name: " + modelName);
         this.blockingModel = readModelName(section, "blocking_model");
         this.castModel = readModelName(section, "cast_model");
         this.chargedModel = readModelName(section, "charged_model");
@@ -115,7 +116,7 @@ public class OraxenMeta {
         this.generatedModelPath = section.getString("generated_model_path", "");
         this.parentModel = section.getString("parent_model", "item/generated");
 
-        if (generate_model && !modelName.matches("^[a-z0-9-_]+$")) {
+        if (generate_model && !modelName.matches("^[a-z0-9-_/]+$")) {
             Logs.logWarning("Item " + section.getParent().getName() + " is set to generate a model, but ItemID does not adhere to [a-z0-9-_]!");
             Logs.logWarning("This will generate a malformed model!");
         }

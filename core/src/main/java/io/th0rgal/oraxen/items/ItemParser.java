@@ -9,6 +9,7 @@ import io.th0rgal.oraxen.mechanics.Mechanic;
 import io.th0rgal.oraxen.mechanics.MechanicFactory;
 import io.th0rgal.oraxen.mechanics.MechanicsManager;
 import io.th0rgal.oraxen.utils.AdventureUtils;
+import io.th0rgal.oraxen.utils.PotionUtils;
 import io.th0rgal.oraxen.utils.Utils;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
@@ -153,13 +154,13 @@ public class ItemParser {
                     .getList("PotionEffects");
             if (potionEffects == null) return;
             for (Map<String, Object> serializedPotionEffect : potionEffects) {
-                PotionEffectType effect = PotionEffectType.getByName((String) serializedPotionEffect.get("type"));
+                PotionEffectType effect = PotionUtils.getEffectType((String) serializedPotionEffect.getOrDefault("type", ""));
                 if (effect == null) return;
-                int duration = (int) serializedPotionEffect.get("duration");
-                int amplifier = (int) serializedPotionEffect.get("amplifier");
-                boolean ambient = (boolean) serializedPotionEffect.get("ambient");
-                boolean particles = (boolean) serializedPotionEffect.get("particles");
-                boolean icon = (boolean) serializedPotionEffect.get("icon");
+                int duration = (int) serializedPotionEffect.getOrDefault("duration", 60);
+                int amplifier = (int) serializedPotionEffect.getOrDefault("amplifier", 0);
+                boolean ambient = (boolean) serializedPotionEffect.getOrDefault("ambient", true);
+                boolean particles = (boolean) serializedPotionEffect.getOrDefault("particles", true);
+                boolean icon = (boolean) serializedPotionEffect.getOrDefault("icon", true);
                 item.addPotionEffect(new PotionEffect(effect, duration, amplifier, ambient, particles, icon));
             }
         }
