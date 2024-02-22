@@ -1,4 +1,4 @@
-wwpackage io.th0rgal.oraxen.pack.generation;
+package io.th0rgal.oraxen.pack.generation;
 
 import com.google.gson.*;
 import io.th0rgal.oraxen.OraxenPlugin;
