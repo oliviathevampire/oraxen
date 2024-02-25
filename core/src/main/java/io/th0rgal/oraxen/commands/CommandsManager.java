@@ -78,8 +78,7 @@ public class CommandsManager {
                 .executes((sender, args) -> {
                     if (sender instanceof Player player)
                         OraxenPlugin.get().invManager().getItemsView(player).open(player);
-                    else
-                        Message.NOT_PLAYER.send(sender);
+                    else Message.NOT_PLAYER.send(sender);
                 });
     }
 

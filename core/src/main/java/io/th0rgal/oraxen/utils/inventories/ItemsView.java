@@ -1,5 +1,7 @@
 package io.th0rgal.oraxen.utils.inventories;
 
+import dev.triumphteam.gui.components.ScrollType;
+import dev.triumphteam.gui.guis.BaseGui;
 import dev.triumphteam.gui.guis.Gui;
 import dev.triumphteam.gui.guis.GuiItem;
 import dev.triumphteam.gui.guis.PaginatedGui;
@@ -10,7 +12,6 @@ import io.th0rgal.oraxen.items.ItemBuilder;
 import io.th0rgal.oraxen.items.ItemParser;
 import io.th0rgal.oraxen.items.ItemUpdater;
 import io.th0rgal.oraxen.utils.AdventureUtils;
-import org.bukkit.entity.Player;
 import io.th0rgal.oraxen.utils.Utils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.Material;
@@ -35,7 +36,14 @@ public class ItemsView {
                 files.put(file, createSubGUI(file.getName(), unexcludedItems));
         }
         int rows = (int) Settings.ORAXEN_INV_ROWS.getValue();
-        mainGui = Gui.paginated().pageSize(9 * (Settings.ORAXEN_INV_ROWS.toInt() - 1)).rows(rows).title(Settings.ORAXEN_INV_TITLE.toComponent()).create();
+        String invType = Settings.ORAXEN_INV_TYPE.toString();
+        mainGui = (Objects.equals(invType, "PAGINATED")
+                ? Gui.paginated().pageSize((rows - 1) * 9)
+                : (Objects.equals(invType, "SCROLL_HORIZONTAL")
+                ? Gui.scrolling(ScrollType.HORIZONTAL).pageSize((rows - 1) * 9)
+                : (Objects.equals(invType, "SCROLL_VERTICAL")
+                ? Gui.scrolling(ScrollType.VERTICAL).pageSize((rows - 1) * 9)
+                : Gui.gui()))).rows(rows).title(Settings.ORAXEN_INV_TITLE.toComponent()).create();
         mainGui.disableAllInteractions();
 
         // Make a list of all slots to allow using mainGui.addItem easier
@@ -44,109 +52,50 @@ public class ItemsView {
         for (Map.Entry<File, PaginatedGui> entry : files.entrySet()) {
             int slot = getItemStack(entry.getKey()).getRight();
             if (slot == -1) continue;
-            GuiItem guiItem = new GuiItem(getItemStack(entry.getKey()).getLeft(), e -> {
-                entry.getValue().open(e.getWhoClicked());
-                if(Settings.ORAXEN_INV_PLAY_BUTTON_SOUND.toBool())
-                    ((Player)e.getWhoClicked()).playSound(e.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
-            });
+            GuiItem guiItem = new GuiItem(getItemStack(entry.getKey()).getLeft(), e -> entry.getValue().open(e.getWhoClicked()));
             pageItems.add(slot, guiItem);
         }
 
         // Add all items without a specified slot to the earliest available slot
         for (Map.Entry<File, PaginatedGui> entry : files.entrySet()) {
             if (getItemStack(entry.getKey()).getRight() != -1) continue;
-            pageItems.add(new GuiItem(getItemStack(entry.getKey()).getLeft(), e -> {
-                entry.getValue().open(e.getWhoClicked());
-                if(Settings.ORAXEN_INV_PLAY_BUTTON_SOUND.toBool())
-                    ((Player)e.getWhoClicked()).playSound(e.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
-            }));
+            pageItems.add(new GuiItem(getItemStack(entry.getKey()).getLeft(), e -> entry.getValue().open(e.getWhoClicked())));
         }
 
         mainGui.addItem(pageItems.stream().filter(Objects::nonNull).toArray(GuiItem[]::new));
 
-        //page selection
-        if (mainGui.getPagesNum() > 1) {
-            mainGui.setItem(6, 2, new GuiItem((OraxenItems.exists("arrow_previous_icon")
-                    ? OraxenItems.getItemById("arrow_previous_icon")
-                    : new ItemBuilder(Material.ARROW).setDisplayName(AdventureUtils.parseMiniMessage("<gray>Previous page"))
-            ).build(), event -> {
-                mainGui.previous();
-                if(Settings.ORAXEN_INV_PLAY_BUTTON_SOUND.toBool())
-                    ((Player)event.getWhoClicked()).playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
-            }));
+        ItemStack nextPage = (Settings.ORAXEN_INV_NEXT_ICON.getValue() == null
+                ? new ItemBuilder(Material.ARROW) : OraxenItems.getItemById(Settings.ORAXEN_INV_NEXT_ICON.toString()))
+                .setDisplayName("Next Page").build();
+        ItemStack previousPage = (Settings.ORAXEN_INV_PREVIOUS_ICON.getValue() == null
+                ? new ItemBuilder(Material.ARROW) : OraxenItems.getItemById(Settings.ORAXEN_INV_PREVIOUS_ICON.toString()))
+                .setDisplayName("Previous Page").build();
+        ItemStack exitIcon = (Settings.ORAXEN_INV_EXIT.getValue() == null
+                ? new ItemBuilder(Material.BARRIER) : OraxenItems.getItemById(Settings.ORAXEN_INV_EXIT.toString()))
+                .setDisplayName("Exit").build();
 
-            mainGui.setItem(6, 8, new GuiItem((OraxenItems.exists("arrow_next_icon")
-                    ? OraxenItems.getItemById("arrow_next_icon")
-                    : new ItemBuilder(Material.ARROW).setDisplayName(AdventureUtils.parseMiniMessage("<gray>Next page"))
-            ).build(), event -> {
-                mainGui.next();
-                if(Settings.ORAXEN_INV_PLAY_BUTTON_SOUND.toBool())
-                    ((Player)event.getWhoClicked()).playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
-            }));
-//            mainGui.setItem(Settings.ORAXEN_INV_PREVIOUS_PAGE_ROW.toInt(), Settings.ORAXEN_INV_PREVIOUS_PAGE_COLUMN.toInt(),
-//                    new GuiItem(
-//                            (OraxenItems.exists(Settings.ORAXEN_INV_PREVIOUS_PAGE_ICON.toString())
-//                                    ? OraxenItems.getItemById(Settings.ORAXEN_INV_PREVIOUS_PAGE_ICON.toString())
-//                                    : new ItemBuilder(Material.ARROW).setDisplayName(AdventureUtils.parseMiniMessage(
-//                                        Settings.ORAXEN_INV_PREVIOUS_PAGE_NAME.toString()
-//                                    )
-//                            )).build(),
-//                            event -> {
-//                                mainGui.previous();
-//                                if(Settings.ORAXEN_INV_PLAY_BUTTON_SOUND.toBool())
-//                                    ((Player)event.getWhoClicked()).playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
-//                            }
-//                    )
-//            );
-//
-//            mainGui.setItem(Settings.ORAXEN_INV_NEXT_PAGE_ROW.toInt(), Settings.ORAXEN_INV_NEXT_PAGE_COLUMN.toInt(),
-//                    new GuiItem(
-//                            (OraxenItems.exists(Settings.ORAXEN_INV_NEXT_PAGE_ICON.toString())
-//                                    ? OraxenItems.getItemById(Settings.ORAXEN_INV_NEXT_PAGE_ICON.toString())
-//                                    : new ItemBuilder(Material.ARROW).setDisplayName(AdventureUtils.parseMiniMessage(
-//                                        Settings.ORAXEN_INV_NEXT_PAGE_NAME.toString()
-//                                    )
-//                            )).build(),
-//                            event -> {
-//                                mainGui.next();
-//                                if(Settings.ORAXEN_INV_PLAY_BUTTON_SOUND.toBool())
-//                                    ((Player)event.getWhoClicked()).playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
-//                            }
-//                    )
-//            );
+        if (mainGui instanceof PaginatedGui paginated) {
+            if (paginated.getPagesNum() > 1) {
+                paginated.setItem(6, 2, new GuiItem(previousPage, event -> {
+                    paginated.previous();
+                    event.setCancelled(true);
+                }));
+                paginated.setItem(6, 8, new GuiItem(nextPage, event -> {
+                    paginated.next();
+                    event.setCancelled(true);
+                }));
+            }
+
+            paginated.setItem(6, 5, new GuiItem(exitIcon, event -> mainGui.open(event.getWhoClicked())));
         }
-
-        mainGui.setItem(6, 5, new GuiItem((OraxenItems.exists("exit_icon")
-                ? OraxenItems.getItemById("exit_icon").setDisplayName(AdventureUtils.parseMiniMessage("<red>Exit"))
-                : new ItemBuilder(Material.BARRIER).setDisplayName(AdventureUtils.parseMiniMessage("<red>Exit"))
-        ).build(), event -> {
-            event.getWhoClicked().closeInventory();
-            ((Player)event.getWhoClicked()).playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
-        }));
-        /*mainGui.setItem(Settings.ORAXEN_INV_EXIT_ROW.toInt(), Settings.ORAXEN_INV_EXIT_COLUMN.toInt(),
-                new GuiItem(
-                        (OraxenItems.exists(Settings.ORAXEN_INV_EXIT_ICON.toString())
-                                ? OraxenItems.getItemById(Settings.ORAXEN_INV_EXIT_ICON.toString())
-                                : new ItemBuilder(Material.BARRIER).setDisplayName(AdventureUtils.parseMiniMessage(
-                                        Settings.ORAXEN_INV_EXIT_NAME.toString()
-                                )
-                        )).build(),
-                        event -> {
-                            event.getWhoClicked().closeInventory();
-                            if(Settings.ORAXEN_INV_PLAY_BUTTON_SOUND.toBool())
-                                ((Player)event.getWhoClicked()).playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
-                        }
-                )
-        );*/
 
         return mainGui;
     }
 
     private PaginatedGui createSubGUI(final String fileName, final List<ItemBuilder> items) {
         final PaginatedGui gui = Gui.paginated().rows(6).pageSize(45).title(AdventureUtils.MINI_MESSAGE.deserialize(settings.getString(
-                String.format("oraxen_inventory.menu_layout.%s.title", Utils.removeExtension(fileName)),
-                Settings.ORAXEN_INV_TITLE.toString()
-        ).replace("<main_menu_title>", Settings.ORAXEN_INV_TITLE.toString()))).create();
+                        String.format("oraxen_inventory.menu_layout.%s.title", Utils.removeExtension(fileName)), Settings.ORAXEN_INV_TITLE.toString())
+                .replace("<main_menu_title>", Settings.ORAXEN_INV_TITLE.toString()))).create();
         gui.disableAllInteractions();
 
         for (ItemBuilder builder : items) {
@@ -155,43 +104,26 @@ public class ItemsView {
             if (itemStack == null || itemStack.getType().isAir()) continue;
 
             GuiItem guiItem = new GuiItem(itemStack);
-            guiItem.setAction(e -> {
-                e.getWhoClicked().getInventory().addItem(ItemUpdater.updateItem(guiItem.getItemStack()));
-                if(Settings.ORAXEN_INV_PLAY_BUTTON_SOUND.toBool())
-                    ((Player)e.getWhoClicked()).playSound(e.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
-            });
+            guiItem.setAction(e -> e.getWhoClicked().getInventory().addItem(ItemUpdater.updateItem(guiItem.getItemStack())));
             gui.addItem(guiItem);
         }
 
-        //page selection
-        if (gui.getPagesNum() > 1) {
-            gui.setItem(6, 2, new GuiItem((OraxenItems.exists("arrow_previous_icon")
-                    ? OraxenItems.getItemById("arrow_previous_icon")
-                    : new ItemBuilder(Material.ARROW).setDisplayName(AdventureUtils.parseMiniMessage("<gray>Previous page"))
-            ).build(), event -> {
-                gui.previous();
-                if(Settings.ORAXEN_INV_PLAY_BUTTON_SOUND.toBool())
-                    ((Player)event.getWhoClicked()).playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
-            }));
+        ItemStack nextPage = (Settings.ORAXEN_INV_NEXT_ICON.getValue() == null
+                ? new ItemBuilder(Material.ARROW) : OraxenItems.getItemById(Settings.ORAXEN_INV_NEXT_ICON.toString()))
+                .setDisplayName("Next Page").build();
+        ItemStack previousPage = (Settings.ORAXEN_INV_PREVIOUS_ICON.getValue() == null
+                ? new ItemBuilder(Material.ARROW) : OraxenItems.getItemById(Settings.ORAXEN_INV_PREVIOUS_ICON.toString()))
+                .setDisplayName("Previous Page").build();
+        ItemStack exitIcon = (Settings.ORAXEN_INV_EXIT.getValue() == null
+                ? new ItemBuilder(Material.BARRIER) : OraxenItems.getItemById(Settings.ORAXEN_INV_EXIT.toString()))
+                .setDisplayName("Exit").build();
 
-            gui.setItem(6, 8, new GuiItem((OraxenItems.exists("arrow_next_icon")
-                    ? OraxenItems.getItemById("arrow_next_icon")
-                    : new ItemBuilder(Material.ARROW).setDisplayName(AdventureUtils.parseMiniMessage("<gray>Next page"))
-            ).build(), event -> {
-                gui.next();
-                if(Settings.ORAXEN_INV_PLAY_BUTTON_SOUND.toBool())
-                    ((Player)event.getWhoClicked()).playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
-            }));
+        if (gui.getPagesNum() > 1) {
+            gui.setItem(6, 2, new GuiItem(previousPage, event -> gui.previous()));
+            gui.setItem(6, 8, new GuiItem(nextPage, event -> gui.next()));
         }
 
-        gui.setItem(6, 5, new GuiItem((OraxenItems.exists("exit_icon")
-                ? OraxenItems.getItemById("exit_icon").setDisplayName(AdventureUtils.parseMiniMessage("<red>Back to main menu"))
-                : new ItemBuilder(Material.BARRIER).setDisplayName(AdventureUtils.parseMiniMessage("<red>Back to main menu"))
-        ).build(), event -> {
-            mainGui.open(event.getWhoClicked());
-            if(Settings.ORAXEN_INV_PLAY_BUTTON_SOUND.toBool())
-                ((Player)event.getWhoClicked()).playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1f, 1f);
-        }));
+        gui.setItem(6, 5, new GuiItem(exitIcon, event -> mainGui.open(event.getWhoClicked())));
 
         return gui;
     }
@@ -221,10 +153,9 @@ public class ItemsView {
             e.printStackTrace();
         }
 
-        if (itemStack == null)
-            // avoid possible bug if isOraxenItems is available but can't be an itemstack
-            itemStack = new ItemBuilder(Material.PAPER).setDisplayName(displayName).build();
-
-        return Pair.of(itemStack, Math.max(settings.getInt(String.format("oraxen_inventory.menu_layout.%s.slot", Utils.removeExtension(file.getName())), -1) - 1, -1));
+        // avoid possible bug if isOraxenItems is available but can't be an itemstack
+        if (itemStack == null) itemStack = new ItemBuilder(Material.PAPER).setDisplayName(displayName).build();
+        int slot = settings.getInt(String.format("oraxen_inventory.menu_layout.%s.slot", Utils.removeExtension(file.getName())), -1) - 1;
+        return Pair.of(itemStack, Math.max(slot, -1));
     }
 }

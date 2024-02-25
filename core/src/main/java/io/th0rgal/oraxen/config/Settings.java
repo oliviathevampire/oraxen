@@ -132,6 +132,7 @@ public enum Settings {
     // Inventory
     ORAXEN_INV_LAYOUT("oraxen_inventory.menu_layout"),
     ORAXEN_INV_TITLE("oraxen_inventory.menu_info.title"),
+    ORAXEN_INV_TYPE("oraxen_inventory.main_menu_type"),
     ORAXEN_INV_ROWS("oraxen_inventory.menu_info.rows"),
     ORAXEN_INV_AVAILABLE_SLOTS("oraxen_inventory.menu_info.available_slots"),
     ORAXEN_INV_PLAY_BUTTON_SOUND("oraxen_inventory.menu_info.play_button_sound"),
@@ -149,7 +150,11 @@ public enum Settings {
     ORAXEN_INV_EXIT_ICON("oraxen_inventory.menu_info.exit_button.icon"),
     ORAXEN_INV_EXIT_ROW("oraxen_inventory.menu_info.exit_button.row"),
     ORAXEN_INV_EXIT_COLUMN("oraxen_inventory.menu_info.exit_button.col"),
-    ORAXEN_INV_EXIT_NAME("oraxen_inventory.menu_info.exit_button.name");
+    ORAXEN_INV_EXIT_NAME("oraxen_inventory.menu_info.exit_button.name"),
+    
+    ORAXEN_INV_NEXT_ICON("oraxen_inventory.next_page_icon"),
+    ORAXEN_INV_PREVIOUS_ICON("oraxen_inventory.previous_page_icon"),
+    ORAXEN_INV_EXIT("oraxen_inventory.exit_icon");
 
     private final String path;
 
@@ -181,7 +186,7 @@ public enum Settings {
     }
 
     public Component toComponent() {
-        return AdventureUtils.MINI_MESSAGE.deserialize(toString());
+        return AdventureUtils.MINI_MESSAGE.deserialize(getValue().toString());
     }
 
     public Boolean toBool() {

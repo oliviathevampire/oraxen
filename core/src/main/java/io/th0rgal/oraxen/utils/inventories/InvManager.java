@@ -1,6 +1,6 @@
 package io.th0rgal.oraxen.utils.inventories;
 
-import dev.triumphteam.gui.guis.PaginatedGui;
+import dev.triumphteam.gui.guis.BaseGui;
 import io.th0rgal.oraxen.recipes.CustomRecipe;
 import org.bukkit.entity.Player;
 
@@ -11,7 +11,7 @@ import java.util.UUID;
 
 public class InvManager {
 
-    private final Map<UUID, PaginatedGui> itemsViews = new HashMap<>();
+    private final Map<UUID, BaseGui> itemsViews = new HashMap<>();
 
     public InvManager() {
         regen();
@@ -21,7 +21,7 @@ public class InvManager {
         itemsViews.clear();
     }
 
-    public PaginatedGui getItemsView(Player player) {
+    public BaseGui getItemsView(Player player) {
         return itemsViews.computeIfAbsent(player.getUniqueId(), uuid -> new ItemsView().create());
     }
 

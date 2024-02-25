@@ -371,6 +371,7 @@ Misc:
 oraxen_inventory:
   menu_info:
     title: "<shift:-18><glyph:menu_items><shift:-193>"
+    type: PAGINATED # PAGINATED, SCROLL_HORIZONTAL, SCROLL_VERTICAL
     rows: 6
     available_slots: 53
     play_button_sound: true
