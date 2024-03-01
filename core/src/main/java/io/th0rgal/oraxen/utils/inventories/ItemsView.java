@@ -26,9 +26,9 @@ import java.util.*;
 public class ItemsView {
 
     private final YamlConfiguration settings = OraxenPlugin.get().getResourceManager().settings();
-    PaginatedGui mainGui;
+    BaseGui mainGui;
 
-    public PaginatedGui create() {
+    public BaseGui create() {
         final SortedMap<File, PaginatedGui> files = new TreeMap<>(Comparator.comparing(File::getName));
         for (final File file : OraxenItems.getMap().keySet()) {
             final List<ItemBuilder> unexcludedItems = OraxenItems.getUnexcludedItems(file);
@@ -44,7 +44,6 @@ public class ItemsView {
                 : (Objects.equals(invType, "SCROLL_VERTICAL")
                 ? Gui.scrolling(ScrollType.VERTICAL).pageSize((rows - 1) * 9)
                 : Gui.gui()))).rows(rows).title(Settings.ORAXEN_INV_TITLE.toComponent()).create();
-        mainGui.disableAllInteractions();
 
         // Make a list of all slots to allow using mainGui.addItem easier
         List<GuiItem> pageItems = new ArrayList<>(Collections.nCopies(files.size(), null));
