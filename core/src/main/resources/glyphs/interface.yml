@@ -16,8 +16,13 @@ menu_recipe:
   ascent: 40
   height: 164
 
-menu_items:
-  texture: required/ui/menu_items
+menu_items_paginated:
+  texture: required/ui/menu_items_paginated
+  ascent: 37
+  height: 256
+
+menu_items_scroll:
+  texture: required/ui/menu_items_scroll
   ascent: 37
   height: 256
 

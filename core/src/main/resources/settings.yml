@@ -370,7 +370,9 @@ Misc:
 
 oraxen_inventory:
   menu_info:
-    title: "<shift:-18><glyph:menu_items><shift:-193>"
+    title:
+      paginated: "<shift:-18><glyph:menu_items_paginated><shift:-193>"
+      scroll: "<shift:-18><glyph:menu_items_scroll><shift:-193>"
     type: PAGINATED # PAGINATED, SCROLL_HORIZONTAL, SCROLL_VERTICAL
     rows: 6
     available_slots: 53
@@ -378,17 +380,14 @@ oraxen_inventory:
     previous_page_button:
       icon: arrow_previous_icon
       name: "<gray>Previous page"
-      row: 6
       col: 2
     exit_button:
       icon: exit_icon
       name: "<gray>Exit"
-      row: 6
       col: 5
     next_page_button:
       icon: arrow_next_icon
       name: "<gray>Next page"
-      row: 6
       col: 8
   menu_layout:
     armors:

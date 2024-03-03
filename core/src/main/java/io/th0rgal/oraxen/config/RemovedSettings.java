@@ -23,6 +23,9 @@ public enum RemovedSettings {
     SEND_PACK_ADVANCED("Pack.dispatch.send_pack_advanced"),
     NMS_BLOCK_CORRECTION("Plugin.experimental.nms.block_correction"),
     SPIGOT_CHAT_FORMATTING("Plugin.experimental.spigot_chat_formatting"),
+    ORAXEN_INV_PREVIOUS_PAGE_ROW("oraxen_inventory.menu_info.previous_page_button.row"),
+    ORAXEN_INV_NEXT_PAGE_ROW("oraxen_inventory.menu_info.next_page_button.row"),
+    ORAXEN_INV_EXIT_ROW("oraxen_inventory.menu_info.exit_button.row"),
 
     ;
 
