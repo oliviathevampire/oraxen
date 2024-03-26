@@ -133,8 +133,7 @@ public enum Settings {
 
     // Inventory
     ORAXEN_INV_LAYOUT("oraxen_inventory.menu_layout"),
-    ORAXEN_INV_TITLE_PAGINATED("oraxen_inventory.menu_info.title.paginated"),
-    ORAXEN_INV_TITLE_SCROLL("oraxen_inventory.menu_info.title.scroll"),
+    ORAXEN_INV_TITLE("oraxen_inventory.menu_info.title"),
     ORAXEN_INV_TYPE("oraxen_inventory.main_menu_type"),
     ORAXEN_INV_ROWS("oraxen_inventory.menu_info.rows"),
     ORAXEN_INV_AVAILABLE_SLOTS("oraxen_inventory.menu_info.available_slots"),
