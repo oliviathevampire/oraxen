@@ -78,6 +78,7 @@ public class ReloadCommand {
         Message.CONFIG_RELOAD.send(sender);
         MechanicsManager.unloadListeners();
         MechanicsManager.registerNativeMechanics();
+        MechanicsManager.unregisterTasks();
         OraxenPlugin.get().reloadConfigs();
         OraxenPlugin.get().invManager().regen();
     }
