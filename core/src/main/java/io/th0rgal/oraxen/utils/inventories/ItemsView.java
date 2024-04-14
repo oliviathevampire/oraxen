@@ -24,7 +24,7 @@ import java.util.*;
 
 public class ItemsView {
 
-    private final YamlConfiguration settings = OraxenPlugin.get().getResourceManager().settings();
+    private final YamlConfiguration settings = OraxenPlugin.get().resourceManager().settings();
     BaseGui mainGui;
 
     public BaseGui create() {
@@ -37,12 +37,12 @@ public class ItemsView {
         int rows = (int) Settings.ORAXEN_INV_ROWS.getValue();
         String invType = Settings.ORAXEN_INV_TYPE.toString();
         mainGui = (Objects.equals(invType, "PAGINATED")
-                ? Gui.paginated().pageSize((rows - 1) * 9).title(Settings.ORAXEN_INV_TITLE_PAGINATED.toComponent())
+                ? Gui.paginated().pageSize((rows - 1) * 9)
                 : (Objects.equals(invType, "SCROLL_HORIZONTAL")
-                ? Gui.scrolling(ScrollType.HORIZONTAL).pageSize((rows - 1) * 9).title(Settings.ORAXEN_INV_TITLE_SCROLL.toComponent())
+                ? Gui.scrolling(ScrollType.HORIZONTAL).pageSize((rows - 1) * 9)
                 : (Objects.equals(invType, "SCROLL_VERTICAL")
-                ? Gui.scrolling(ScrollType.VERTICAL).pageSize((rows - 1) * 9).title(Settings.ORAXEN_INV_TITLE_SCROLL.toComponent())
-                : Gui.gui()))).rows(rows).create();
+                ? Gui.scrolling(ScrollType.VERTICAL).pageSize((rows - 1) * 9)
+                : Gui.gui()))).rows(rows).title(Settings.ORAXEN_INV_TITLE.toComponent()).create();
 
         // Make a list of all slots to allow using mainGui.addItem easier
         List<GuiItem> pageItems = new ArrayList<>(Collections.nCopies(files.size(), null));
@@ -63,14 +63,14 @@ public class ItemsView {
         mainGui.addItem(pageItems.stream().filter(Objects::nonNull).toArray(GuiItem[]::new));
 
         ItemStack nextPage = (Settings.ORAXEN_INV_NEXT_PAGE_ICON.getValue() == null
-                ? new ItemBuilder(Material.ARROW).setDisplayName(ItemParser.parseComponentDisplayName(Settings.ORAXEN_INV_NEXT_PAGE_NAME.toString()))
-                : OraxenItems.getItemById(Settings.ORAXEN_INV_NEXT_PAGE_ICON.toString())).build();
+                ? new ItemBuilder(Material.ARROW) : OraxenItems.getItemById(Settings.ORAXEN_INV_NEXT_PAGE_ICON.toString()))
+                .setDisplayName("Next Page").build();
         ItemStack previousPage = (Settings.ORAXEN_INV_PREVIOUS_PAGE_ICON.getValue() == null
-                ? new ItemBuilder(Material.ARROW).setDisplayName(ItemParser.parseComponentDisplayName(Settings.ORAXEN_INV_PREVIOUS_PAGE_NAME.toString()))
-                : OraxenItems.getItemById(Settings.ORAXEN_INV_PREVIOUS_PAGE_ICON.toString())).build();
+                ? new ItemBuilder(Material.ARROW) : OraxenItems.getItemById(Settings.ORAXEN_INV_PREVIOUS_PAGE_ICON.toString()))
+                .setDisplayName("Previous Page").build();
         ItemStack exitIcon = (Settings.ORAXEN_INV_EXIT_ICON.getValue() == null
-                ? new ItemBuilder(Material.BARRIER).setDisplayName(ItemParser.parseComponentDisplayName(Settings.ORAXEN_INV_EXIT_NAME.toString()))
-                : OraxenItems.getItemById(Settings.ORAXEN_INV_EXIT_ICON.toString())).build();
+                ? new ItemBuilder(Material.BARRIER) : OraxenItems.getItemById(Settings.ORAXEN_INV_EXIT_ICON.toString()))
+                .setDisplayName("Exit").build();
 
         if (mainGui instanceof PaginatedGui paginated) {
             if (paginated.getPagesNum() > 1) {
@@ -92,8 +92,9 @@ public class ItemsView {
 
     private PaginatedGui createSubGUI(final String fileName, final List<ItemBuilder> items) {
         final PaginatedGui gui = Gui.paginated().rows(6).pageSize(45).title(AdventureUtils.MINI_MESSAGE.deserialize(settings.getString(
-                        String.format("oraxen_inventory.menu_layout.%s.title", Utils.removeExtension(fileName)), Settings.ORAXEN_INV_TITLE_PAGINATED.toString())
-                .replace("<main_menu_title>", Settings.ORAXEN_INV_TITLE_PAGINATED.toString()))).create();
+                        String.format("oraxen_inventory.menu_layout.%s.title", Utils.removeExtension(fileName)), Settings.ORAXEN_INV_TITLE.toString())
+                .replace("<main_menu_title>", Settings.ORAXEN_INV_TITLE.toString()))).create();
+        gui.disableAllInteractions();
 
         for (ItemBuilder builder : items) {
             if (builder == null) continue;
@@ -106,14 +107,14 @@ public class ItemsView {
         }
 
         ItemStack nextPage = (Settings.ORAXEN_INV_NEXT_PAGE_ICON.getValue() == null
-                ? new ItemBuilder(Material.ARROW).setDisplayName(ItemParser.parseComponentDisplayName(Settings.ORAXEN_INV_NEXT_PAGE_NAME.toString()))
-                : OraxenItems.getItemById(Settings.ORAXEN_INV_NEXT_PAGE_ICON.toString())).build();
+                ? new ItemBuilder(Material.ARROW) : OraxenItems.getItemById(Settings.ORAXEN_INV_NEXT_PAGE_ICON.toString()))
+                .setDisplayName("Next Page").build();
         ItemStack previousPage = (Settings.ORAXEN_INV_PREVIOUS_PAGE_ICON.getValue() == null
-                ? new ItemBuilder(Material.ARROW).setDisplayName(ItemParser.parseComponentDisplayName(Settings.ORAXEN_INV_PREVIOUS_PAGE_NAME.toString()))
-                : OraxenItems.getItemById(Settings.ORAXEN_INV_PREVIOUS_PAGE_ICON.toString())).build();
+                ? new ItemBuilder(Material.ARROW) : OraxenItems.getItemById(Settings.ORAXEN_INV_PREVIOUS_PAGE_ICON.toString()))
+                .setDisplayName("Previous Page").build();
         ItemStack exitIcon = (Settings.ORAXEN_INV_EXIT_ICON.getValue() == null
-                ? new ItemBuilder(Material.BARRIER).setDisplayName(ItemParser.parseComponentDisplayName(Settings.ORAXEN_INV_EXIT_NAME.toString()))
-                : OraxenItems.getItemById(Settings.ORAXEN_INV_EXIT_ICON.toString())).build();
+                ? new ItemBuilder(Material.BARRIER) : OraxenItems.getItemById(Settings.ORAXEN_INV_EXIT_ICON.toString()))
+                .setDisplayName("Exit").build();
 
         if (gui.getPagesNum() > 1) {
             gui.setItem(6, 2, new GuiItem(previousPage, event -> gui.previous()));

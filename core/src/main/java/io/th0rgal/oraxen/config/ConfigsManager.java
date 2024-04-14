@@ -98,23 +98,23 @@ public class ConfigsManager {
     }
 
     public void validatesConfig() {
-        ResourcesManager tempManager = new ResourcesManager(OraxenPlugin.get());
-        mechanics = validate(tempManager, "mechanics.yml", defaultMechanics);
-        settings = validate(tempManager, "settings.yml", defaultSettings);
-        font = validate(tempManager, "font.yml", defaultFont);
-        hud = validate(tempManager, "hud.yml", defaultHud);
-        sound = validate(tempManager, "sound.yml", defaultSound);
+        ResourcesManager resourcesManager = OraxenPlugin.get().resourceManager();
+        settings = Settings.validateSettings();
+        mechanics = validate(resourcesManager, "mechanics.yml", defaultMechanics);
+        font = validate(resourcesManager, "font.yml", defaultFont);
+        hud = validate(resourcesManager, "hud.yml", defaultHud);
+        sound = validate(resourcesManager, "sound.yml", defaultSound);
         File languagesFolder = new File(plugin.getDataFolder(), "languages");
         languagesFolder.mkdir();
-        String languageFile = "languages/" + settings.getString(Settings.PLUGIN_LANGUAGE.getPath()) + ".yml";
-        language = validate(tempManager, languageFile, defaultLanguage);
+        String languageFile = "languages/" + Settings.PLUGIN_LANGUAGE + ".yml";
+        language = validate(resourcesManager, languageFile, defaultLanguage);
 
         // check itemsFolder
         itemsFolder = new File(plugin.getDataFolder(), "items");
         if (!itemsFolder.exists()) {
             itemsFolder.mkdirs();
             if (Settings.GENERATE_DEFAULT_CONFIGS.toBool())
-                tempManager.extractConfigsInFolder("items", "yml");
+                resourcesManager.extractConfigsInFolder("items", "yml");
         }
 
         // check glyphsFolder
@@ -122,8 +122,8 @@ public class ConfigsManager {
         if (!glyphsFolder.exists()) {
             glyphsFolder.mkdirs();
             if (Settings.GENERATE_DEFAULT_CONFIGS.toBool())
-                tempManager.extractConfigsInFolder("glyphs", "yml");
-            else tempManager.extractConfiguration("glyphs/interface.yml");
+                resourcesManager.extractConfigsInFolder("glyphs", "yml");
+            else resourcesManager.extractConfiguration("glyphs/interface.yml");
         }
 
         // check schematicsFolder
@@ -131,7 +131,7 @@ public class ConfigsManager {
         if (!schematicsFolder.exists()) {
             schematicsFolder.mkdirs();
             if (Settings.GENERATE_DEFAULT_CONFIGS.toBool())
-                tempManager.extractConfigsInFolder("schematics", "schem");
+                resourcesManager.extractConfigsInFolder("schematics", "schem");
         }
     }
 
@@ -221,7 +221,7 @@ public class ConfigsManager {
 
     public Map<File, Map<String, ItemBuilder>> parseItemConfig() {
         Map<File, Map<String, ItemBuilder>> parseMap = new LinkedHashMap<>();
-        ItemBuilder errorItem = new ItemParser(Settings.ERROR_ITEM.toConfigSection()).buildItem();
+        ItemBuilder errorItem = new ItemBuilder(Material.PODZOL);
         for (File file : getItemFiles()) parseMap.put(file, parseItemConfig(file, errorItem));
         return parseMap;
     }

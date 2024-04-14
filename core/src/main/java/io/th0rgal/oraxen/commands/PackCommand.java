@@ -60,7 +60,7 @@ public class PackCommand {
                     try {
                         ZipEntry entry = zip.getNextEntry();
                         while (entry != null) {
-                            extract(entry, type, OraxenPlugin.get().getResourceManager(), (Boolean) args.getOptional("override").orElse(false));
+                            extract(entry, type, OraxenPlugin.get().resourceManager(), (Boolean) args.getOptional("override").orElse(false));
                             entry = zip.getNextEntry();
                         }
                         zip.closeEntry();

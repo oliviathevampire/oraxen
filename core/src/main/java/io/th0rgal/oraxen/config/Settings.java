@@ -2,11 +2,14 @@ package io.th0rgal.oraxen.config;
 
 import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.utils.AdventureUtils;
+import io.th0rgal.oraxen.utils.OraxenYaml;
 import io.th0rgal.oraxen.utils.logs.Logs;
 import net.kyori.adventure.text.Component;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 
 public enum Settings {
@@ -65,6 +68,7 @@ public enum Settings {
     // Custom Blocks
     BLOCK_CORRECTION("CustomBlocks.block_correction"),
     LEGACY_NOTEBLOCKS("CustomBlocks.use_legacy_noteblocks"),
+    LEGACY_STRINGBLOCKS("CustomBlocks.use_legacy_stringblocks"),
 
     // ItemUpdater
     UPDATE_ITEMS("ItemUpdater.update_items"),
@@ -153,13 +157,23 @@ public enum Settings {
     ORAXEN_INV_EXIT_NAME("oraxen_inventory.menu_info.exit_button.name");
 
     private final String path;
+    private final Object defaultValue;
 
     Settings(String path) {
         this.path = path;
+        this.defaultValue = null;
+    }
+
+    Settings(String path, Object defaultValue) {
+        this.path = path;
+        this.defaultValue = defaultValue;
     }
 
     public String getPath() {
         return path;
+    }
+    public Object defaultValue() {
+        return defaultValue;
     }
 
     public Object getValue() {
@@ -178,7 +192,7 @@ public enum Settings {
 
     @Override
     public String toString() {
-        return (String) getValue();
+        return String.valueOf(getValue());
     }
 
     public Component toComponent() {
@@ -186,7 +200,7 @@ public enum Settings {
     }
 
     public Boolean toBool() {
-        return (Boolean) getValue();
+        return Boolean.getBoolean((String) getValue());
     }
 
     public int toInt() {
@@ -199,5 +213,37 @@ public enum Settings {
 
     public ConfigurationSection toConfigSection() {
         return OraxenPlugin.get().getConfigsManager().getSettings().getConfigurationSection(path);
+    }
+
+    public static YamlConfiguration validateSettings() {
+        File settingsFile = OraxenPlugin.get().getDataFolder().toPath().resolve("settings.yml").toFile();
+        YamlConfiguration settings = settingsFile.exists() ? OraxenYaml.loadConfiguration(settingsFile) : new YamlConfiguration();
+        settings.options().copyDefaults(true).indent(4).parseComments(true);
+        YamlConfiguration defaults = defaultSettings();
+
+        settings.addDefaults(defaults);
+
+        try {
+            settingsFile.createNewFile();
+            settings.save(settingsFile);
+        } catch (IOException e) {
+            if (DEBUG.toBool()) e.printStackTrace();
+        }
+
+        return settings;
+    }
+
+    private static YamlConfiguration defaultSettings() {
+        YamlConfiguration defaultSettings = new YamlConfiguration();
+        defaultSettings.options().copyDefaults(true).indent(4).parseComments(true);
+
+        for (Settings setting : Settings.values()) {
+            defaultSettings.set(setting.getPath(), setting.defaultValue());
+//            defaultSettings.setComments(setting.getPath(), setting.comments());
+//            defaultSettings.setInlineComments(setting.getPath(), setting.inlineComments());
+            //defaultSettings.setRichMessage(setting.getPath(), setting.richComment());
+        }
+
+        return defaultSettings;
     }
 }

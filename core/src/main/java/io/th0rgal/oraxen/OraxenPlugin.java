@@ -157,7 +157,7 @@ public class OraxenPlugin extends JavaPlugin {
         HandlerList.unregisterAll(this);
     }
 
-    public ResourcesManager getResourceManager() {
+    public ResourcesManager resourceManager() {
         return resourceManager;
     }
 
@@ -170,9 +170,9 @@ public class OraxenPlugin extends JavaPlugin {
     }
 
     public void reloadConfigs() {
+        resourceManager = new ResourcesManager(this);
         configsManager = new ConfigsManager(this);
         configsManager.validatesConfig();
-        resourceManager = new ResourcesManager(this);
     }
 
     public ConfigsManager getConfigsManager() {

@@ -14,8 +14,8 @@ import java.util.Set;
 
 public class GlyphTag {
 
-    static final String GLYPH = "glyph";
-    private static final String GLYPH_SHORT = "g";
+    public static final String GLYPH = "glyph";
+    public static final String GLYPH_SHORT = "g";
     public static final TagResolver RESOLVER = TagResolver.resolver(Set.of(GLYPH, GLYPH_SHORT), (args, ctx) -> glyphTag(null,args));
 
 

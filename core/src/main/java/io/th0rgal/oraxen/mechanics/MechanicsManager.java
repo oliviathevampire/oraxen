@@ -136,7 +136,7 @@ public class MechanicsManager {
     }
 
     private static void registerFactory(final String mechanicId, final FactoryConstructor constructor) {
-        final Entry<File, YamlConfiguration> mechanicsEntry = OraxenPlugin.get().getResourceManager().mechanicsEntry();
+        final Entry<File, YamlConfiguration> mechanicsEntry = OraxenPlugin.get().resourceManager().mechanicsEntry();
         final YamlConfiguration mechanicsConfig = mechanicsEntry.getValue();
         final boolean updated = false;
         ConfigurationSection factorySection = mechanicsConfig.getConfigurationSection(mechanicId);

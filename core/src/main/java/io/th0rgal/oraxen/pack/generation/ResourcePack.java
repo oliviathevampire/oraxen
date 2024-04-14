@@ -289,7 +289,7 @@ public class ResourcePack {
         try {
             ZipEntry entry = zip.getNextEntry();
             while (entry != null) {
-                extract(entry, OraxenPlugin.get().getResourceManager(), isSuitable(entry.getName()));
+                extract(entry, OraxenPlugin.get().resourceManager(), isSuitable(entry.getName()));
                 entry = zip.getNextEntry();
             }
             zip.closeEntry();
@@ -316,7 +316,7 @@ public class ResourcePack {
             ZipEntry entry = zip.getNextEntry();
             while (entry != null) {
                 if (entry.getName().startsWith("pack/textures/models/armor/leather_layer_") || entry.getName().startsWith("pack/textures/required") || entry.getName().startsWith("pack/models/required")) {
-                    OraxenPlugin.get().getResourceManager().extractFileIfTrue(entry, !OraxenPlugin.get().getDataFolder().toPath().resolve(entry.getName()).toFile().exists());
+                    OraxenPlugin.get().resourceManager().extractFileIfTrue(entry, !OraxenPlugin.get().getDataFolder().toPath().resolve(entry.getName()).toFile().exists());
                 }
                 entry = zip.getNextEntry();
             }

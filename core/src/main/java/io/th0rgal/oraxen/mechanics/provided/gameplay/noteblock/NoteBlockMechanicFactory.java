@@ -14,7 +14,7 @@ import io.th0rgal.oraxen.utils.VersionUtil;
 import io.th0rgal.oraxen.utils.breaker.ToolTypeSpeedModifier;
 import io.th0rgal.oraxen.utils.logs.Logs;
 import org.apache.commons.lang3.Range;
-import org.bukkit.*;
+import org.bukkit.Instrument;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.type.NoteBlock;
 import org.bukkit.configuration.ConfigurationSection;
@@ -24,13 +24,15 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 public class NoteBlockMechanicFactory extends MechanicFactory {
 
+    private static final Integer MAX_PER_INSTRUMENT = 50;
+    public static final Integer MAX_BLOCK_VARIATION = Instrument.values().length * MAX_PER_INSTRUMENT - 1;
     public static final Map<Integer, NoteBlockMechanic> BLOCK_PER_VARIATION = new HashMap<>();
     private static JsonObject variants;
     private static NoteBlockMechanicFactory instance;
@@ -46,7 +48,7 @@ public class NoteBlockMechanicFactory extends MechanicFactory {
         super(section);
         instance = this;
         variants = new JsonObject();
-        variants.add("instrument=harp,powered=false", getModelJson("block/note_block"));
+        variants.add("instrument=harp,powered=false,note=0", getModelJson("block/note_block"));
         toolTypes = section.getStringList("tool_types");
 
         farmBlockCheckDelay = section.getInt("farmblock_check_delay");
@@ -54,8 +56,6 @@ public class NoteBlockMechanicFactory extends MechanicFactory {
         customSounds = OraxenPlugin.get().getConfigsManager().getMechanics().getConfigurationSection("custom_block_sounds").getBoolean("noteblock_and_block", true);
         removeMineableTag = section.getBoolean("remove_mineable_tag", false);
 
-        // this modifier should be executed when all the items have been parsed, just
-        // before zipping the pack
         OraxenPlugin.get().getResourcePack().addModifiers(getMechanicID(), packFolder ->
                 OraxenPlugin.get().getResourcePack().writeStringToVirtual(
                         "assets/minecraft/blockstates", "note_block.json", getBlockstateContent())
@@ -79,24 +79,14 @@ public class NoteBlockMechanicFactory extends MechanicFactory {
         }
     }
 
-    public static String getInstrumentName(int id) {
-        return switch ((id % 400) / 25) {
-            case 1 -> "basedrum";
-            case 2 -> "snare";
-            case 3 -> "hat";
-            case 4 -> "bass";
-            case 5 -> "flute";
-            case 6 -> "bell";
-            case 7 -> "guitar";
-            case 8 -> "chime";
-            case 9 -> "xylophone";
-            case 10 -> "iron_xylophone";
-            case 11 -> "cow_bell";
-            case 12 -> "didgeridoo";
-            case 13 -> "bit";
-            case 14 -> "banjo";
-            case 15 -> "pling";
-            default -> "harp";
+    public static String instrumentName(Instrument instrument) {
+        return switch (instrument) {
+            case BASS_DRUM -> "basedrum";
+            case PIANO -> "harp";
+            case SNARE_DRUM -> "snare";
+            case STICKS -> "hat";
+            case BASS_GUITAR -> "bass";
+            default -> instrument.name().toLowerCase();
         };
     }
 
@@ -141,17 +131,9 @@ public class NoteBlockMechanicFactory extends MechanicFactory {
         return content;
     }
 
-    public static String getBlockstateVariantName(int id) {
-        id += 26;
-        return getBlockstateVariantName(getInstrumentName(id), id % 25, id >= 400);
-    }
-
-    public static String getBlockstateVariantName(String instrument, int note, boolean powered) {
-        return "instrument=" + instrument + ",note=" + note + ",powered=" + powered;
-    }
-
-    public static NoteBlockMechanic getBlockMechanic(int customVariation) {
-        return BLOCK_PER_VARIATION.get(customVariation);
+    @Nullable
+    public static NoteBlockMechanic getBlockMechanic(NoteBlock blockData) {
+        return BLOCK_PER_VARIATION.values().stream().filter(m -> m.blockData().equals(blockData)).findFirst().orElse(null);
     }
 
     public static boolean isEnabled() {
@@ -166,7 +148,6 @@ public class NoteBlockMechanicFactory extends MechanicFactory {
         return removeMineableTag;
     }
 
-
     /**
      * Attempts to set the block directly to the model and texture of an Oraxen item.
      *
@@ -175,7 +156,7 @@ public class NoteBlockMechanicFactory extends MechanicFactory {
      */
     public static void setBlockModel(Block block, String itemId) {
         NoteBlockMechanic mechanic = OraxenBlocks.getNoteBlockMechanic(itemId);
-        if (mechanic != null) block.setBlockData(createNoteBlockData(mechanic.getCustomVariation()));
+        if (mechanic != null) block.setBlockData(mechanic.blockData());
     }
 
     private String getBlockstateContent() {
@@ -187,22 +168,21 @@ public class NoteBlockMechanicFactory extends MechanicFactory {
     @Override
     public Mechanic parse(ConfigurationSection itemMechanicConfiguration) {
         NoteBlockMechanic mechanic = new NoteBlockMechanic(this, itemMechanicConfiguration);
-        if (!Range.between(0, 775).contains(mechanic.getCustomVariation())) {
-            Logs.logError("The custom variation of the block " + mechanic.getItemID() + " is not between 0 and 775!");
+        if (!Range.between(1, MAX_BLOCK_VARIATION).contains(mechanic.getCustomVariation())) {
+            Logs.logError("The custom variation of the block " + mechanic.getItemID() + " is not between 1 and " + MAX_BLOCK_VARIATION + "!");
             Logs.logWarning("The item has failed to build for now to prevent bugs and issues.");
             return null;
         }
         DirectionalBlock directional = mechanic.getDirectional();
-        String modelName = mechanic.getModel(itemMechanicConfiguration.getParent().getParent());
+        String modelName = mechanic.getModel();
 
+        String variantName = "instrument=" + instrumentName(mechanic.blockData().getInstrument()) + ",note=" + mechanic.blockData().getNote().getId() + ",powered=" + mechanic.blockData().isPowered();
         if (mechanic.isDirectional() && !directional.isParentBlock()) {
             NoteBlockMechanic parentMechanic = directional.getParentMechanic();
-            modelName = (parentMechanic.getModel(itemMechanicConfiguration.getParent().getParent()));
-            variants.add(getBlockstateVariantName(mechanic.getCustomVariation()),
-                    getDirectionalModelJson(modelName, mechanic, parentMechanic));
+            modelName = (parentMechanic.getModel());
+            variants.add(variantName, getDirectionalModelJson(modelName, mechanic, parentMechanic));
         } else {
-            variants.add(getBlockstateVariantName(mechanic.getCustomVariation()),
-                    getModelJson(modelName));
+            variants.add(variantName, getModelJson(modelName));
         }
 
         BLOCK_PER_VARIATION.put(mechanic.getCustomVariation(), mechanic);
@@ -220,51 +200,13 @@ public class NoteBlockMechanicFactory extends MechanicFactory {
         return (NoteBlockMechanic) super.getMechanic(itemStack);
     }
 
-    /**
-     * Generate a NoteBlock blockdata from its id
-     *
-     * @param id The block id.
-     */
-    @SuppressWarnings("deprecation")
-    public static NoteBlock createNoteBlockData(int id) {
-        /* We have 16 instruments with 25 notes. All of those blocks can be powered.
-         * That's: 16*25*2 = 800 variations. The first 25 variations of PIANO (not powered)
-         * will be reserved for the vanilla behavior. We still have 800-25 = 775 variations
-         */
-        id += 26;
-        NoteBlock noteBlock = (NoteBlock) Bukkit.createBlockData(Material.NOTE_BLOCK);
-        noteBlock.setInstrument(Instrument.getByType((byte) ((id % 400) / 25)));
-        noteBlock.setNote(new Note(id % 25));
-        noteBlock.setPowered(id >= 400);
-        return noteBlock;
-    }
-
-    /**
-     * Generate a NoteBlock blockdata from an oraxen id
-     *
-     * @param itemID The id of an item implementing NoteBlockMechanic
-     */
-    public NoteBlock createNoteBlockData(String itemID) {
-        /* We have 16 instruments with 25 notes. All of those blocks can be powered.
-         * That's: 16*25*2 = 800 variations. The first 25 variations of PIANO (not powered)
-         * will be reserved for the vanilla behavior. We still have 800-25 = 775 variations
-         */
-        return createNoteBlockData(((NoteBlockMechanic) getInstance().getMechanic(itemID)).getCustomVariation());
+    public NoteBlock getNoteBlockData(String itemId) {
+        return instance.getMechanic(itemId).blockData();
     }
 
     public void registerFarmBlock() {
         if (farmBlock) return;
         if (farmBlockTask != null) farmBlockTask.cancel();
-
-//        // Dont register if there is no farmblocks in configs
-//        List<String> farmblockList = new ArrayList<>();
-//        for (ItemBuilder itemBuilder : OraxenItems.getItems()) {
-//            String id = OraxenItems.getIdByItem(itemBuilder.build());
-//            NoteBlockMechanic mechanic = (NoteBlockMechanic) NoteBlockMechanicFactory.getInstance().getMechanic(id);
-//            if (mechanic == null || !mechanic.hasDryout()) continue;
-//            farmblockList.add(id);
-//        }
-//        if (farmblockList.isEmpty()) return;
 
         farmBlockTask = new FarmBlockTask(farmBlockCheckDelay);
         BukkitTask task = farmBlockTask.runTaskTimer(OraxenPlugin.get(), 0, farmBlockCheckDelay);
