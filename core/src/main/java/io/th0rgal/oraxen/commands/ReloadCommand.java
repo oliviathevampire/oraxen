@@ -6,14 +6,15 @@ import dev.jorel.commandapi.arguments.TextArgument;
 import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.api.OraxenFurniture;
 import io.th0rgal.oraxen.api.OraxenItems;
-import io.th0rgal.oraxen.api.OraxenPack;
 import io.th0rgal.oraxen.api.events.OraxenItemsLoadedEvent;
 import io.th0rgal.oraxen.config.Message;
 import io.th0rgal.oraxen.config.Settings;
+import io.th0rgal.oraxen.font.FontManager;
 import io.th0rgal.oraxen.hud.HudManager;
 import io.th0rgal.oraxen.items.ItemUpdater;
 import io.th0rgal.oraxen.mechanics.MechanicsManager;
 import io.th0rgal.oraxen.recipes.RecipesManager;
+import io.th0rgal.oraxen.sound.SoundManager;
 import io.th0rgal.oraxen.utils.logs.Logs;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -55,13 +56,15 @@ public class ReloadCommand {
 
     public static void reloadPack(@Nullable CommandSender sender) {
         Message.PACK_REGENERATED.send(sender);
-        OraxenPack.reloadPack();
+        OraxenPlugin.get().fontManager(new FontManager(OraxenPlugin.get().configsManager()));
+        OraxenPlugin.get().soundManager(new SoundManager(OraxenPlugin.get().configsManager().getSound()));
+        OraxenPlugin.get().getResourcePack().generate();
     }
 
     public static void reloadHud(@Nullable CommandSender sender) {
         Message.HUD_RELOAD.send(sender);
         OraxenPlugin.get().reloadConfigs();
-        HudManager hudManager = new HudManager(OraxenPlugin.get().getConfigsManager());
+        HudManager hudManager = new HudManager(OraxenPlugin.get().configsManager());
         OraxenPlugin.get().setHudManager(hudManager);
         hudManager.loadHuds(hudManager.getHudConfigSection());
         hudManager.parsedHudDisplays = hudManager.generateHudDisplays();

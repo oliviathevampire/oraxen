@@ -44,7 +44,7 @@ public class FontEvents implements Listener {
     @Nullable LegacyPaperChatHandler legacyPaperChatHandler;
     @Nullable SpigotChatHandler spigotChatHandler;
 
-    enum ChatHandler {
+    public enum ChatHandler {
         LEGACY,
         MODERN;
 

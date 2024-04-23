@@ -25,7 +25,7 @@ import java.nio.file.Files;
 import java.util.List;
 import java.util.*;
 
-public class ShaderArmorTextures {
+public class ShaderArmorTextures extends CustomArmor {
 
     static final int DEFAULT_RESOLUTION = 16;
     static final int HEIGHT_RATIO = 2;
@@ -42,8 +42,23 @@ public class ShaderArmorTextures {
     private int layer2Height = 0;
     private static ShaderType shaderType;
 
+    public void generateNeededFiles(List<VirtualFile> output) {
+        generateArmorShaderFiles();
+    }
+
     public enum ShaderType {
-        FANCY, LESS_FANCY
+        FANCY, LESS_FANCY;
+
+        public static ShaderType fromSetting() {
+            try {
+                return ShaderType.valueOf(Settings.CUSTOM_ARMOR_SHADER_TYPE.toString().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                Logs.logError("Invalid value for CUSTOM_ARMOR_SHADER_TYPE: " + Settings.CUSTOM_ARMOR_SHADER_TYPE.getValue());
+                Logs.logWarning("Valid values are: FANCY, LESS_FANCY");
+                Logs.logWarning("Defaulting to FANCY");
+                return ShaderType.FANCY;
+            }
+        }
     }
 
     public ShaderArmorTextures() {

@@ -30,7 +30,11 @@ public enum UpdatedSettings {
     GENERATE_ARMOR_SHADER_FILES("Pack.generation.generate_armor_shader_files", "CustomArmor.shader_settings.generate_armor_shader_files"),
     GENERATE_CUSTOM_ARMOR_TEXTURES("Pack.generation.generate_custom_armor_textures", "CustomArmor.shader_settings.generate_custom_armor_textures"),
     AUTOMATICALLY_GENERATE_SHADER_COMPATIBLE_ARMOR("Pack.generation.automatically_generate_shader_compatible_armor", "CustomArmor.shader_settings.generate_shader_compatible_armor"),
-    ;
+    ORAXEN_INV_PREVIOUS_PAGE_ICON("oraxen_inventory.menu_info.previous_page_button.icon", "oraxen_inventory.menu_info.previous_page_button"),
+    ORAXEN_INV_NEXT_PAGE_ICON("oraxen_inventory.menu_info.next_page_button.icon", "oraxen_inventory.menu_info.next_page_button"),
+    ORAXEN_INV_EXIT_ICON("oraxen_inventory.menu_info.exit_button.icon", "oraxen_inventory.menu_info.exit_button"),
+    CUSTOM_ARMOR_DEFAULT_TYPE("CustomArmor.type", "CustomArmor.default_type"),
+    CUSTOM_ARMOR_TRIMS_DEFAULT_MATERIAL("CustomArmor.trims_settings.material_replacement", "CustomArmor.trims_settings.default_material");
 
     private final String path;
     private final String newPath;

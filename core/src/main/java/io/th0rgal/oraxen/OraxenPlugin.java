@@ -116,7 +116,7 @@ public class OraxenPlugin extends JavaPlugin {
         hudManager.registerTask();
         hudManager.parsedHudDisplays = hudManager.generateHudDisplays();
         pluginManager.registerEvents(new ItemUpdater(), this);
-        resourcePack.generate(false);
+        resourcePack.generate();
         RecipesManager.load(this);
         invManager = new InvManager();
         ArmorEquipEvent.registerListener(this);
@@ -173,10 +173,9 @@ public class OraxenPlugin extends JavaPlugin {
         resourceManager = new ResourcesManager(this);
         configsManager = new ConfigsManager(this);
         configsManager.validatesConfig();
-        resourceManager = new ResourcesManager(this);
     }
 
-    public ConfigsManager getConfigsManager() {
+    public ConfigsManager configsManager() {
         return configsManager;
     }
 
@@ -184,7 +183,7 @@ public class OraxenPlugin extends JavaPlugin {
         return uploadManager;
     }
 
-    public void setUploadManager(final UploadManager uploadManager) {
+    public void uploadManager(final UploadManager uploadManager) {
         this.uploadManager = uploadManager;
     }
 
@@ -192,7 +191,7 @@ public class OraxenPlugin extends JavaPlugin {
         return fontManager;
     }
 
-    public void setFontManager(final FontManager fontManager) {
+    public void fontManager(final FontManager fontManager) {
         this.fontManager.unregisterEvents();
         this.fontManager = fontManager;
         fontManager.registerEvents();
@@ -212,7 +211,7 @@ public class OraxenPlugin extends JavaPlugin {
         return soundManager;
     }
 
-    public void setSoundManager(final SoundManager soundManager) {
+    public void soundManager(final SoundManager soundManager) {
         this.soundManager = soundManager;
     }
 

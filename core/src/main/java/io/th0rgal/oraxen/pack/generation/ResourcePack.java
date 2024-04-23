@@ -17,6 +17,7 @@ import io.th0rgal.oraxen.pack.upload.UploadManager;
 import io.th0rgal.oraxen.sound.CustomSound;
 import io.th0rgal.oraxen.sound.SoundManager;
 import io.th0rgal.oraxen.utils.*;
+import io.th0rgal.oraxen.utils.customarmor.CustomArmor;
 import io.th0rgal.oraxen.utils.customarmor.CustomArmorType;
 import io.th0rgal.oraxen.utils.customarmor.ShaderArmorTextures;
 import io.th0rgal.oraxen.utils.customarmor.TrimArmorDatapack;
@@ -46,14 +47,18 @@ public class ResourcePack {
     private TrimArmorDatapack trimArmorDatapack;
     private static final File packFolder = new File(OraxenPlugin.get().getDataFolder(), "pack");
     private final File pack = new File(packFolder, packFolder.getName() + ".zip");
+    private final CustomArmor customArmorHandler;
 
     public ResourcePack() {
         // we use maps to avoid duplicate
         packModifiers = new HashMap<>();
         outputFiles = new HashMap<>();
+        if (CustomArmorType.getSetting().equals(CustomArmorType.SHADER)) customArmorHandler = new ShaderArmorTextures();
+        else if (CustomArmorType.getSetting().equals(CustomArmorType.TRIMS)) customArmorHandler = new TrimArmorDatapack();
+        else customArmorHandler = new CustomArmor();
     }
 
-    public void generate(boolean isReload) {
+    public void generate() {
         outputFiles.clear();
 
         makeDirsIfNotExists(packFolder, new File(packFolder, "assets"));
@@ -94,6 +99,7 @@ public class ResourcePack {
                 packModifier.accept(packFolder);
         List<VirtualFile> output = new ArrayList<>(outputFiles.values());
 
+        customArmorHandler.generateNeededFiles(output);
         // zipping resourcepack
         try {
             // Adds all non-directory root files
@@ -153,7 +159,7 @@ public class ResourcePack {
                 uploadManager.uploadAsyncAndSendToPlayers(OraxenPlugin.get().getResourcePack(), true, true);
             } else { // Otherwise this is was triggered on server-startup
                 uploadManager = new UploadManager(OraxenPlugin.get());
-                OraxenPlugin.get().setUploadManager(uploadManager);
+                OraxenPlugin.get().uploadManager(uploadManager);
                 uploadManager.uploadAsyncAndSendToPlayers(OraxenPlugin.get().getResourcePack(), false, false);
             }
         });
@@ -458,7 +464,7 @@ public class ResourcePack {
     }
 
     private Collection<CustomSound> handleCustomSoundEntries(Collection<CustomSound> sounds) {
-        ConfigurationSection mechanic = OraxenPlugin.get().getConfigsManager().getMechanics();
+        ConfigurationSection mechanic = OraxenPlugin.get().configsManager().getMechanics();
         ConfigurationSection customSounds = mechanic.getConfigurationSection("custom_block_sounds");
         ConfigurationSection noteblock = mechanic.getConfigurationSection("noteblock");
         ConfigurationSection stringblock = mechanic.getConfigurationSection("stringblock");
@@ -658,90 +664,17 @@ public class ResourcePack {
             "pt_pt", "qya_aa", "ro_ro", "rpr", "ru_ru", "ry_ua", "se_no", "sk_sk",
             "sl_si", "so_so", "sq_al", "sr_sp", "sv_se", "sxu", "szl", "ta_in",
             "th_th", "tl_ph", "tlh_aa", "tok", "tr_tr", "tt_ru", "uk_ua", "val_es",
-            "vec_it", "vi_vn", "yi_de", "yo_ng", "zh_cn", "zh_hk", "zh_tw", "zlm_arab"));
+            "vec_it", "vi_vn", "yi_de", "yo_ng", "zh_cn", "zh_hk", "zh_tw", "zlm_arab"
+    ));
 
     private void hideScoreboardNumbers() {
         if (VersionUtil.atOrAbove("1.20.3")) {
             OraxenPlugin.get().getProtocolManager().addPacketListener(new ScoreboardPacketListener());
-        } else { // Pre 1.20.3 rely on shaders
-            writeStringToVirtual("assets/minecraft/shaders/core/", "rendertype_text.json", getScoreboardJson());
-            writeStringToVirtual("assets/minecraft/shaders/core/", "rendertype_text.vsh", getScoreboardVsh());
         }
     }
 
     private void generateScoreboardHideBackground() {
-        String fileName = VersionUtil.atOrAbove("1.20.1") ? "rendertype_gui.vsh" : "position_color.fsh";
-        writeStringToVirtual("assets/minecraft/shaders/core/", fileName, getScoreboardBackground());
-    }
-
-    private String getScoreboardVsh() {
-        return """
-                #version 150
-                                
-                in vec3 Position;
-                in vec4 Color;
-                in vec2 UV0;
-                in ivec2 UV2;
-                                
-                uniform sampler2D Sampler2;
-                                
-                uniform mat4 ModelViewMat;
-                uniform mat4 ProjMat;
-                                
-                uniform vec2 ScreenSize;
-                                
-                out float vertexDistance;
-                out vec4 vertexColor;
-                out vec2 texCoord0;
-                                
-                void main() {
-                    gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
-                                
-                    vertexDistance = length((ModelViewMat * vec4(Position, 1.0)).xyz);
-                    vertexColor = Color * texelFetch(Sampler2, UV2 / 16, 0);
-                    texCoord0 = UV0;
-                	
-                	// delete sidebar numbers
-                	if(	Position.z == 0.0 && // check if the depth is correct (0 for gui texts)
-                			gl_Position.x >= 0.95 && gl_Position.y >= -0.35 && // check if the position matches the sidebar
-                			vertexColor.g == 84.0/255.0 && vertexColor.g == 84.0/255.0 && vertexColor.r == 252.0/255.0 && // check if the color is the sidebar red color
-                			gl_VertexID <= 4 // check if it's the first character of a string
-                		) gl_Position = ProjMat * ModelViewMat * vec4(ScreenSize + 100.0, 0.0, 0.0); // move the vertices offscreen, idk if this is a good solution for that but vec4(0.0) doesnt do the trick for everyone
-                }
-                """;
-    }
-
-    private String getScoreboardJson() {
-        return """
-                {
-                    "blend": {
-                        "func": "add",
-                        "srcrgb": "srcalpha",
-                        "dstrgb": "1-srcalpha"
-                    },
-                    "vertex": "rendertype_text",
-                    "fragment": "rendertype_text",
-                    "attributes": [
-                        "Position",
-                        "Color",
-                        "UV0",
-                        "UV2"
-                    ],
-                    "samplers": [
-                        { "name": "Sampler0" },
-                        { "name": "Sampler2" }
-                    ],
-                    "uniforms": [
-                        { "name": "ModelViewMat", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
-                        { "name": "ProjMat", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
-                        { "name": "ColorModulator", "type": "float", "count": 4, "values": [ 1.0, 1.0, 1.0, 1.0 ] },
-                        { "name": "FogStart", "type": "float", "count": 1, "values": [ 0.0 ] },
-                        { "name": "FogEnd", "type": "float", "count": 1, "values": [ 1.0 ] },
-                        { "name": "FogColor", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
-                		{ "name": "ScreenSize", "type": "float", "count": 2,  "values": [ 1.0, 1.0 ] }
-                    ]
-                }
-                """;
+        writeStringToVirtual("assets/minecraft/shaders/core/", "position_color.fsh", getScoreboardBackground());
     }
 
     private String getScoreboardBackground() {

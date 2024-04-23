@@ -22,13 +22,11 @@ import io.th0rgal.oraxen.mechanics.provided.gameplay.stringblock.StringBlockMech
 import io.th0rgal.oraxen.utils.*;
 import io.th0rgal.oraxen.utils.blocksounds.BlockSounds;
 import io.th0rgal.oraxen.utils.drops.Drop;
-import io.th0rgal.oraxen.utils.logs.Logs;
 import io.th0rgal.protectionlib.ProtectionLib;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
@@ -286,7 +284,7 @@ public class BreakerSystem {
     }
 
     private BlockSounds getBlockSounds(Block block) {
-        ConfigurationSection soundSection = OraxenPlugin.get().getConfigsManager().getMechanics().getConfigurationSection("custom_block_sounds");
+        ConfigurationSection soundSection = OraxenPlugin.get().configsManager().getMechanics().getConfigurationSection("custom_block_sounds");
         if (soundSection == null) return null;
         switch (block.getType()) {
             case NOTE_BLOCK -> {
@@ -320,7 +318,7 @@ public class BreakerSystem {
     }
 
     private String getSound(Block block) {
-        ConfigurationSection soundSection = OraxenPlugin.get().getConfigsManager().getMechanics().getConfigurationSection("custom_block_sounds");
+        ConfigurationSection soundSection = OraxenPlugin.get().configsManager().getMechanics().getConfigurationSection("custom_block_sounds");
         if (soundSection == null) return null;
         BlockSounds sounds = getBlockSounds(block);
         if (sounds == null) return null;

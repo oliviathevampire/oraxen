@@ -27,7 +27,7 @@ public class BlockMechanicFactory extends MechanicFactory {
     public BlockMechanicFactory(ConfigurationSection section) {
         super(section);
         toolTypes = section.getStringList("tool_types");
-        customSounds = OraxenPlugin.get().getConfigsManager().getMechanics().getConfigurationSection("custom_block_sounds").getBoolean("noteblock_and_block", true);
+        customSounds = OraxenPlugin.get().configsManager().getMechanics().getConfigurationSection("custom_block_sounds").getBoolean("noteblock_and_block", true);
 
         // this modifier should be executed when all the items have been parsed, just
         // before zipping the pack

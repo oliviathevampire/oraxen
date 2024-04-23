@@ -53,7 +53,7 @@ public class NoteBlockMechanicFactory extends MechanicFactory {
 
         farmBlockCheckDelay = section.getInt("farmblock_check_delay");
         farmBlock = false;
-        customSounds = OraxenPlugin.get().getConfigsManager().getMechanics().getConfigurationSection("custom_block_sounds").getBoolean("noteblock_and_block", true);
+        customSounds = OraxenPlugin.get().configsManager().getMechanics().getConfigurationSection("custom_block_sounds").getBoolean("noteblock_and_block", true);
         removeMineableTag = section.getBoolean("remove_mineable_tag", false);
 
         OraxenPlugin.get().getResourcePack().addModifiers(getMechanicID(), packFolder ->

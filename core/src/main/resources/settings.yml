@@ -38,7 +38,7 @@ ConfigsTools:
 Glyphs:
   glyph_handler: VANILLA # Valid handlers are VANILLA and NMS
   emoji_list_permission_only: true # will only show emojis player has permission to use if set to true
-  unicode_completions: true # Whether glyph tab-completions shows unicodes or glyph-pølaceholders
+  unicode_completions: true # Whether glyph tab-completions shows unicodes or glyph-placeholders
   chat_hover_text: "<glyph_placeholder>" # The text that will be shown when hovering over a glyph in chat
 
 Chat:
@@ -370,20 +370,9 @@ oraxen_inventory:
     title: "<shift:-18><glyph:menu_items><shift:-193>"
     type: PAGINATED # PAGINATED, SCROLL_HORIZONTAL, SCROLL_VERTICAL
     rows: 6
-    available_slots: 53
-    play_button_sound: true
-    previous_page_button:
-      icon: arrow_previous_icon
-      name: "<gray>Previous page"
-      col: 2
-    exit_button:
-      icon: exit_icon
-      name: "<gray>Exit"
-      col: 5
-    next_page_button:
-      icon: arrow_next_icon
-      name: "<gray>Next page"
-      col: 8
+    previous_page_button: arrow_previous_icon
+    next_page_button: arrow_next_icon
+    exit_button: exit_icon
   menu_layout:
     armors:
       icon: emerald_chestplate

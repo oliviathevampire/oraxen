@@ -99,8 +99,8 @@ public class ConfigsManager {
 
     public void validatesConfig() {
         ResourcesManager resourcesManager = OraxenPlugin.get().resourceManager();
-        settings = Settings.validateSettings();
         mechanics = validate(resourcesManager, "mechanics.yml", defaultMechanics);
+        settings = validate(resourcesManager, "settings.yml", defaultSettings);
         font = validate(resourcesManager, "font.yml", defaultFont);
         hud = validate(resourcesManager, "hud.yml", defaultHud);
         sound = validate(resourcesManager, "sound.yml", defaultSound);

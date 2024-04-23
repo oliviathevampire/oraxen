@@ -74,17 +74,17 @@ public class ItemsView {
 
         if (mainGui instanceof PaginatedGui paginated) {
             if (paginated.getPagesNum() > 1) {
-                paginated.setItem(6, Settings.ORAXEN_INV_PREVIOUS_PAGE_COLUMN.toInt(), new GuiItem(previousPage, event -> {
+                paginated.setItem(6, 2, new GuiItem(previousPage, event -> {
                     paginated.previous();
                     event.setCancelled(true);
                 }));
-                paginated.setItem(6, Settings.ORAXEN_INV_NEXT_PAGE_COLUMN.toInt(), new GuiItem(nextPage, event -> {
+                paginated.setItem(6, 8, new GuiItem(nextPage, event -> {
                     paginated.next();
                     event.setCancelled(true);
                 }));
             }
 
-            paginated.setItem(6, Settings.ORAXEN_INV_EXIT_COLUMN.toInt(), new GuiItem(exitIcon, event -> mainGui.open(event.getWhoClicked())));
+            paginated.setItem(6, 5, new GuiItem(exitIcon, event -> mainGui.open(event.getWhoClicked())));
         }
 
         return mainGui;

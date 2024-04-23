@@ -8,7 +8,7 @@ public enum CustomArmorType {
     NONE, SHADER, TRIMS;
 
     public static CustomArmorType getSetting() {
-        return fromString(Settings.CUSTOM_ARMOR_TYPE.toString());
+        return fromString(Settings.CUSTOM_ARMOR_DEFAULT_TYPE.toString());
     }
 
     public static CustomArmorType fromString(String type) {

@@ -40,7 +40,7 @@ public class HudManager {
     }
 
     public ConfigurationSection getHudConfigSection() {
-        return OraxenPlugin.get().getConfigsManager().getHud().getConfigurationSection("huds");
+        return OraxenPlugin.get().configsManager().getHud().getConfigurationSection("huds");
     }
 
     public void registerEvents() {
