@@ -18,7 +18,8 @@ infix fun String.toNms(that: String): NMSVersion = NMSVersion(this, that)
 val SUPPORTED_VERSIONS: List<NMSVersion> = listOf(
     "v1_20_R1" toNms "1.20.1-R0.1-SNAPSHOT",
     "v1_20_R2" toNms "1.20.2-R0.1-SNAPSHOT",
-    "v1_20_R3" toNms "1.20.4-R0.1-SNAPSHOT"
+    "v1_20_R3" toNms "1.20.4-R0.1-SNAPSHOT",
+    "v1_20_R4" toNms "1.20.6-R0.1-SNAPSHOT"
 )
 
 SUPPORTED_VERSIONS.forEach {
@@ -33,9 +34,19 @@ SUPPORTED_VERSIONS.forEach {
         }
 
         dependencies {
-            compileOnly("io.papermc.paper:paper-api:" + it.serverVersion)
+//            compileOnly("io.papermc.paper:paper-api:" + it.serverVersion)
             implementation(project(":core"))
             paperDevBundle(it.serverVersion)
+        }
+
+        tasks {
+            compileJava {
+                options.encoding = Charsets.UTF_8.name()
+            }
+        }
+
+        java {
+            toolchain.languageVersion.set(JavaLanguageVersion.of(if (it.nmsVersion == "v1_20_R4") 21 else 17))
         }
     }
 }
@@ -46,10 +57,11 @@ val devPluginPath = project.findProperty("oraxen_dev_plugin_path")?.toString()
 val foliaPluginPath = project.findProperty("oraxen_folia_plugin_path")?.toString()
 val spigotPluginPath = project.findProperty("oraxen_spigot_plugin_path")?.toString()
 val pluginVersion: String by project
-val commandApiVersion = "9.3.0"
+val commandApiVersion = "9.4.0"
 val adventureVersion = "4.15.0"
 val platformVersion = "4.3.2"
 val googleGsonVersion = "2.10.1"
+val apacheLang3Version = "3.14.0"
 group = "io.th0rgal"
 version = pluginVersion
 
@@ -83,7 +95,6 @@ allprojects {
 
     dependencies {
         val actionsVersion = "1.0.0-SNAPSHOT"
-        compileOnly("io.papermc.paper:paper-api:1.20.4-R0.1-SNAPSHOT")
         compileOnly("gs.mclo:java:2.2.1")
 
         compileOnly("net.kyori:adventure-text-minimessage:$adventureVersion")
@@ -111,14 +122,16 @@ allprojects {
         compileOnly("com.willfp:libreforge:4.49.2")
         compileOnly("io.github.miniplaceholders:miniplaceholders-api:2.2.1")
         compileOnly("nl.rutgerkok:blocklocker:1.10.4-SNAPSHOT")
+        compileOnly("org.apache.commons:commons-lang3:$apacheLang3Version")
 
+        implementation("dev.jorel:commandapi-bukkit-shade:$commandApiVersion")
         implementation("org.bstats:bstats-bukkit:3.0.0")
         implementation("io.th0rgal:protectionlib:1.5.1")
         implementation("com.jeff-media:custom-block-data:2.2.2")
         implementation("com.jeff_media:MorePersistentDataTypes:2.4.0")
         implementation("com.jeff-media:persistent-data-serializer:1.0")
         implementation("org.jetbrains:annotations:24.1.0") { isTransitive = false }
-        implementation("dev.triumphteam:triumph-gui:3.1.7") { exclude("net.kyori") }
+        implementation("dev.triumphteam:triumph-gui:3.1.8-SNAPSHOT") { exclude("net.kyori") }
         implementation("cloud.commandframework:cloud-paper:1.8.4")
 
         implementation("me.gabytm.util:actions-spigot:$actionsVersion") { exclude(group = "com.google.guava") }
@@ -138,7 +151,6 @@ tasks {
 
     compileJava {
         options.encoding = Charsets.UTF_8.name()
-        options.release.set(17)
     }
 
     javadoc {
@@ -154,7 +166,7 @@ tasks {
     }
 
     runServer {
-        minecraftVersion("1.18.2")
+        minecraftVersion("1.20.4")
     }
 
     shadowJar {
@@ -169,6 +181,7 @@ tasks {
         relocate("com.udojava.evalex", "io.th0rgal.oraxen.shaded.evalex")
         relocate("com.tcoded.folialib", "io.th0rgal.oraxen.shaded.folialib")
         relocate("cloud.commandframework", "io.th0rgal.oraxen.shaded.cloud.commandframework")
+        relocate("dev.jorel", "io.th0rgal.oraxen.shaded")
 
         manifest {
             attributes(
@@ -200,14 +213,14 @@ bukkit {
     main = "io.th0rgal.oraxen.OraxenPlugin"
     version = pluginVersion
     name = "Oraxen"
-    apiVersion = "1.18"
+    apiVersion = "1.20"
     authors = listOf("th0rgal", "boy0000")
     softDepend = listOf(
+        "ProtocolLib",
         "LightAPI", "PlaceholderAPI", "MythicMobs", "MMOItems", "MythicCrucible", "MythicMobs", "BossShopPro",
         "CrateReloaded", "ItemBridge", "WorldEdit", "WorldGuard", "Towny", "Factions", "Lands", "PlotSquared",
         "NBTAPI", "ModelEngine", "CrashClaim", "ViaBackwards", "HuskClaims", "BentoBox"
     )
-    depend = listOf("ProtocolLib")
     loadBefore = listOf("Realistic_World")
     permissions.create("oraxen.command") {
         description = "Allows the player to use the /oraxen command"
@@ -216,13 +229,14 @@ bukkit {
     libraries = listOf(
         "org.springframework:spring-expression:6.0.6",
         "org.apache.httpcomponents:httpmime:4.5.13",
-        "dev.jorel:commandapi-bukkit-shade:$commandApiVersion",
+        //"dev.jorel:commandapi-bukkit-shade-mojang-mapped:$commandApiVersion",
         "org.joml:joml:1.10.5",
         "net.kyori:adventure-text-minimessage:$adventureVersion",
         "net.kyori:adventure-text-serializer-plain:$adventureVersion",
         "net.kyori:adventure-text-serializer-ansi:$adventureVersion",
         "net.kyori:adventure-platform-bukkit:$platformVersion",
         "com.google.code.gson:gson:$googleGsonVersion",
+        "org.apache.commons:commons-lang3:$apacheLang3Version",
         "gs.mclo:java:2.2.1",
     )
 }

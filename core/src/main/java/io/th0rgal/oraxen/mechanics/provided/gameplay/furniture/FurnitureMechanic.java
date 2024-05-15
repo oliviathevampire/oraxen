@@ -21,6 +21,7 @@ import io.th0rgal.oraxen.utils.actions.ClickAction;
 import io.th0rgal.oraxen.utils.blocksounds.BlockSounds;
 import io.th0rgal.oraxen.utils.drops.Drop;
 import io.th0rgal.oraxen.utils.logs.Logs;
+import net.kyori.adventure.text.Component;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -381,7 +382,7 @@ public class FurnitureMechanic extends Mechanic {
 
         ItemStack item;
         if (evolvingFurniture == null) {
-            item = ItemUtils.editItemMeta(originalItem.clone(), meta -> meta.setDisplayName(""));
+            item = ItemUtils.editItemMeta(originalItem.clone(), meta -> ItemUtils.displayName(meta, Component.empty()));
         } else item = placedItem;
         item.setAmount(1);
 

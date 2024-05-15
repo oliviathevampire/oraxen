@@ -4,9 +4,9 @@ import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.mechanics.Mechanic;
 import io.th0rgal.oraxen.mechanics.MechanicFactory;
 import io.th0rgal.oraxen.utils.ItemUtils;
-import io.th0rgal.oraxen.utils.Utils;
 import io.th0rgal.oraxen.utils.timers.Timer;
 import io.th0rgal.oraxen.utils.timers.TimersFactory;
+import net.kyori.adventure.text.Component;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
@@ -38,13 +38,13 @@ public abstract class SpellMechanic extends Mechanic {
                     if(!section.contains("charges") || section.getInt("charges") == -1){
                         return item;
                     }
-                    List<String> lore = new ArrayList<>();
-                    if(item.getLore() != null && !item.getLore().isEmpty()){
-                        lore = item.getLore();
-                        lore.add(0,"");
+                    List<Component> lore = new ArrayList<>();
+                    if(item.lore() != null && !item.lore().isEmpty()){
+                        lore = item.lore();
+                        lore.add(0,Component.empty());
                     }
-                    lore.add(0,"Charges " + section.getInt("charges") + "/" + section.getInt("charges"));
-                    return item.setLore(lore);
+                    lore.add(0,Component.text("Charges " + section.getInt("charges") + "/" + section.getInt("charges")));
+                    return item.lore(lore);
                 });
 
         if(section.contains("charges")){

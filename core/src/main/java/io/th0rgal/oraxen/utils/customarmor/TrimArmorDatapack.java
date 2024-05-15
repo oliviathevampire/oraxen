@@ -296,7 +296,7 @@ public class TrimArmorDatapack extends CustomArmor {
         }
         for (DataPack dataPack : Bukkit.getDataPackManager().getDisabledDataPacks(defaultWorld)) {
             if (dataPack.key() == null) continue;
-            if (dataPack.key().equals(datapackKey)) return true;
+            if (dataPack.key().equals(datapackKey)) return false;
         }
 
         return false;

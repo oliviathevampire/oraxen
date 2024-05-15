@@ -9,6 +9,7 @@ import io.th0rgal.oraxen.mechanics.MechanicFactory;
 import io.th0rgal.oraxen.mechanics.MechanicsManager;
 import io.th0rgal.oraxen.pack.generation.DuplicationHandler;
 import io.th0rgal.oraxen.utils.AdventureUtils;
+import io.th0rgal.oraxen.utils.logs.Logs;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -62,7 +63,11 @@ public class OraxenItems {
     }
 
     public static ItemBuilder getItemById(final String id) {
-        return getOptionalItemById(id).orElse(null);
+        ItemBuilder builder = getOptionalItemById(id).orElse(null);
+        if (builder == null) {
+            Logs.logError(String.format("Builder for %s is null", id));
+        }
+        return builder;
     }
 
     public static ItemBuilder getBuilderByItem(ItemStack item) {
@@ -75,7 +80,7 @@ public class OraxenItems {
     }
 
     public static List<ItemBuilder> getUnexcludedItems(final File file) {
-        return map.get(file).values().stream()/*.filter(item -> !item.getOraxenMeta().isExcludedFromInventory())*/.toList();
+        return map.get(file).values().stream().filter(item -> !item.getOraxenMeta().isExcludedFromInventory()).toList();
     }
 
     public static List<ItemStack> getItemStacksByName(final List<List<String>> lists) {
@@ -137,13 +142,14 @@ public class OraxenItems {
     }
 
     public static Stream<Entry<String, ItemBuilder>> entryStream() {
+        if (map == null || map.values() == null) return Stream.empty();
         return map.values().stream().flatMap(map -> map.entrySet().stream());
     }
 
     public static String[] getItemNames() {
         return items.stream().filter(item -> {
             ItemBuilder builder = OraxenItems.getItemById(item);
-            return builder != null && builder.hasOraxenMeta() && !builder.getOraxenMeta().isExcludedFromCommands();
+            return builder.hasOraxenMeta() && !builder.getOraxenMeta().isExcludedFromCommands();
         }).toArray(String[]::new);
     }
 

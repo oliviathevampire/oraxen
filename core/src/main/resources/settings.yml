@@ -46,10 +46,10 @@ Chat:
   chat_handler: MODERN # Valid once are MODERN & LEGACY
 
 CustomArmor:
-  type: SHADER # Valid types are SHADER, TRIMS and NONE
+  default_type: SHADER
   disable_leather_repair: true # Makes custom armor not repairable with leather, only with copies of said custom armor
   trims_settings:
-    material_replacement: CHAINMAIL # Valid materials are CHAINMAIL, IRON, GOLD, DIAMOND, NETHERITE and LEATHER
+    default_material: CHAINMAIL
     auto_assign_settings: true # If true, the trim & item-flag will be automatically assigned to the custom armor piece, unless specified
   shader_settings:
     type: FANCY # Valid types are FANCY and LESS_FANCY
@@ -368,8 +368,8 @@ Misc:
 oraxen_inventory:
   menu_info:
     title: "<shift:-18><glyph:menu_items><shift:-193>"
-    type: PAGINATED # PAGINATED, SCROLL_HORIZONTAL, SCROLL_VERTICAL
-    rows: 6
+    rows: 6 # The rows in the GUI, not slots
+    size: 45 # The amount of slots per page
     previous_page_button: arrow_previous_icon
     next_page_button: arrow_next_icon
     exit_button: exit_icon

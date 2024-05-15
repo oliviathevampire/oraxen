@@ -166,8 +166,8 @@ public enum Settings {
             "weapons", Map.of("icon", "energy_crystal_sword", "displayname", "<green>Weapons")
     )),
     ORAXEN_INV_TITLE("oraxen_inventory.menu_info.title", "<shift:-18><glyph:menu_items><shift:-193>"),
-    ORAXEN_INV_TYPE("oraxen_inventory.main_info.type", "PAGINATED"),
     ORAXEN_INV_ROWS("oraxen_inventory.menu_info.rows", 6),
+    ORAXEN_INV_SIZE("oraxen_inventory.menu_info.size", 45),
 
     ORAXEN_INV_PREVIOUS_PAGE_ICON("oraxen_inventory.menu_info.previous_page_button"),
     ORAXEN_INV_NEXT_PAGE_ICON("oraxen_inventory.menu_info.next_page_button"),

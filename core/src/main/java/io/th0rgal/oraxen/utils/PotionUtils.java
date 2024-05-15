@@ -1,5 +1,8 @@
 package io.th0rgal.oraxen.utils;
 
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.effect.MobEffect;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.potion.PotionEffectType;
@@ -7,6 +10,17 @@ import org.bukkit.potion.PotionEffectType;
 import javax.annotation.Nullable;
 
 public class PotionUtils {
+
+    @Nullable
+    public static MobEffect getMobEffect(String effect) {
+        if (effect == null || effect.isEmpty()) return null;
+        MobEffect effectType = null;
+        try {
+            effectType = BuiltInRegistries.MOB_EFFECT.get(ResourceLocation.tryParse(effect));
+        } catch (NoSuchFieldError ignored) {
+        }
+        return effectType;
+    }
 
     @SuppressWarnings({"deprecation"})
     @Nullable

@@ -15,6 +15,9 @@ import io.th0rgal.oraxen.utils.breaker.ToolTypeSpeedModifier;
 import io.th0rgal.oraxen.utils.logs.Logs;
 import org.apache.commons.lang3.Range;
 import org.bukkit.Instrument;
+import org.bukkit.Material;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.type.NoteBlock;
 import org.bukkit.configuration.ConfigurationSection;
@@ -238,9 +241,14 @@ public class NoteBlockMechanicFactory extends MechanicFactory {
         PotionEffect miningFatigue = player.getPotionEffect(PotionEffectType.SLOW_DIGGING);
         if (miningFatigue != null) multiplier *= 1f - (0.3F * miningFatigue.getAmplifier() + 1);
 
-        ItemStack helmet = player.getEquipment().getHelmet();
-        if (player.isInWater() && (helmet == null || !helmet.containsEnchantment(Enchantment.WATER_WORKER)))
+        // 1.20.5+ speed-modifier attribute
+        float miningSpeedModifier = Arrays.stream(Attribute.values()).filter(a -> a.name().equalsIgnoreCase("PLAYER_BLOCK_BREAK_SPEED"))
+                .map(player::getAttribute).filter(Objects::nonNull).map(AttributeInstance::getBaseValue).findFirst().orElse(1.0).floatValue();
+        multiplier *= miningSpeedModifier;
+
+        if (player.isUnderWater() && !Optional.ofNullable(player.getEquipment().getHelmet()).orElse(new ItemStack(Material.PAPER)).containsEnchantment(Enchantment.WATER_WORKER)) {
             multiplier /= 5;
+        }
 
         if (!player.isOnGround()) multiplier /= 5;
 
