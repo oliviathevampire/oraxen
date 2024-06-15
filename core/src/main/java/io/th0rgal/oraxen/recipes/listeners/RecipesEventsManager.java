@@ -36,9 +36,7 @@ public class RecipesEventsManager implements Listener {
 
     public void registerEvents() {
         Bukkit.getPluginManager().registerEvents(instance, OraxenPlugin.get());
-        if (VersionUtil.atOrAbove("1.20")) {
-            Bukkit.getPluginManager().registerEvents(new SmithingRecipeEvents(), OraxenPlugin.get());
-        }
+        Bukkit.getPluginManager().registerEvents(new SmithingRecipeEvents(), OraxenPlugin.get());
     }
 
     @EventHandler(ignoreCancelled = true)

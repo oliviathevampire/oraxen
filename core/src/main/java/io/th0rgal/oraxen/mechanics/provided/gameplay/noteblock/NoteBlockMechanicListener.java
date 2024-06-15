@@ -9,10 +9,7 @@ import io.th0rgal.oraxen.api.events.noteblock.OraxenNoteBlockPlaceEvent;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.limitedplacing.LimitedPlacing;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.directional.DirectionalBlock;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.storage.StorageMechanic;
-import io.th0rgal.oraxen.utils.BlockHelpers;
-import io.th0rgal.oraxen.utils.EventUtils;
-import io.th0rgal.oraxen.utils.Utils;
-import io.th0rgal.oraxen.utils.VersionUtil;
+import io.th0rgal.oraxen.utils.*;
 import io.th0rgal.oraxen.utils.breaker.BreakerSystem;
 import io.th0rgal.oraxen.utils.breaker.HardnessModifier;
 import io.th0rgal.protectionlib.ProtectionLib;
@@ -46,7 +43,7 @@ import static io.th0rgal.oraxen.utils.BlockHelpers.isLoaded;
 public class NoteBlockMechanicListener implements Listener {
 
     public NoteBlockMechanicListener() {
-        BreakerSystem.MODIFIERS.add(getHardnessModifier());
+        if (PluginUtils.isEnabled("ProtocolLib")) BreakerSystem.MODIFIERS.add(getHardnessModifier());
     }
 
     public static class NoteBlockMechanicPaperListener implements Listener {
@@ -110,7 +107,6 @@ public class NoteBlockMechanicListener implements Listener {
             // This GameEvent only exists in 1.19
             // If server is 1.18 check if its there and if not return
             // If 1.19 we can check if this event is fired
-            if (!VersionUtil.atOrAbove("1.19")) return;
             if (event.getEvent() != GameEvent.NOTE_BLOCK_PLAY) return;
             if (block.getType() != Material.NOTE_BLOCK) return;
             NoteBlock data = (NoteBlock) block.getBlockData().clone();
@@ -221,7 +217,7 @@ public class NoteBlockMechanicListener implements Listener {
         if (type == Material.AIR) return;
 
         BlockData newData = type.isBlock() ? type.createBlockData() : null;
-        makePlayerPlaceBlock(player, event.getHand(), item, block, event.getBlockFace(), newData);
+        makePlayerPlaceBlock(player, event.getHand(), item, block, blockFace, newData);
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
@@ -437,6 +433,7 @@ public class NoteBlockMechanicListener implements Listener {
 
         if (BlockHelpers.isReplaceable(type)) target = placedAgainst;
         else target = placedAgainst.getRelative(face);
+        if (!BlockHelpers.isReplaceable(target.getType())) return;
 
         // Store oldData incase event(s) is cancelled, set the target blockData
         // newData might be null in some scenarios

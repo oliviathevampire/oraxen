@@ -8,10 +8,7 @@ import io.th0rgal.oraxen.api.OraxenItems;
 import io.th0rgal.oraxen.api.events.stringblock.OraxenStringBlockInteractEvent;
 import io.th0rgal.oraxen.api.events.stringblock.OraxenStringBlockPlaceEvent;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.limitedplacing.LimitedPlacing;
-import io.th0rgal.oraxen.utils.BlockHelpers;
-import io.th0rgal.oraxen.utils.EventUtils;
-import io.th0rgal.oraxen.utils.Utils;
-import io.th0rgal.oraxen.utils.VersionUtil;
+import io.th0rgal.oraxen.utils.*;
 import io.th0rgal.oraxen.utils.breaker.BreakerSystem;
 import io.th0rgal.oraxen.utils.breaker.HardnessModifier;
 import io.th0rgal.protectionlib.ProtectionLib;
@@ -45,7 +42,7 @@ import java.util.Random;
 public class StringBlockMechanicListener implements Listener {
 
     public StringBlockMechanicListener() {
-        BreakerSystem.MODIFIERS.add(getHardnessModifier());
+        if (PluginUtils.isEnabled("ProtocolLib")) BreakerSystem.MODIFIERS.add(getHardnessModifier());
     }
 
     public static class StringBlockMechanicPaperListener implements Listener {
@@ -409,10 +406,8 @@ public class StringBlockMechanicListener implements Listener {
         final Block target;
         final Material type = placedAgainst.getType();
         if (BlockHelpers.isReplaceable(type)) target = placedAgainst;
-        else {
-            target = placedAgainst.getRelative(face);
-            if (!target.getType().isAir() && !target.isLiquid() && target.getType() != Material.LIGHT) return;
-        }
+        else target = placedAgainst.getRelative(face);
+        if (!BlockHelpers.isReplaceable(target.getType())) return;
 
         StringBlockMechanic mechanic = OraxenBlocks.getStringMechanic(newData);
         // Store oldData incase event(s) is cancelled, set the target blockData

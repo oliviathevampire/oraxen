@@ -1,8 +1,6 @@
 package io.th0rgal.oraxen.utils.inventories;
 
-import dev.triumphteam.gui.guis.BaseGui;
 import dev.triumphteam.gui.guis.PaginatedGui;
-import io.th0rgal.oraxen.api.ItemNotFoundException;
 import io.th0rgal.oraxen.recipes.CustomRecipe;
 import org.bukkit.entity.Player;
 

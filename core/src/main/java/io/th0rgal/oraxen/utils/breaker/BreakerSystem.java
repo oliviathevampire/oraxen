@@ -1,7 +1,7 @@
 package io.th0rgal.oraxen.utils.breaker;
 
 import com.comphenix.protocol.PacketType;
-import com.comphenix.protocol.ProtocolManager;
+import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.events.ListenerPriority;
 import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketContainer;
@@ -19,9 +19,13 @@ import io.th0rgal.oraxen.mechanics.provided.gameplay.block.BlockMechanic;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureMechanic;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.NoteBlockMechanic;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.stringblock.StringBlockMechanic;
-import io.th0rgal.oraxen.utils.*;
+import io.th0rgal.oraxen.utils.BlockHelpers;
+import io.th0rgal.oraxen.utils.EventUtils;
+import io.th0rgal.oraxen.utils.ItemUtils;
+import io.th0rgal.oraxen.utils.PotionUtils;
 import io.th0rgal.oraxen.utils.blocksounds.BlockSounds;
 import io.th0rgal.oraxen.utils.drops.Drop;
+import io.th0rgal.oraxen.utils.wrappers.EnchantmentWrapper;
 import io.th0rgal.protectionlib.ProtectionLib;
 import org.bukkit.*;
 import org.bukkit.block.Block;
@@ -35,7 +39,6 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -50,7 +53,6 @@ public class BreakerSystem {
     public static final List<HardnessModifier> MODIFIERS = new ArrayList<>();
     private final Map<UUID, BukkitScheduler> breakerPerLocation = new HashMap<>();
     private final Map<Location, BukkitTask> breakerPlaySound = new HashMap<>();
-    private final ProtocolManager protocolManager;
     private final PacketAdapter listener = new PacketAdapter(OraxenPlugin.get(),
             ListenerPriority.LOW, PacketType.Play.Client.BLOCK_DIG) {
         @Override
@@ -113,7 +115,7 @@ public class BreakerSystem {
                 final List<Location> furnitureBarrierLocations = furnitureBarrierLocations(furnitureMechanic, block);
 
                 if (period != 0) Bukkit.getScheduler().runTask(OraxenPlugin.get(), () ->
-                        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_DIGGING,
+                        player.addPotionEffect(new PotionEffect(PotionUtils.getEffectType("mining_fatigue"),
                                 (int) (period * 11),
                                 Integer.MAX_VALUE,
                                 false, false, false)));
@@ -145,7 +147,8 @@ public class BreakerSystem {
                             return;
                         }
 
-                        if (period == 0) value = 10;
+                        if (item.getEnchantmentLevel(EnchantmentWrapper.EFFICIENCY) >= 5)
+                            value = 10;
 
                         for (final Entity entity : world.getNearbyEntities(location, 16, 16, 16)) {
                             if (entity instanceof Player viewer) {
@@ -163,7 +166,7 @@ public class BreakerSystem {
                         } else stopBlockHitSound(block);
 
                         Bukkit.getScheduler().runTask(OraxenPlugin.get(), () ->
-                                player.removePotionEffect(PotionEffectType.SLOW_DIGGING));
+                                player.removePotionEffect(PotionUtils.getEffectType("mining_fatigue")));
 
                         stopBlockBreaker(player);
                         stopBlockHitSound(block);
@@ -179,7 +182,7 @@ public class BreakerSystem {
                 }, period, period);
             } else {
                 Bukkit.getScheduler().runTask(OraxenPlugin.get(), () -> {
-                    player.removePotionEffect(PotionEffectType.SLOW_DIGGING);
+                    player.removePotionEffect(PotionUtils.getEffectType("mining_fatigue"));
                     if (!ProtectionLib.canBreak(player, location))
                         player.sendBlockChange(block.getLocation(), block.getBlockData());
 
@@ -200,10 +203,6 @@ public class BreakerSystem {
                 ? furnitureMechanic.getLocations(FurnitureMechanic.getFurnitureYaw(furnitureBaseEntity.get()),
                 furnitureBaseEntity.get().getLocation(), furnitureMechanic.getBarriers())
                 : Collections.singletonList(block.getLocation());
-    }
-
-    public BreakerSystem() {
-        protocolManager = OraxenPlugin.get().getProtocolManager();
     }
 
     private boolean blockDamageEventCancelled(Block block, Player player) {
@@ -248,12 +247,11 @@ public class BreakerSystem {
     }
 
     private void sendBlockBreak(final Player player, final Location location, final int stage) {
-        Block block = location.getBlock();
-        final PacketContainer packet = protocolManager.createPacket(PacketType.Play.Server.BLOCK_BREAK_ANIMATION);
+        final PacketContainer packet = ProtocolLibrary.getProtocolManager().createPacket(PacketType.Play.Server.BLOCK_BREAK_ANIMATION);
         packet.getIntegers().write(0, location.hashCode()).write(1, stage);
         packet.getBlockPositionModifier().write(0, new BlockPosition(location.toVector()));
 
-        protocolManager.sendServerPacket(player, packet);
+        ProtocolLibrary.getProtocolManager().sendServerPacket(player, packet);
     }
 
     private void stopBlockBreaker(Player player) {
@@ -280,7 +278,7 @@ public class BreakerSystem {
     }
 
     public void registerListener() {
-        protocolManager.addPacketListener(listener);
+        ProtocolLibrary.getProtocolManager().addPacketListener(listener);
     }
 
     private BlockSounds getBlockSounds(Block block) {

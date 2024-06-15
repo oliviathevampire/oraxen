@@ -1,38 +1,19 @@
-package io.th0rgal.oraxen.nms.v1_20_R3;
+package io.th0rgal.oraxen.nms.v1_20_R4;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
-import io.netty.buffer.ByteBuf;
-import io.netty.channel.*;
-import io.netty.handler.codec.ByteToMessageDecoder;
-import io.netty.handler.codec.MessageToByteEncoder;
-import io.netty.util.Attribute;
-import io.netty.util.AttributeKey;
-import io.papermc.paper.adventure.PaperAdventure;
 import io.papermc.paper.configuration.GlobalConfiguration;
-import io.th0rgal.oraxen.OraxenPlugin;
-import io.th0rgal.oraxen.nms.GlyphHandlers;
-import io.th0rgal.oraxen.utils.AdventureUtils;
+import io.th0rgal.oraxen.items.helpers.ItemPropertyHandler;
+import io.th0rgal.oraxen.nms.GlyphHandler;
 import io.th0rgal.oraxen.utils.BlockHelpers;
 import io.th0rgal.oraxen.utils.VersionUtil;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
-import net.kyori.adventure.text.Component;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.StringTag;
-import net.minecraft.nbt.Tag;
-import net.minecraft.network.*;
-import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.common.ClientboundUpdateTagsPacket;
-import net.minecraft.network.protocol.game.ServerboundChatPacket;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.server.network.ServerConnectionListener;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.TagNetworkSerialization;
 import net.minecraft.util.Mth;
@@ -46,37 +27,43 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import org.bukkit.*;
+import org.bukkit.SoundCategory;
+import org.bukkit.SoundGroup;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.craftbukkit.v1_20_R3.entity.CraftPlayer;
-import org.bukkit.craftbukkit.v1_20_R3.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.entity.CraftPlayer;
+import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.*;
-import java.util.function.Function;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
 
-    private final io.th0rgal.oraxen.nms.GlyphHandler glyphHandler;
+    private final GlyphHandler glyphHandler;
+    private final ItemPropertyHandler itemProperties;
 
     public NMSHandler() {
-        this.glyphHandler = new io.th0rgal.oraxen.nms.v1_20_R3.GlyphHandler();
+        this.glyphHandler = new io.th0rgal.oraxen.nms.v1_20_R4.GlyphHandler();
+        this.itemProperties = new io.th0rgal.oraxen.nms.v1_20_R4.ItemProperties();
     }
 
     @Override
-    public io.th0rgal.oraxen.nms.GlyphHandler glyphHandler() {
+    public GlyphHandler glyphHandler() {
         return glyphHandler;
+    }
+
+    @Override
+    public ItemPropertyHandler itemPropertyHandler() {
+        return itemProperties;
     }
 
     @Override
@@ -90,13 +77,17 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
     }
 
 
-    @Override
+    @Override //TODO Fix this
     public ItemStack copyItemNBTTags(@NotNull ItemStack oldItem, @NotNull ItemStack newItem) {
-        CompoundTag oldTag = CraftItemStack.asNMSCopy(oldItem).getOrCreateTag();
         net.minecraft.world.item.ItemStack newNmsItem = CraftItemStack.asNMSCopy(newItem);
-        CompoundTag newTag = newNmsItem.getOrCreateTag();
-        oldTag.getAllKeys().stream().filter(key -> !vanillaKeys.contains(key)).forEach(key -> newTag.put(key, oldTag.get(key)));
-        newNmsItem.setTag(newTag);
+        net.minecraft.world.item.ItemStack oldItemStack = CraftItemStack.asNMSCopy(oldItem);
+        CraftItemStack.asNMSCopy(oldItem).getTags().forEach(tag -> {
+            if (!tag.location().getNamespace().equals("minecraft")) return;
+            if (vanillaKeys.contains(tag.location().getPath())) return;
+
+            DataComponentType<Object> type = (DataComponentType<Object>) BuiltInRegistries.DATA_COMPONENT_TYPE.get(tag.location());
+            if (type != null) newNmsItem.set(type, oldItemStack.get(type));
+        });
         return CraftItemStack.asBukkitCopy(newNmsItem);
     }
 

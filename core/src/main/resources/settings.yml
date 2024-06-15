@@ -162,6 +162,7 @@ Pack:
     accepted:
       actions:
         message:
+          enabled: false
           # KICK / CHAT / ACTION_BAR / TITLE
           type: ACTION_BAR
           # Click and Hover elements are only available by using the CHAT type

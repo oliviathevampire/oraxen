@@ -1,8 +1,7 @@
 package io.th0rgal.oraxen.nms;
 
-import net.minecraft.world.level.ClipContext;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.phys.BlockHitResult;
+import io.th0rgal.oraxen.items.helpers.EmptyItemPropertyHandler;
+import io.th0rgal.oraxen.items.helpers.ItemPropertyHandler;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
@@ -13,6 +12,12 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Set;
 
 public interface NMSHandler {
+
+    default ItemPropertyHandler itemPropertyHandler() {
+        return new EmptyItemPropertyHandler();
+    }
+
+    GlyphHandler glyphHandler();
 
     boolean noteblockUpdatesDisabled();
 
@@ -39,7 +44,6 @@ public interface NMSHandler {
      * @return The corrected BlockData
      */
     @Nullable BlockData correctBlockStates(Player player, EquipmentSlot slot, ItemStack itemStack);
-    BlockHitResult getPlayerPOVHitResult(Level world, net.minecraft.world.entity.player.Player player, ClipContext.Fluid fluidHandling);
 
     /**Removes mineable/axe tag from noteblocks for custom blocks */
     void customBlockDefaultTools(Player player);
@@ -55,11 +59,6 @@ public interface NMSHandler {
             "BucketVariantTag", "Items", "LodestoneTracked", "LodestoneDimension", "LodestonePos",
             "ChargedProjectiles", "Charged", "DebugProperty", "Fireworks", "Explosion", "Flight",
             "map", "map_scale_direction", "map_to_lock", "Decorations", "SkullOwner", "Effects", "BlockEntityTag", "BlockStateTag");
-
-    void setupNmsGlyphs();
-
-    void inject(Player player);
-    void uninject(Player player);
 
     default boolean getSupported() {
         return false;

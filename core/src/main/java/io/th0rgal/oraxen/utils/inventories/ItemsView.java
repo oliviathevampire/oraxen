@@ -1,11 +1,9 @@
 package io.th0rgal.oraxen.utils.inventories;
 
-import dev.triumphteam.gui.guis.BaseGui;
 import dev.triumphteam.gui.guis.Gui;
 import dev.triumphteam.gui.guis.GuiItem;
 import dev.triumphteam.gui.guis.PaginatedGui;
 import io.th0rgal.oraxen.OraxenPlugin;
-import io.th0rgal.oraxen.api.ItemNotFoundException;
 import io.th0rgal.oraxen.api.OraxenItems;
 import io.th0rgal.oraxen.config.Settings;
 import io.th0rgal.oraxen.items.ItemBuilder;
@@ -15,7 +13,6 @@ import io.th0rgal.oraxen.utils.AdventureUtils;
 import io.th0rgal.oraxen.utils.ItemUtils;
 import io.th0rgal.oraxen.utils.Utils;
 import net.kyori.adventure.text.Component;
-import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemFlag;
@@ -134,7 +131,7 @@ public class ItemsView {
 		String fileName = Utils.removeExtension(file.getName());
 		//Material of category itemstack. if no material is set, set it to the first item of the category
 		Optional<String> icon = Optional.ofNullable(settings.getString(String.format("oraxen_inventory.menu_layout.%s.icon", fileName)));
-		Component displayName = ItemParser.parseComponentItemName(settings.getString(String.format("oraxen_inventory.menu_layout.%s.displayname", fileName), "<green>" + file.getName()));
+		Component displayName = ItemParser.parseComponentDisplayName(settings.getString(String.format("oraxen_inventory.menu_layout.%s.displayname", fileName), "<green>" + file.getName()));
 
 		itemStack = icon.map(OraxenItems::getItemById).map(ItemBuilder::clone)
 				.orElse(OraxenItems.getMap().get(file).values().stream().findFirst().orElse(new ItemBuilder(Material.PAPER)))

@@ -1,4 +1,4 @@
-package io.th0rgal.oraxen.nms.v1_20_R3;
+package io.th0rgal.oraxen.nms.v1_20_R4;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
@@ -8,181 +8,127 @@ import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.codec.MessageToByteEncoder;
 import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
-import io.papermc.paper.adventure.PaperAdventure;
-import io.papermc.paper.configuration.GlobalConfiguration;
 import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.nms.GlyphHandlers;
 import io.th0rgal.oraxen.utils.AdventureUtils;
-import io.th0rgal.oraxen.utils.BlockHelpers;
 import io.th0rgal.oraxen.utils.VersionUtil;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.kyori.adventure.text.Component;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.core.registries.Registries;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.*;
+import net.minecraft.network.codec.IdDispatchCodec;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.common.ClientboundUpdateTagsPacket;
+import net.minecraft.network.protocol.PacketType;
+import net.minecraft.network.protocol.configuration.ConfigurationPacketTypes;
+import net.minecraft.network.protocol.configuration.ConfigurationProtocols;
+import net.minecraft.network.protocol.game.GamePacketTypes;
+import net.minecraft.network.protocol.game.GameProtocols;
 import net.minecraft.network.protocol.game.ServerboundChatPacket;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.network.protocol.handshake.HandshakeProtocols;
+import net.minecraft.network.protocol.login.LoginPacketTypes;
+import net.minecraft.network.protocol.login.LoginProtocols;
+import net.minecraft.network.protocol.status.StatusPacketTypes;
+import net.minecraft.network.protocol.status.StatusProtocols;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerConnectionListener;
-import net.minecraft.tags.BlockTags;
-import net.minecraft.tags.TagNetworkSerialization;
-import net.minecraft.util.Mth;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.context.BlockPlaceContext;
-import net.minecraft.world.item.context.DirectionalPlaceContext;
-import net.minecraft.world.item.context.UseOnContext;
-import net.minecraft.world.level.ClipContext;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.Vec3;
-import org.bukkit.*;
-import org.bukkit.block.Block;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.craftbukkit.v1_20_R3.entity.CraftPlayer;
-import org.bukkit.craftbukkit.v1_20_R3.inventory.CraftItemStack;
+import org.bukkit.Bukkit;
+import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.EquipmentSlot;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.Function;
 
-public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
+public class GlyphHandler implements io.th0rgal.oraxen.nms.GlyphHandler {
 
     private final Map<Channel, ChannelHandler> encoder = Collections.synchronizedMap(new WeakHashMap<>());
     private final Map<Channel, ChannelHandler> decoder = Collections.synchronizedMap(new WeakHashMap<>());
 
-    @Override
-    public boolean tripwireUpdatesDisabled() {
-        return VersionUtil.isPaperServer() && GlobalConfiguration.get().blockUpdates.disableTripwireUpdates;
+    private static final Map<PacketType<?>, ConnectionCodec> CODEC_MAP = new HashMap<>();
+    private static final Map<PacketType<?>, Integer> ID_MAP = new HashMap<>();
+
+    private record ConnectionCodec(StreamCodec<ByteBuf, Packet<?>> codec, ProtocolInfo<?> protocol) {
     }
 
-    @Override
-    public boolean noteblockUpdatesDisabled() {
-        return VersionUtil.isPaperServer() && GlobalConfiguration.get().blockUpdates.disableNoteblockUpdates;
-    }
+    private static class PacketProtocol {
+        private final ProtocolInfo<?> clientboundInfo;
+        private final ProtocolInfo<?> serverboundInfo;
 
+        private final List<PacketType<?>> clientbounds = new ArrayList<>();
+        private final List<PacketType<?>> serverbounds = new ArrayList<>();
 
-    @Override
-    public ItemStack copyItemNBTTags(@NotNull ItemStack oldItem, @NotNull ItemStack newItem) {
-        CompoundTag oldTag = CraftItemStack.asNMSCopy(oldItem).getOrCreateTag();
-        net.minecraft.world.item.ItemStack newNmsItem = CraftItemStack.asNMSCopy(newItem);
-        CompoundTag newTag = newNmsItem.getOrCreateTag();
-        oldTag.getAllKeys().stream().filter(key -> !vanillaKeys.contains(key)).forEach(key -> newTag.put(key, oldTag.get(key)));
-        newNmsItem.setTag(newTag);
-        return CraftItemStack.asBukkitCopy(newNmsItem);
-    }
-
-    @Override
-    @Nullable
-    public BlockData correctBlockStates(Player player, EquipmentSlot slot, ItemStack itemStack) {
-        InteractionHand hand = slot == EquipmentSlot.HAND ? InteractionHand.MAIN_HAND : InteractionHand.OFF_HAND;
-        net.minecraft.world.item.ItemStack nmsStack = CraftItemStack.asNMSCopy(itemStack);
-        ServerPlayer serverPlayer = ((CraftPlayer) player).getHandle();
-        BlockHitResult hitResult = getPlayerPOVHitResult(serverPlayer.level(), serverPlayer, ClipContext.Fluid.NONE);
-        BlockPlaceContext placeContext = new BlockPlaceContext(new UseOnContext(serverPlayer, hand, hitResult));
-
-        if (!(nmsStack.getItem() instanceof BlockItem blockItem)) {
-            nmsStack.getItem().useOn(new UseOnContext(serverPlayer, hand, hitResult));
-            if (!player.isSneaking()) serverPlayer.gameMode.useItem(serverPlayer, serverPlayer.level(), nmsStack, hand);
-            return null;
-        }
-
-        // Shulker-Boxes are DirectionalPlace based unlike other directional-blocks
-        if (org.bukkit.Tag.SHULKER_BOXES.isTagged(itemStack.getType())) {
-            placeContext = new DirectionalPlaceContext(serverPlayer.level(), hitResult.getBlockPos(), hitResult.getDirection(), nmsStack, hitResult.getDirection().getOpposite());
-        }
-
-        BlockPos pos = hitResult.getBlockPos();
-        InteractionResult result = blockItem.place(placeContext);
-        if (result == InteractionResult.FAIL) return null;
-        if (placeContext instanceof DirectionalPlaceContext && player.getGameMode() != org.bukkit.GameMode.CREATIVE) itemStack.setAmount(itemStack.getAmount() - 1);
-        World world = player.getWorld();
-
-        if(!player.isSneaking()) {
-            BlockPos clickPos = placeContext.getClickedPos();
-            Block block = world.getBlockAt(clickPos.getX(), clickPos.getY(), clickPos.getZ());
-            SoundGroup sound = block.getBlockData().getSoundGroup();
-
-            world.playSound(
-                    BlockHelpers.toCenterBlockLocation(block.getLocation()), sound.getPlaceSound(),
-                    SoundCategory.BLOCKS, (sound.getVolume() + 1.0F) / 2.0F, sound.getPitch() * 0.8F
-            );
-        }
-
-        return world.getBlockAt(pos.getX(), pos.getY(), pos.getZ()).getBlockData();
-    }
-
-    @Override
-    public BlockHitResult getPlayerPOVHitResult(Level world, net.minecraft.world.entity.player.Player player, ClipContext.Fluid fluidHandling) {
-        float f = player.getXRot();
-        float g = player.getYRot();
-        Vec3 vec3 = player.getEyePosition();
-        float h = Mth.cos(-g * ((float)Math.PI / 180F) - (float)Math.PI);
-        float i = Mth.sin(-g * ((float)Math.PI / 180F) - (float)Math.PI);
-        float j = -Mth.cos(-f * ((float)Math.PI / 180F));
-        float k = Mth.sin(-f * ((float)Math.PI / 180F));
-        float l = i * j;
-        float n = h * j;
-        double d = 5.0D;
-        Vec3 vec32 = vec3.add((double)l * d, (double)k * d, (double)n * d);
-        return world.clip(new ClipContext(vec3, vec32, ClipContext.Block.OUTLINE, fluidHandling, player));
-    }
-
-    @Override
-    public void customBlockDefaultTools(Player player) {
-        if (player instanceof CraftPlayer craftPlayer) {
-            TagNetworkSerialization.NetworkPayload payload = createPayload();
-            if (payload == null) return;
-            ClientboundUpdateTagsPacket packet = new ClientboundUpdateTagsPacket(Map.of(Registries.BLOCK, payload));
-            craftPlayer.getHandle().connection.send(packet);
+        public PacketProtocol(ProtocolInfo<?> clientbound, ProtocolInfo<?> serverbound, Class<?> clazz) {
+            clientboundInfo = clientbound;
+            serverboundInfo = serverbound;
+            for (Field field : clazz.getFields()) {
+                try {
+                    PacketType<?> type = (PacketType<?>) field.get(null);
+                    switch (type.flow()) {
+                        case CLIENTBOUND -> clientbounds.add(type);
+                        case SERVERBOUND -> serverbounds.add(type);
+                    }
+                } catch (Exception ignored) {}
+            }
         }
     }
 
-    private TagNetworkSerialization.NetworkPayload createPayload() {
-        Constructor<?> constructor = Arrays.stream(TagNetworkSerialization.NetworkPayload.class.getDeclaredConstructors()).findFirst().orElse(null);
-        if (constructor == null) return null;
-        constructor.setAccessible(true);
-        try {
-            return (TagNetworkSerialization.NetworkPayload) constructor.newInstance(tagRegistryMap);
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-            e.printStackTrace();
+    static {
+        Field getToId = Arrays.stream(IdDispatchCodec.class.getDeclaredFields()).filter(f -> Object2IntMap.class.isAssignableFrom(f.getType())).findFirst().orElseThrow();
+        Field getById = Arrays.stream(IdDispatchCodec.class.getDeclaredFields()).filter(f -> List.class.isAssignableFrom(f.getType())).findFirst().orElseThrow();
+        Class<?> entryClass = IdDispatchCodec.class.getDeclaredClasses()[0];
+        Field getCodec = entryClass.getDeclaredFields()[0];
+        Field getType = entryClass.getDeclaredFields()[1];
+
+        getToId.setAccessible(true);
+        getById.setAccessible(true);
+        getCodec.setAccessible(true);
+        getType.setAccessible(true);
+        for (PacketProtocol packetProtocol : List.of(
+                new PacketProtocol(GameProtocols.CLIENTBOUND.bind(RegistryFriendlyByteBuf.decorator(RegistryAccess.EMPTY)), GameProtocols.SERVERBOUND.bind(RegistryFriendlyByteBuf.decorator(RegistryAccess.EMPTY)), GamePacketTypes.class),
+                new PacketProtocol(StatusProtocols.CLIENTBOUND, StatusProtocols.SERVERBOUND, StatusPacketTypes.class),
+                new PacketProtocol(LoginProtocols.CLIENTBOUND, LoginProtocols.SERVERBOUND, LoginPacketTypes.class),
+                new PacketProtocol(ConfigurationProtocols.CLIENTBOUND, ConfigurationProtocols.SERVERBOUND, ConfigurationPacketTypes.class),
+                new PacketProtocol(null, HandshakeProtocols.SERVERBOUND, HandshakeProtocols.class)
+        )) {
+            for (PacketType<?> clientbound : packetProtocol.clientbounds) {
+                if (packetProtocol.clientboundInfo == null) break;
+                IdDispatchCodec<ByteBuf, ?, ?> codec = (IdDispatchCodec<ByteBuf, ? ,?>) packetProtocol.clientboundInfo.codec();
+                try {
+                    Object2IntMap<?> object2IntMap = (Object2IntMap<?>) getToId.get(codec);
+                    List<?> objects = (List<?>) getById.get(codec);
+                    for (Object object : objects) {
+                        if (getType.get(object).equals(clientbound)) {
+                            CODEC_MAP.put(clientbound, new ConnectionCodec((StreamCodec<ByteBuf, Packet<?>>) getCodec.get(object), packetProtocol.clientboundInfo));
+                            ID_MAP.put(clientbound, object2IntMap.getInt(clientbound));
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+            for (PacketType<?> serverbound : packetProtocol.serverbounds) {
+                if (packetProtocol.serverboundInfo == null) break;
+                IdDispatchCodec<ByteBuf, ?, ?> codec = (IdDispatchCodec<ByteBuf, ? ,?>) packetProtocol.serverboundInfo.codec();
+                try {
+                    Object2IntMap<?> object2IntMap = (Object2IntMap<?>) getToId.get(codec);
+                    List<?> objects = (List<?>) getById.get(codec);
+                    for (Object object : objects) {
+                        if (getType.get(object).equals(serverbound)) {
+                            CODEC_MAP.put(serverbound, new ConnectionCodec((StreamCodec<ByteBuf, Packet<?>>) getCodec.get(object), packetProtocol.serverboundInfo));
+                            ID_MAP.put(serverbound, object2IntMap.getInt(serverbound));
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
         }
-        return null;
-    }
-
-    private final Map<ResourceLocation, IntList> tagRegistryMap = createTagRegistryMap();
-
-    private static Map<ResourceLocation, IntList> createTagRegistryMap() {
-        return BuiltInRegistries.BLOCK.getTags().map(pair -> {
-            IntArrayList list = new IntArrayList(pair.getSecond().size());
-            if (pair.getFirst().location() == BlockTags.MINEABLE_WITH_AXE.location()) {
-                pair.getSecond().stream()
-                        .filter(block -> !block.value().getDescriptionId().endsWith("note_block"))
-                        .forEach(block -> list.add(BuiltInRegistries.BLOCK.getId(block.value())));
-            } else pair.getSecond().forEach(block -> list.add(BuiltInRegistries.BLOCK.getId(block.value())));
-
-            return Map.of(pair.getFirst().location(), list);
-        }).collect(HashMap::new, Map::putAll, Map::putAll);
     }
 
     @Override
@@ -298,14 +244,14 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
             ChannelHandler previousHandler = encoder.remove(channel);
             if (previousHandler instanceof PacketEncoder) {
                 // PacketEncoder is not shareable, so we can't re-add it back. Instead, we'll have to create a new instance
-                channel.pipeline().replace("encoder", "encoder", new PacketEncoder(Connection.ATTRIBUTE_CLIENTBOUND_PROTOCOL));
+                channel.pipeline().replace("encoder", "encoder", new PacketEncoder<>(GameProtocols.CLIENTBOUND.bind(RegistryFriendlyByteBuf.decorator(RegistryAccess.EMPTY))));
             } else channel.pipeline().replace("encoder", "encoder", previousHandler);
         }
 
         if (decoder.containsKey(channel)) {
             ChannelHandler previousHandler = decoder.remove(channel);
             if (previousHandler instanceof PacketDecoder) {
-                channel.pipeline().replace("decoder", "decoder", new PacketDecoder(Connection.ATTRIBUTE_SERVERBOUND_PROTOCOL));
+                channel.pipeline().replace("decoder", "decoder", new PacketDecoder<>(GameProtocols.SERVERBOUND.bind(RegistryFriendlyByteBuf.decorator(RegistryAccess.EMPTY))));
             } else {
                 channel.pipeline().replace("decoder", "decoder", previousHandler);
             }
@@ -315,7 +261,7 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
     private void inject(Channel channel, @Nullable Player player) {
         // Replace the vanilla PacketEncoder with our own
         if (!(channel.pipeline().get("encoder") instanceof CustomPacketEncoder))
-            encoder.putIfAbsent(channel, channel.pipeline().replace("encoder", "encoder", new CustomPacketEncoder(player)));
+            encoder.putIfAbsent(channel, channel.pipeline().replace("encoder", "encoder", new CustomPacketEncoder(player, channel)));
 
         // Replace the vanilla PacketDecoder with our own
         if (!(channel.pipeline().get("decoder") instanceof CustomPacketDecoder))
@@ -338,18 +284,6 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
         public CustomDataSerializer(@Nullable Player player, ByteBuf bytebuf) {
             super(bytebuf);
             this.player = player;
-        }
-
-        @NotNull
-        @Override
-        public FriendlyByteBuf writeComponent(@NotNull Component component) {
-            return super.writeComponent(GlyphHandlers.transform(component, null, false));
-        }
-
-        @NotNull
-        @Override
-        public net.minecraft.network.chat.Component readComponent() {
-            return PaperAdventure.asVanilla((GlyphHandlers.transform(PaperAdventure.asAdventure(super.readComponent()), player, false)));
         }
 
         @Override
@@ -407,40 +341,64 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
         }
     }
 
+    private static final AttributeKey<ConnectionCodec> CODEC_ATTRIBUTE_KEY = AttributeKey.newInstance("oraxen.codec.key");
+
     private static class CustomPacketEncoder extends MessageToByteEncoder<Packet<?>> {
         @Nullable private final Player player;
+        private final Channel channel;
 
-        private CustomPacketEncoder(@Nullable Player player) {
+        private CustomPacketEncoder(@Nullable Player player, @NotNull Channel channel) {
             super();
             this.player = player;
+            this.channel = channel;
         }
 
-        private final AttributeKey<ConnectionProtocol.CodecData<?>> protocolDirection = Connection.ATTRIBUTE_CLIENTBOUND_PROTOCOL;
+        @Override
+        public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
+            if (msg instanceof Packet<?> packet) {
+                ConnectionCodec codec = CODEC_MAP.get(packet.type());
+                if (codec != null) channel.attr(CODEC_ATTRIBUTE_KEY).set(codec);
+            }
+            super.write(ctx, msg, promise);
+        }
 
         @Override
         public void encode(ChannelHandlerContext ctx, Packet<?> packet, ByteBuf byteBuf) {
             if (ctx.channel() == null) throw new RuntimeException("Channel is null");
-            Attribute<ConnectionProtocol.CodecData<?>> attribute = ctx.channel().attr(protocolDirection);
-            ConnectionProtocol.CodecData<?> codecData = attribute.get();
-            int packetId = codecData.packetId(packet);
+            StreamCodec<ByteBuf, Packet<?>> codec = CODEC_MAP.get(packet.type()).codec;
+            int packetId = ID_MAP.get(packet.type());
 
             FriendlyByteBuf packetDataSerializer = new CustomDataSerializer(player, byteBuf);
             packetDataSerializer.writeVarInt(packetId);
 
             try {
                 int integer2 = packetDataSerializer.writerIndex();
-                packet.write(packetDataSerializer);
+                codec.encode(packetDataSerializer, packet);
                 int integer3 = packetDataSerializer.writerIndex() - integer2;
                 if (integer3 > 8388608) {
                     throw new IllegalArgumentException("Packet too big (is " + integer3 + ", should be less than 8388608): " + packet);
                 }
-                ProtocolSwapHandler.swapProtocolIfNeeded(attribute, packet);
+                swapProtocolIfNeeded(channel.attr(CODEC_ATTRIBUTE_KEY), packet);
             } catch (Exception e) {
                 if (packet.isSkippable()) throw new SkipPacketException(e);
                 throw e;
             }
-            ProtocolSwapHandler.swapProtocolIfNeeded(attribute, packet);
+            swapProtocolIfNeeded(channel.attr(CODEC_ATTRIBUTE_KEY), packet);
         }
+
+    }
+
+    private static void swapProtocolIfNeeded(Attribute<ConnectionCodec> protocolAttribute, Packet<?> packet) {
+        ProtocolInfo<?> connectionProtocol = CODEC_MAP.get(packet.type()).protocol;
+        if (connectionProtocol != null) {
+            ConnectionCodec codecData = protocolAttribute.get();
+            ProtocolInfo<?> connectionProtocol2 = codecData.protocol;
+            if (connectionProtocol.id() != connectionProtocol2.id()) {
+                StreamCodec<ByteBuf, Packet<?>> codecData2 = (StreamCodec<ByteBuf, Packet<?>>) connectionProtocol.codec();
+                protocolAttribute.set(new ConnectionCodec(codecData2, connectionProtocol));
+            }
+        }
+
     }
 
     private static class CustomPacketDecoder extends ByteToMessageDecoder {
@@ -457,26 +415,19 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
 
             CustomDataSerializer dataSerializer = new CustomDataSerializer(player, buffer);
             int packetID = dataSerializer.readVarInt();
-            Attribute<ConnectionProtocol.CodecData<?>> attribute = ctx.channel().attr(Connection.ATTRIBUTE_SERVERBOUND_PROTOCOL);
-            Packet<?> packet = attribute.get().createPacket(packetID, dataSerializer);
+            Attribute<ConnectionCodec> attribute = ctx.channel().attr(CODEC_ATTRIBUTE_KEY);
+            ConnectionCodec codec = attribute.get();
+            Packet<?> packet = codec.codec.decode(dataSerializer);
 
             if (dataSerializer.readableBytes() > 0) {
                 throw new IOException("Packet " + packetID + " " + packet + " was larger than expected, found " + dataSerializer.readableBytes() + " bytes extra whiløst reading the packet " + packetID);
             } else if (packet instanceof ServerboundChatPacket) {
                 FriendlyByteBuf baseSerializer = new FriendlyByteBuf(bufferCopy);
-                int basePacketID = baseSerializer.readVarInt();
-                packet = attribute.get().createPacket(basePacketID, baseSerializer);
+                packet = codec.codec.decode(baseSerializer);
             }
 
-            if (packet == null) throw new IOException("Bad packet id " + packetID);
-
             out.add(packet);
-            ProtocolSwapHandler.swapProtocolIfNeeded(attribute, packet);
+            swapProtocolIfNeeded(attribute, packet);
         }
-    }
-
-    @Override
-    public boolean getSupported() {
-        return true;
     }
 }

@@ -15,9 +15,8 @@ public class EntityUtils {
     private static Method spawnMethod;
 
     public static boolean isUnderWater(Entity entity) {
-        if (VersionUtil.isPaperServer() && VersionUtil.atOrAbove("1.19")) {
-            return entity.isUnderWater();
-        } else return entity.isInWater();
+        if (VersionUtil.isPaperServer()) return entity.isUnderWater();
+        else return entity.isInWater();
     }
 
     public static boolean isFixed(ItemDisplay itemDisplay) {
@@ -50,11 +49,7 @@ public class EntityUtils {
         try {
             // Get the method based on the server version
             Class<?> entitySpawnerClass = Class.forName("org.bukkit.RegionAccessor"); // Replace with actual path
-            if (VersionUtil.atOrAbove("1.20.2")) {
-                spawnMethod = entitySpawnerClass.getDeclaredMethod("spawn", Location.class, Class.class, java.util.function.Consumer.class);
-            } else {
-                spawnMethod = entitySpawnerClass.getDeclaredMethod("spawn", Location.class, Class.class, org.bukkit.util.Consumer.class);
-            }
+            spawnMethod = entitySpawnerClass.getDeclaredMethod("spawn", Location.class, Class.class, java.util.function.Consumer.class);
         } catch (ClassNotFoundException | NoSuchMethodException e) {
             Logs.logWarning(e.getMessage()); // Handle the exception according to your needs
         }
@@ -69,18 +64,9 @@ public class EntityUtils {
      */
     public static <T> T spawnEntity(@NotNull Location location, @NotNull Class<T> clazz, EntityConsumer<T> consumer) {
        try {
-            T entity;
             World world = location.getWorld();
-            Object wrappedConsumer;
-
-            // Determine the consumer type and choose the appropriate spawn method
-            // 1.20.2> uses java.util.function.Consumer while 1.20.2< uses org.bukkit.util.Consumer
-            if (VersionUtil.atOrAbove("1.20.2")) wrappedConsumer = new JavaConsumerWrapper<>(consumer);
-            else wrappedConsumer = new BukkitConsumerWrapper<>(consumer);
-
-            entity = (T) spawnMethod.invoke(world, location, clazz, wrappedConsumer);
-
-            return entity;
+            Object wrappedConsumer = new JavaConsumerWrapper<>(consumer);
+            return (T) spawnMethod.invoke(world, location, clazz, wrappedConsumer);
         } catch (Exception e) {
            Logs.logWarning(e.getMessage()); // Handle the exception according to your needs
         }

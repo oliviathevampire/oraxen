@@ -1,7 +1,6 @@
 package io.th0rgal.oraxen;
 
 import com.comphenix.protocol.ProtocolLibrary;
-import com.comphenix.protocol.ProtocolManager;
 import dev.jorel.commandapi.CommandAPI;
 import dev.jorel.commandapi.CommandAPIBukkitConfig;
 import io.th0rgal.oraxen.api.OraxenItems;
@@ -141,7 +140,7 @@ public class OraxenPlugin extends JavaPlugin {
         unregisterListeners();
         FurnitureFactory.unregisterEvolution();
         for (Player player : Bukkit.getOnlinePlayers())
-            if (GlyphHandlers.isNms()) NMSHandlers.getHandler().uninject(player);
+            if (GlyphHandlers.isNms()) NMSHandlers.getHandler().glyphHandler().uninject(player);
 
         CompatibilitiesManager.disableCompatibilities();
         CommandAPI.onDisable();
@@ -157,10 +156,6 @@ public class OraxenPlugin extends JavaPlugin {
 
     public ResourcesManager resourceManager() {
         return resourceManager;
-    }
-
-    public ProtocolManager getProtocolManager() {
-        return protocolManager;
     }
 
     public BukkitAudiences getAudience() {

@@ -1,7 +1,6 @@
 package io.th0rgal.oraxen.utils.customarmor;
 
 import io.th0rgal.oraxen.config.Settings;
-import io.th0rgal.oraxen.utils.VersionUtil;
 import io.th0rgal.oraxen.utils.logs.Logs;
 
 public enum CustomArmorType {
@@ -14,7 +13,7 @@ public enum CustomArmorType {
     public static CustomArmorType fromString(String type) {
         try {
             CustomArmorType customArmorType = CustomArmorType.valueOf(type.toUpperCase());
-            if (!VersionUtil.atOrAbove("1.20")) {
+            if (customArmorType == CustomArmorType.TRIMS) {
                 Logs.logError("Trim based custom armor is only supported in 1.20 and above.");
                 throw new IllegalArgumentException();
             }

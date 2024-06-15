@@ -5,19 +5,16 @@ import java.util.*
 plugins {
     id("java")
     //id("com.github.johnrengelman.shadow") version "8.1.1"
-    id("xyz.jpenilla.run-paper") version "2.2.0"
+    id("xyz.jpenilla.run-paper") version "2.2.4"
     id("net.minecrell.plugin-yml.bukkit") version "0.6.0" // Generates plugin.yml
-    id("io.papermc.paperweight.userdev") version "1.5.11" apply false
-    alias(libs.plugins.shadowjar)
+    id("io.papermc.paperweight.userdev") version "1.7.1" apply false
+    id("io.github.goooler.shadow") version "8.1.7"
     alias(libs.plugins.mia.publication)
-//    alias(libs.plugins.mia.copyjar)
 }
 
 class NMSVersion(val nmsVersion: String, val serverVersion: String)
 infix fun String.toNms(that: String): NMSVersion = NMSVersion(this, that)
 val SUPPORTED_VERSIONS: List<NMSVersion> = listOf(
-    "v1_20_R1" toNms "1.20.1-R0.1-SNAPSHOT",
-    "v1_20_R2" toNms "1.20.2-R0.1-SNAPSHOT",
     "v1_20_R3" toNms "1.20.4-R0.1-SNAPSHOT",
     "v1_20_R4" toNms "1.20.6-R0.1-SNAPSHOT"
 )

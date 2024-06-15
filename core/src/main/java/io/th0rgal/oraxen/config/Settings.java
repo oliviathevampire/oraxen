@@ -52,7 +52,7 @@ public enum Settings {
 
 
     // Chat
-    CHAT_HANDLER("Chat.chat_handler", VersionUtil.atOrAbove("1.19") && VersionUtil.isPaperServer() ? FontEvents.ChatHandler.MODERN.name() : FontEvents.ChatHandler.LEGACY.name()),
+    CHAT_HANDLER("Chat.chat_handler", VersionUtil.isPaperServer() ? FontEvents.ChatHandler.MODERN.name() : FontEvents.ChatHandler.LEGACY.name()),
 
     // Config Tools
     CONFIGS_VERSION("configs_version"),
@@ -63,7 +63,7 @@ public enum Settings {
     ERROR_ITEM("ConfigsTools.error_item", Map.of("material", Material.PODZOL.name(), "excludeFromInventory", false, "injectID", false)),
 
     // Custom Armor
-    CUSTOM_ARMOR_DEFAULT_TYPE("CustomArmor.default_type", VersionUtil.atOrAbove("1.20") ? CustomArmorType.TRIMS.name() : CustomArmorType.SHADER.name()),
+    CUSTOM_ARMOR_DEFAULT_TYPE("CustomArmor.default_type", CustomArmorType.TRIMS.name()),
     DISABLE_LEATHER_REPAIR_CUSTOM("CustomArmor.disable_leather_repair", true),
     CUSTOM_ARMOR_TRIMS_DEFAULT_MATERIAL("CustomArmor.trims_settings.default_material", CustomArmorMaterial.CHAINMAIL.name()),
     CUSTOM_ARMOR_TRIMS_ASSIGN("CustomArmor.trims_settings.auto_assign_settings", true),
