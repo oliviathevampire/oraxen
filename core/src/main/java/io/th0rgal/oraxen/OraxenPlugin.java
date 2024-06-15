@@ -34,7 +34,6 @@ import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
-import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.Nullable;
 
@@ -86,6 +85,7 @@ public class OraxenPlugin extends JavaPlugin {
         clickActionManager = new ClickActionManager(this);
         supportsDisplayEntities = VersionUtil.atOrAbove("1.19.4");
         reloadConfigs();
+        ProtectionLib.setDebug(Settings.DEBUG.toBool());
 
         if (Settings.KEEP_UP_TO_DATE.toBool())
             new SettingsUpdater().handleSettingsUpdate();
@@ -137,7 +137,7 @@ public class OraxenPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        unregisterListeners();
+        HandlerList.unregisterAll(this);
         FurnitureFactory.unregisterEvolution();
         for (Player player : Bukkit.getOnlinePlayers())
             if (GlyphHandlers.isNms()) NMSHandlers.getHandler().glyphHandler().uninject(player);

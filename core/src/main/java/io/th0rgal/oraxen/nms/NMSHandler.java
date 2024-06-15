@@ -1,7 +1,5 @@
 package io.th0rgal.oraxen.nms;
 
-import io.th0rgal.oraxen.items.helpers.EmptyItemPropertyHandler;
-import io.th0rgal.oraxen.items.helpers.ItemPropertyHandler;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
@@ -12,10 +10,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Set;
 
 public interface NMSHandler {
-
-    default ItemPropertyHandler itemPropertyHandler() {
-        return new EmptyItemPropertyHandler();
-    }
 
     GlyphHandler glyphHandler();
 
@@ -62,5 +56,39 @@ public interface NMSHandler {
 
     default boolean getSupported() {
         return false;
+    }
+
+    class EmptyNMSHandler implements NMSHandler {
+
+        @Override
+        public GlyphHandler glyphHandler() {
+            return new GlyphHandler.EmptyGlyphHandler();
+        }
+
+        @Override
+        public boolean noteblockUpdatesDisabled() {
+            return false;
+        }
+
+        @Override
+        public boolean tripwireUpdatesDisabled() {
+            return false;
+        }
+
+        @Override
+        public ItemStack copyItemNBTTags(@NotNull ItemStack oldItem, @NotNull ItemStack newItem) {
+            return newItem;
+        }
+
+        @Nullable
+        @Override
+        public BlockData correctBlockStates(Player player, EquipmentSlot slot, ItemStack itemStack) {
+            return null;
+        }
+
+        @Override
+        public void customBlockDefaultTools(Player player) {
+
+        }
     }
 }

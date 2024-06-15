@@ -18,8 +18,6 @@ import io.th0rgal.oraxen.utils.logs.Logs;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.Style;
-import net.kyori.adventure.text.format.TextDecoration;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -28,9 +26,13 @@ import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.enchantments.EnchantmentWrapper;
 import org.bukkit.inventory.ItemFlag;
+import org.bukkit.inventory.ItemRarity;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.components.FoodComponent;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.Function;
@@ -93,12 +95,13 @@ public class ItemParser {
         return templateItem != null;
     }
 
-    public static Component parseComponentDisplayName(String miniString) {
-        if (miniString.isEmpty()) return Component.empty();
-        Component displayName = AdventureUtils.MINI_MESSAGE.deserialize(miniString).colorIfAbsent(NamedTextColor.WHITE);
-        if (!displayName.style().hasDecoration(TextDecoration.ITALIC))
-            return displayName.mergeStyle(Component.empty().style(Style.style().decoration(TextDecoration.ITALIC, TextDecoration.State.FALSE).build()));
-        return displayName;
+    @Nullable
+    public static String parseComponentItemName(@Nullable String miniString) {
+        if (miniString == null) return null;
+        if (miniString.isEmpty()) return miniString;
+        Component component = AdventureUtils.MINI_MESSAGE.deserialize(miniString.replace("§", "\\§"));
+        // If it has no formatting, set color to WHITE to prevent Italic
+        return AdventureUtils.LEGACY_SERIALIZER.serialize(component.colorIfAbsent(NamedTextColor.WHITE));
     }
 
     public static Component parseComponentLore(String miniString) {
@@ -118,17 +121,17 @@ public class ItemParser {
     }
 
     private ItemBuilder applyConfig(ItemBuilder item) {
-        item.displayName(parseComponentDisplayName(section.getString("displayname", "")));
+        if (!VersionUtil.atOrAbove("1.20.5") && section.contains("displayname"))
+            item.setDisplayName(section.getString("displayname", ""));
 
-//        if (section.contains("type")) item.setType(Material.getMaterial(section.getString("type", "PAPER")));
-        if (section.contains("lore")) item.lore(section.getStringList("lore").stream().map(ItemParser::parseComponentLore).toList());
+        //if (section.contains("type")) item.setType(Material.getMaterial(section.getString("type", "PAPER")));
+        if (section.contains("lore")) item.setLore(section.getStringList("lore").stream().map(AdventureUtils::parseMiniMessage).toList());
         if (section.contains("unbreakable")) item.setUnbreakable(section.getBoolean("unbreakable", false));
         if (section.contains("unstackable")) item.setUnstackable(section.getBoolean("unstackable", false));
         if (section.contains("color")) item.setColor(Utils.toColor(section.getString("color", "#FFFFFF")));
         if (section.contains("trim_pattern")) item.setTrimPattern(Key.key(section.getString("trim_pattern", "")));
 
-        parse_1_20_5_Properties(item);
-
+        parseDataComponents(item);
         parseMiscOptions(item);
         parseVanillaSections(item);
         parseOraxenSections(item);
@@ -136,29 +139,28 @@ public class ItemParser {
         return item;
     }
 
-    private void parse_1_20_5_Properties(ItemBuilder item) {
-        if (!VersionUtil.atOrAbove("1.20.5")) return;
+    private void parseDataComponents(ItemBuilder item) {
+        ConfigurationSection components = section.getConfigurationSection("Components");
+        if (components == null || !VersionUtil.atOrAbove("1.20.5")) return;
 
-        if (section.contains("unstackable")) item.setMaxStackSize(1);
-        else if (section.contains("max_stack_size")) item.setMaxStackSize(Math.min(Math.max(section.getInt("max_stack_size"), 1), 99));
-        if (item.hasMaxStackSize() && item.getMaxStackSize() == 1) item.setUnstackable(true);
+        if (components.contains("max_stack_size")) item.setMaxStackSize(Math.clamp(components.getInt("max_stack_size"), 1, 99));
 
-        if (section.contains("itemname")) item.displayName(parseComponentDisplayName(section.getString("itemname", "")));
-        else item.displayName(parseComponentDisplayName(section.getString("displayname", "")));
+        if (section.contains("itemname")) item.setItemName(components.getString("itemname"));
+        else if (section.contains("displayname")) item.setItemName(components.getString("displayname"));
 
-        if (section.contains("enchantment_glint_override")) item.setEnchantmentGlindOverride(section.getBoolean("enchantment_glint_override"));
-        if (section.contains("durability")) {
-            item.setDamagedOnBlockBreak(section.getBoolean("durability.damage_block_break"));
-            item.setDamagedOnEntityHit(section.getBoolean("durability.damage_entity_hit"));
-            item.setDurability(Math.max(section.getInt("durability.value"), section.getInt("durability", 1)));
+        if (components.contains("enchantment_glint_override")) item.setEnchantmentGlindOverride(components.getBoolean("enchantment_glint_override"));
+        if (components.contains("durability")) {
+            item.setDamagedOnBlockBreak(components.getBoolean("durability.damage_block_break"));
+            item.setDamagedOnEntityHit(components.getBoolean("durability.damage_entity_hit"));
+            item.setDurability(Math.max(components.getInt("durability.value"), components.getInt("durability", 1)));
         }
-        if (section.contains("rarity")) item.setRarity(Arrays.stream(ItemRarityWrapper.values()).filter(r -> r.name().equalsIgnoreCase(section.getString("rarity"))).findFirst().orElse(null));
-        item.setFireResistant(section.getBoolean("fire_resistant"));
-        item.setHideToolTips(section.getBoolean("hide_tooltips"));
+        if (components.contains("rarity")) item.setRarity(ItemRarity.valueOf(components.getString("rarity")));
+        item.setFireResistant(components.getBoolean("fire_resistant"));
+        item.setHideToolTips(components.getBoolean("hide_tooltips"));
 
-        ConfigurationSection foodSection = section.getConfigurationSection("food");
+        ConfigurationSection foodSection = components.getConfigurationSection("food");
         if (foodSection != null) {
-            FoodComponentWrapper foodComponent = new FoodComponentWrapper();
+            FoodComponent foodComponent = new ItemStack(Material.PAPER).getItemMeta().getFood();
             foodComponent.setNutrition(foodSection.getInt("nutrition"));
             foodComponent.setSaturation((float) foodSection.getDouble("saturation", 0.0));
             foodComponent.setCanAlwaysEat(foodSection.getBoolean("can_always_eat"));
@@ -268,7 +270,7 @@ public class ItemParser {
                 ConfigurationSection mechanicSection = mechanicsSection.getConfigurationSection(mechanicID);
                 if (mechanicSection == null) continue;
                 Mechanic mechanic = factory.parse(mechanicSection);
-//                if (mechanic == null) continue;
+                if (mechanic == null) continue;
                 // Apply item modifiers
                 for (Function<ItemBuilder, ItemBuilder> itemModifier : mechanic.getItemModifiers())
                     item = itemModifier.apply(item);

@@ -34,5 +34,6 @@ dependencyResolutionManagement {
 include(
     "core",
     "v1_20_R3",
-    "v1_20_R4"
+    "v1_20_R4",
+    "v1_21_R1",
 )

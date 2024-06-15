@@ -22,7 +22,7 @@ public class InvManager {
     }
 
     public PaginatedGui getItemsView(Player player) {
-		return itemsViews.computeIfAbsent(player.getUniqueId(), uuid -> new ItemsView().create());
+        return itemsViews.computeIfAbsent(player.getUniqueId(), uuid -> new ItemsView().create());
     }
 
     public PaginatedGui getRecipesShowcase(Player player, final int page, final List<CustomRecipe> filteredRecipes) {

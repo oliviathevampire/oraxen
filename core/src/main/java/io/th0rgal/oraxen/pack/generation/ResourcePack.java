@@ -5,7 +5,6 @@ import com.google.gson.*;
 import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.api.OraxenItems;
 import io.th0rgal.oraxen.api.events.OraxenPackGeneratedEvent;
-import io.th0rgal.oraxen.config.Message;
 import io.th0rgal.oraxen.config.ResourcesManager;
 import io.th0rgal.oraxen.config.Settings;
 import io.th0rgal.oraxen.font.Font;
@@ -286,6 +285,7 @@ public class ResourcePack {
     private final boolean extractLang = !new File(packFolder, "lang").exists();
     private final boolean extractTextures = !new File(packFolder, "textures").exists();
     private final boolean extractSounds = !new File(packFolder, "sounds").exists();
+
     private void extractDefaultFolders() {
         final ZipInputStream zip = ResourcesManager.browse();
         try {
@@ -529,7 +529,8 @@ public class ResourcePack {
         try {
             final InputStream fis;
             if (file.getName().endsWith(".json")) fis = processJsonFile(file);
-            else if (CustomArmorType.getSetting() == CustomArmorType.SHADER && shaderArmorTextures.registerImage(file)) return;
+            else if (CustomArmorType.getSetting() == CustomArmorType.SHADER && shaderArmorTextures.registerImage(file))
+                return;
             else fis = new FileInputStream(file);
 
             output.add(new VirtualFile(getZipFilePath(file.getParentFile().getCanonicalPath(), newFolder), file.getName(), fis));
@@ -541,8 +542,7 @@ public class ResourcePack {
     private InputStream processJsonFile(File file) throws IOException {
         InputStream newStream;
         String content;
-        if (!file.exists())
-            return new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8));
+        if (!file.exists()) return new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8));
         try {
             content = Files.readString(file.toPath(), StandardCharsets.UTF_8);
         } catch (IOException | NullPointerException e) {
@@ -562,18 +562,12 @@ public class ResourcePack {
     }
 
     private InputStream processJson(String content) {
-        InputStream newStream;
-        // Deserialize said component to a string to handle other tags like glyphs
-        String parsedContent = AdventureUtils.parseMiniMessage(AdventureUtils.parseLegacy(content), AdventureUtils.tagResolver("prefix", Message.PREFIX.toString()));
-        // Deserialize adventure component to legacy format due to resourcepacks not supporting adventure components
-        parsedContent = AdventureUtils.parseLegacyThroughMiniMessage(content);
-        newStream = new ByteArrayInputStream(parsedContent.getBytes(StandardCharsets.UTF_8));
-        try {
-            newStream.close();
+        String parsedContent = AdventureUtils.parseLegacyThroughMiniMessage(content).replace("\\<", "<");
+        try (InputStream newStream = new ByteArrayInputStream(parsedContent.getBytes(StandardCharsets.UTF_8))) {
+            return newStream;
         } catch (IOException e) {
             return new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
         }
-        return newStream;
     }
 
     private String getZipFilePath(String path, String newFolder) throws IOException {
@@ -592,17 +586,22 @@ public class ResourcePack {
         switch (customArmorType) {
             case TRIMS -> trimArmorDatapack.generateTrimAssets(output);
             case SHADER -> {
-                if (Settings.CUSTOM_ARMOR_SHADER_GENERATE_CUSTOM_TEXTURES.toBool() && shaderArmorTextures.hasCustomArmors()) try {
-                    String armorPath = "assets/minecraft/textures/models/armor";
-                    output.add(new VirtualFile(armorPath, "leather_layer_1.png", shaderArmorTextures.getLayerOne()));
-                    output.add(new VirtualFile(armorPath, "leather_layer_2.png", shaderArmorTextures.getLayerTwo()));
-                    if (Settings.CUSTOM_ARMOR_SHADER_GENERATE_SHADER_COMPATIBLE_ARMOR.toBool()) {
-                        output.addAll(shaderArmorTextures.getOptifineFiles());
+                if (Settings.CUSTOM_ARMOR_SHADER_GENERATE_CUSTOM_TEXTURES.toBool() && shaderArmorTextures.hasCustomArmors())
+                    try {
+                        String armorPath = "assets/minecraft/textures/models/armor";
+                        output.add(new VirtualFile(armorPath, "leather_layer_1.png", shaderArmorTextures.getLayerOne()));
+                        output.add(new VirtualFile(armorPath, "leather_layer_2.png", shaderArmorTextures.getLayerTwo()));
+                        if (Settings.CUSTOM_ARMOR_SHADER_GENERATE_SHADER_COMPATIBLE_ARMOR.toBool()) {
+                            output.addAll(shaderArmorTextures.getOptifineFiles());
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
             }
+        }
+        if (VersionUtil.isPaperServer()) {
+            Bukkit.getDatapackManager().getPacks().stream().filter(d -> d.getName().equals(TrimArmorDatapack.datapackKey.value()))
+                    .findFirst().ifPresent(d -> d.setEnabled(CustomArmorType.getSetting() == CustomArmorType.TRIMS));
         }
     }
 

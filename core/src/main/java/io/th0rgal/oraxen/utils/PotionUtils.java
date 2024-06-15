@@ -3,6 +3,7 @@ package io.th0rgal.oraxen.utils;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.inventory.meta.PotionMeta;
+import org.bukkit.potion.PotionData;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.potion.PotionType;
 
@@ -14,6 +15,7 @@ public class PotionUtils {
         return getEffectType(effect, null);
     }
 
+    @SuppressWarnings({"deprecation"})
     @Nullable
     public static PotionEffectType getEffectType(String effect, String legacyEffect) {
         if (effect == null || effect.isEmpty()) return null;

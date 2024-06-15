@@ -36,6 +36,7 @@ import java.util.regex.Pattern;
  * @author Kristian
  */
 public final class MinecraftVersion implements Comparable<MinecraftVersion>, Serializable {
+    public static final MinecraftVersion TRICKY_TRIALS = new MinecraftVersion("1.21");
     /**
      * Version 1.20.5 - the cookie and transfer packet update
      */
@@ -50,7 +51,6 @@ public final class MinecraftVersion implements Comparable<MinecraftVersion>, Ser
      * Version 1.20.2 - the update that added the configuration protocol phase.
      */
     public static final MinecraftVersion CONFIG_PHASE_PROTOCOL_UPDATE = new MinecraftVersion("1.20.2");
-
     /**
      * Version 1.20 - the trails and tails update
      */

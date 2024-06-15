@@ -9,6 +9,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerItemDamageEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.*;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
 import java.util.List;
@@ -126,11 +127,11 @@ public class ItemUtils {
         }
     }
 
-    public static boolean isTool(ItemStack itemStack) {
+    public static boolean isTool(@NotNull ItemStack itemStack) {
         return isTool(itemStack.getType());
     }
 
-    public static boolean isTool(Material material) {
+    public static boolean isTool(@NotNull Material material) {
         if (!VersionUtil.atOrAbove("1.20.5"))
             return Tag.ITEMS_TOOLS.isTagged(material);
         else return material.toString().endsWith("_AXE")

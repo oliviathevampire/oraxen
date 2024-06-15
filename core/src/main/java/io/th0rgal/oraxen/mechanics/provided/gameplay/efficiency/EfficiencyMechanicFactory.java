@@ -12,7 +12,7 @@ public class EfficiencyMechanicFactory extends MechanicFactory {
         super(section);
         if (PluginUtils.isEnabled("ProtocolLib")) {
             ProtocolLibrary.getProtocolManager().getPacketListeners().stream().filter(l -> l.getClass().equals(EfficiencyMechanicListener.class))
-                    .findFirst().ifPresent(l -> ProtocolLibrary.getProtocolManager().removePacketListener(l));
+                            .findFirst().ifPresent(l -> ProtocolLibrary.getProtocolManager().removePacketListener(l));
             ProtocolLibrary.getProtocolManager().addPacketListener(new EfficiencyMechanicListener(this));
         }
     }

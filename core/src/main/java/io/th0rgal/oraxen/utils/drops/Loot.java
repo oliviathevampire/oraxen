@@ -1,9 +1,11 @@
 package io.th0rgal.oraxen.utils.drops;
 
+import dev.jorel.commandapi.wrappers.IntegerRange;
 import io.th0rgal.oraxen.api.OraxenItems;
 import io.th0rgal.oraxen.compatibilities.provided.ecoitems.WrappedEcoItem;
 import io.th0rgal.oraxen.compatibilities.provided.mythiccrucible.WrappedCrucibleItem;
 import io.th0rgal.oraxen.items.ItemUpdater;
+import io.th0rgal.oraxen.utils.Utils;
 import net.Indyuce.mmoitems.MMOItems;
 import org.apache.commons.lang3.IntegerRange;
 import org.apache.commons.lang3.StringUtils;
@@ -25,10 +27,8 @@ public class Loot {
     public Loot(LinkedHashMap<String, Object> config, String sourceID) {
         this.probability = Double.parseDouble(config.getOrDefault("probability", 1).toString());
         if (config.getOrDefault("amount", "") instanceof String amount && amount.contains("..")) {
-            int minAmount = Integer.getInteger(StringUtils.substringBefore(amount, ".."), 1);
-            int maxAmount = Math.max(Integer.getInteger(StringUtils.substringAfter(amount, ".."), 1), minAmount);
-            this.amount = IntegerRange.of(minAmount, maxAmount);
-        } else this.amount = IntegerRange.of(1, 1);
+            this.amount = Utils.parseToRange(amount);
+        } else this.amount = new IntegerRange(1,1);
         this.config = config;
         this.sourceID = sourceID;
     }
@@ -36,7 +36,7 @@ public class Loot {
     public Loot(ItemStack itemStack, double probability) {
         this.itemStack = itemStack;
         this.probability = Math.min(1.0, probability);
-        this.amount = IntegerRange.of(1,1);
+        this.amount = new IntegerRange(1,1);
         this.sourceID = null;
     }
 
@@ -44,7 +44,7 @@ public class Loot {
         this.sourceID = sourceID;
         this.itemStack = itemStack;
         this.probability = Math.min(1.0, probability);
-        this.amount = IntegerRange.of(minAmount, maxAmount);
+        this.amount = new IntegerRange(minAmount, maxAmount);
     }
 
     public Loot(String sourceID, ItemStack itemStack, double probability, IntegerRange amount) {
@@ -89,8 +89,12 @@ public class Loot {
         return probability;
     }
 
+    public IntegerRange amount() {
+        return this.amount;
+    }
+
     public int getMaxAmount() {
-        return amount.getMaximum();
+        return amount.getUpperBound();
     }
 
     public void dropNaturally(Location location, int amountMultiplier) {
@@ -100,7 +104,7 @@ public class Loot {
 
     public ItemStack getItem(int amountMultiplier) {
         ItemStack stack = getItemStack().clone();
-        int dropAmount = ThreadLocalRandom.current().nextInt(amount.getMinimum(), amount.getMaximum() + 1);
+        int dropAmount = ThreadLocalRandom.current().nextInt(amount.getLowerBound(), amount.getUpperBound() + 1);
         stack.setAmount(stack.getAmount() * amountMultiplier * dropAmount);
         return ItemUpdater.updateItem(stack);
     }

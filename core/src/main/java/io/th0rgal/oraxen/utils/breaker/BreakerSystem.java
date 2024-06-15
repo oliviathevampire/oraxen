@@ -114,7 +114,7 @@ public class BreakerSystem {
                 // Methods for sending multi-barrier block-breaks
                 final List<Location> furnitureBarrierLocations = furnitureBarrierLocations(furnitureMechanic, block);
 
-                if (period != 0) Bukkit.getScheduler().runTask(OraxenPlugin.get(), () ->
+                Bukkit.getScheduler().runTask(OraxenPlugin.get(), () ->
                         player.addPotionEffect(new PotionEffect(PotionUtils.getEffectType("mining_fatigue"),
                                 (int) (period * 11),
                                 Integer.MAX_VALUE,

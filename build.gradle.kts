@@ -1,6 +1,8 @@
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.util.*
+import kotlin.io.path.Path
+import kotlin.io.path.listDirectoryEntries
 
 plugins {
     id("java")
@@ -16,37 +18,9 @@ class NMSVersion(val nmsVersion: String, val serverVersion: String)
 infix fun String.toNms(that: String): NMSVersion = NMSVersion(this, that)
 val SUPPORTED_VERSIONS: List<NMSVersion> = listOf(
     "v1_20_R3" toNms "1.20.4-R0.1-SNAPSHOT",
-    "v1_20_R4" toNms "1.20.6-R0.1-SNAPSHOT"
+    "v1_20_R4" toNms "1.20.6-R0.1-SNAPSHOT",
+    "v1_21_R1" toNms "1.21-R0.1-SNAPSHOT"
 )
-
-SUPPORTED_VERSIONS.forEach {
-    project(":${it.nmsVersion}") {
-
-        apply(plugin = "java")
-        apply(plugin = "io.papermc.paperweight.userdev")
-
-        repositories {
-            maven("https://papermc.io/repo/repository/maven-public/") // Paper
-            maven("https://repo.mineinabyss.com/releases")
-        }
-
-        dependencies {
-//            compileOnly("io.papermc.paper:paper-api:" + it.serverVersion)
-            implementation(project(":core"))
-            paperDevBundle(it.serverVersion)
-        }
-
-        tasks {
-            compileJava {
-                options.encoding = Charsets.UTF_8.name()
-            }
-        }
-
-        java {
-            toolchain.languageVersion.set(JavaLanguageVersion.of(if (it.nmsVersion == "v1_20_R4") 21 else 17))
-        }
-    }
-}
 
 val compiled = (project.findProperty("oraxen_compiled")?.toString() ?: "true").toBoolean()
 val pluginPath = project.findProperty("oraxen_plugin_path")?.toString()
@@ -54,9 +28,9 @@ val devPluginPath = project.findProperty("oraxen_dev_plugin_path")?.toString()
 val foliaPluginPath = project.findProperty("oraxen_folia_plugin_path")?.toString()
 val spigotPluginPath = project.findProperty("oraxen_spigot_plugin_path")?.toString()
 val pluginVersion: String by project
-val commandApiVersion = "9.4.0"
-val adventureVersion = "4.15.0"
-val platformVersion = "4.3.2"
+val commandApiVersion = "9.5.0"
+val adventureVersion = "4.17.0"
+val platformVersion = "4.3.3"
 val googleGsonVersion = "2.10.1"
 val apacheLang3Version = "3.14.0"
 group = "io.th0rgal"
@@ -110,7 +84,6 @@ allprojects {
         compileOnly("com.ticxo.modelengine:ModelEngine:R4.0.4")
         compileOnly("com.ticxo.modelengine:api:R3.1.9")
         compileOnly(files("../libs/compile/BSP.jar"))
-        compileOnly("dev.jorel:commandapi-bukkit-shade:$commandApiVersion")
         compileOnly("io.lumine:MythicLib:1.1.6") // Remove and add deps needed for Polymath
         compileOnly("io.lumine:MythicLib-dist:1.6.2-SNAPSHOT")
         compileOnly("net.Indyuce:MMOItems-API:6.9.5-SNAPSHOT")
@@ -121,15 +94,15 @@ allprojects {
         compileOnly("nl.rutgerkok:blocklocker:1.10.4-SNAPSHOT")
         compileOnly("org.apache.commons:commons-lang3:$apacheLang3Version")
 
-        implementation("dev.jorel:commandapi-bukkit-shade:$commandApiVersion")
+        implementation(files("../libs/CommandAPI-9.5.0-SNAPSHOT.jar"))
+        //implementation("dev.jorel:commandapi-bukkit-shade:$commandApiVersion")
         implementation("org.bstats:bstats-bukkit:3.0.0")
-        implementation("io.th0rgal:protectionlib:1.5.1")
+        implementation("io.th0rgal:protectionlib:1.5.8")
         implementation("com.jeff-media:custom-block-data:2.2.2")
         implementation("com.jeff_media:MorePersistentDataTypes:2.4.0")
         implementation("com.jeff-media:persistent-data-serializer:1.0")
         implementation("org.jetbrains:annotations:24.1.0") { isTransitive = false }
-        implementation("dev.triumphteam:triumph-gui:3.1.8-SNAPSHOT") { exclude("net.kyori") }
-        implementation("cloud.commandframework:cloud-paper:1.8.4")
+        implementation("dev.triumphteam:triumph-gui:3.1.10") { exclude("net.kyori") }
 
         implementation("me.gabytm.util:actions-spigot:$actionsVersion") { exclude(group = "com.google.guava") }
     }
@@ -141,7 +114,7 @@ dependencies {
 }
 
 java {
-    toolchain.languageVersion.set(JavaLanguageVersion.of(17))
+    toolchain.languageVersion.set(JavaLanguageVersion.of(21))
 }
 
 tasks {
@@ -163,22 +136,24 @@ tasks {
     }
 
     runServer {
+        downloadPlugins {
+            url("https://ci.dmulloy2.net/job/ProtocolLib/lastSuccessfulBuild/artifact/build/libs/ProtocolLib.jar")
+        }
         minecraftVersion("1.20.4")
     }
 
     shadowJar {
         SUPPORTED_VERSIONS.forEach { dependsOn(":${it.nmsVersion}:reobfJar") }
 
+        archiveClassifier = null
         relocate("org.bstats", "io.th0rgal.oraxen.shaded.bstats")
-        relocate("dev.triumphteam.gui", "io.th0rgal.oraxen.shaded.triumphteam.gui")
-        relocate("com.jeff_media", "io.th0rgal.oraxen.shaded.jeff_media")
-        relocate("me.gabytm.util.actions", "io.th0rgal.oraxen.shaded.actions")
-        relocate("org.intellij.lang.annotations", "io.th0rgal.oraxen.shaded.intellij.annotations")
-        relocate("org.jetbrains.annotations", "io.th0rgal.oraxen.shaded.jetbrains.annotations")
-        relocate("com.udojava.evalex", "io.th0rgal.oraxen.shaded.evalex")
-        relocate("com.tcoded.folialib", "io.th0rgal.oraxen.shaded.folialib")
-        relocate("cloud.commandframework", "io.th0rgal.oraxen.shaded.cloud.commandframework")
-        relocate("dev.jorel", "io.th0rgal.oraxen.shaded")
+        //relocate("dev.triumphteam.gui", "io.th0rgal.oraxen.shaded.triumphteam.gui")
+        //relocate("com.jeff_media", "io.th0rgal.oraxen.shaded.jeff_media")
+        //relocate("me.gabytm.util.actions", "io.th0rgal.oraxen.shaded.actions")
+        //relocate("org.intellij.lang.annotations", "io.th0rgal.oraxen.shaded.intellij.annotations")
+        //relocate("org.jetbrains.annotations", "io.th0rgal.oraxen.shaded.jetbrains.annotations")
+        //relocate("com.udojava.evalex", "io.th0rgal.oraxen.shaded.evalex")
+        //relocate("dev.jorel", "io.th0rgal.oraxen.shaded")
 
         manifest {
             attributes(
@@ -247,7 +222,13 @@ if (pluginPath != null) {
             dependsOn(shadowJar, jar)
             from(defaultPath)
             into(pluginPath)
-            doLast { println("Copied to plugin directory $pluginPath") }
+            doLast {
+                println("Copied to plugin directory $pluginPath")
+                Path(pluginPath).listDirectoryEntries()
+                    .filter { it.fileName.toString().matches("oraxen-.*.jar".toRegex()) }
+                    .filterNot { it.fileName.toString().endsWith("$pluginVersion.jar") }
+                    .forEach { delete(it) }
+            }
         }
 
         // Create individual copy tasks for each destination
