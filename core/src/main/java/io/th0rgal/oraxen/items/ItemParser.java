@@ -16,8 +16,6 @@ import io.th0rgal.oraxen.utils.Utils;
 import io.th0rgal.oraxen.utils.VersionUtil;
 import io.th0rgal.oraxen.utils.logs.Logs;
 import net.kyori.adventure.key.Key;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -29,10 +27,10 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemRarity;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.components.FoodComponent;
+import org.bukkit.inventory.meta.components.JukeboxPlayableComponent;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.Function;
@@ -140,13 +138,13 @@ public class ItemParser {
     }
 
     private void parseDataComponents(ItemBuilder item) {
+        if (section.contains("itemname") && VersionUtil.atOrAbove("1.20.5")) item.setItemName(section.getString("itemname"));
+        else if (section.contains("displayname")) item.setItemName(section.getString("displayname"));
+
         ConfigurationSection components = section.getConfigurationSection("Components");
         if (components == null || !VersionUtil.atOrAbove("1.20.5")) return;
 
         if (components.contains("max_stack_size")) item.setMaxStackSize(Math.clamp(components.getInt("max_stack_size"), 1, 99));
-
-        if (section.contains("itemname")) item.setItemName(components.getString("itemname"));
-        else if (section.contains("displayname")) item.setItemName(components.getString("displayname"));
 
         if (components.contains("enchantment_glint_override")) item.setEnchantmentGlindOverride(components.getBoolean("enchantment_glint_override"));
         if (components.contains("durability")) {
@@ -155,8 +153,8 @@ public class ItemParser {
             item.setDurability(Math.max(components.getInt("durability.value"), components.getInt("durability", 1)));
         }
         if (components.contains("rarity")) item.setRarity(ItemRarity.valueOf(components.getString("rarity")));
-        item.setFireResistant(components.getBoolean("fire_resistant"));
-        item.setHideToolTips(components.getBoolean("hide_tooltips"));
+        if (components.contains("fire_resistant")) item.setFireResistant(components.getBoolean("fire_resistant"));
+        if (components.contains("hide_tooltips")) item.setHideToolTips(components.getBoolean("hide_tooltips"));
 
         ConfigurationSection foodSection = components.getConfigurationSection("food");
         if (foodSection != null) {
@@ -184,6 +182,16 @@ public class ItemParser {
                 }
             }
             item.setFoodComponent(foodComponent);
+        }
+
+        if (!VersionUtil.atOrAbove("1.21")) return;
+
+        ConfigurationSection jukeboxSection = components.getConfigurationSection("jukebox_playable");
+        if (jukeboxSection != null) {
+            JukeboxPlayableComponent jukeboxPlayable = new ItemStack(Material.MUSIC_DISC_CREATOR).getItemMeta().getJukeboxPlayable();
+            jukeboxPlayable.setShowInTooltip(jukeboxSection.getBoolean("show_in_tooltip"));
+            jukeboxPlayable.setSongKey(NamespacedKey.fromString(jukeboxSection.getString("song_key")));
+            item.setJukeboxPlayable(jukeboxPlayable);
         }
     }
 
@@ -246,6 +254,7 @@ public class ItemParser {
             if (attributes != null) for (LinkedHashMap<String, Object> attributeJson : attributes) {
                 attributeJson.putIfAbsent("uuid", UUID.randomUUID().toString());
                 attributeJson.putIfAbsent("name", "oraxen:modifier");
+                attributeJson.putIfAbsent("key", "oraxen:modifier");
                 AttributeModifier attributeModifier = AttributeModifier.deserialize(attributeJson);
                 Attribute attribute = Attribute.valueOf((String) attributeJson.get("attribute"));
                 item.addAttributeModifiers(attribute, attributeModifier);

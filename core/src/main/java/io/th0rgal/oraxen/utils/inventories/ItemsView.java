@@ -81,7 +81,7 @@ public class ItemsView {
                 ? new ItemBuilder(Material.BARRIER).setDisplayName("Exit") :
                 OraxenItems.getItemById(Settings.ORAXEN_INV_EXIT_ICON.toString())
         ).build();
-        mainGui.setItem(6, 5, new GuiItem(exitIcon, event -> mainGui.open(event.getWhoClicked())));
+        mainGui.setItem(6, 5, new GuiItem(exitIcon, event -> event.getWhoClicked().closeInventory()));
 
 		return mainGui;
     }
