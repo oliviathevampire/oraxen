@@ -69,8 +69,8 @@ public class ItemBuilder {
     private Multimap<Attribute, AttributeModifier> attributeModifiers;
     private boolean hasCustomModelData;
     private int customModelData;
-    private Component displayName;
-    private List<Component> lore;
+    private String displayName;
+    private List<String> lore;
     private ItemStack finalItemStack;
 
     // 1.20.5+ properties
@@ -212,11 +212,7 @@ public class ItemBuilder {
     }
 
     @Deprecated
-    public ItemBuilder setDisplayName(String displayName) {
-        this.displayName = AdventureUtils.LEGACY_SERIALIZER.deserialize(displayName);
-        return this;
-    }
-    public ItemBuilder displayName(Component displayName) {
+    public ItemBuilder setDisplayName(final String displayName) {
         this.displayName = displayName;
         return this;
     }
@@ -239,11 +235,11 @@ public class ItemBuilder {
         return lore != null && !lore.isEmpty();
     }
 
-    public List<Component> lore() {
+    public List<String> getLore() {
         return lore != null ? lore : new ArrayList<>();
     }
 
-    public ItemBuilder lore(final List<Component> lore) {
+    public ItemBuilder setLore(final List<String> lore) {
         this.lore = lore;
         return this;
     }

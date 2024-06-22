@@ -12,6 +12,7 @@ public class VersionUtil {
     private static final Map<NMSVersion, Map<Integer, MinecraftVersion>> versionMap = new HashMap<>();
 
     public enum NMSVersion {
+        v1_21_R1,
         v1_20_R4,
         v1_20_R3,
         UNKNOWN;

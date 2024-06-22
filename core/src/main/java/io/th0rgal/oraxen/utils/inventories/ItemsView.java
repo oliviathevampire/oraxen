@@ -7,12 +7,10 @@ import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.api.OraxenItems;
 import io.th0rgal.oraxen.config.Settings;
 import io.th0rgal.oraxen.items.ItemBuilder;
-import io.th0rgal.oraxen.items.ItemParser;
 import io.th0rgal.oraxen.items.ItemUpdater;
 import io.th0rgal.oraxen.utils.AdventureUtils;
 import io.th0rgal.oraxen.utils.ItemUtils;
 import io.th0rgal.oraxen.utils.Utils;
-import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemFlag;
@@ -61,35 +59,29 @@ public class ItemsView {
         mainGui = Gui.paginated().rows(rows).pageSize((int) Settings.ORAXEN_INV_SIZE.getValue()).title(Settings.ORAXEN_INV_TITLE.toComponent()).create();
         mainGui.addItem(guiItems.toArray(new GuiItem[]{}));
 
-        ItemStack previousPage = (Settings.ORAXEN_INV_PREVIOUS_ICON.getValue() == null
+        ItemStack previousPage = (Settings.ORAXEN_INV_PREVIOUS_PAGE_ICON.getValue() == null
                 ? new ItemBuilder(Material.ARROW).setDisplayName("Previous Page")
-                : OraxenItems.getItemById(Settings.ORAXEN_INV_PREVIOUS_ICON.toString())
+                : OraxenItems.getItemById(Settings.ORAXEN_INV_PREVIOUS_PAGE_ICON.toString())
         ).build();
         mainGui.setItem(6, 2, new GuiItem(previousPage, event -> {
             mainGui.previous();
             event.setCancelled(true);
         }));
 
-        ItemStack nextPage = (Settings.ORAXEN_INV_NEXT_ICON.getValue() == null
+        ItemStack nextPage = (Settings.ORAXEN_INV_NEXT_PAGE_ICON.getValue() == null
                 ? new ItemBuilder(Material.ARROW).setDisplayName("Next Page")
-                : OraxenItems.getItemById(Settings.ORAXEN_INV_NEXT_ICON.toString())
+                : OraxenItems.getItemById(Settings.ORAXEN_INV_NEXT_PAGE_ICON.toString())
         ).build();
         mainGui.setItem(6, 8, new GuiItem(nextPage, event -> {
             mainGui.next();
             event.setCancelled(true);
         }));
 
-        ItemStack exitIcon = (Settings.ORAXEN_INV_EXIT.getValue() == null
+        ItemStack exitIcon = (Settings.ORAXEN_INV_EXIT_ICON.getValue() == null
                 ? new ItemBuilder(Material.BARRIER).setDisplayName("Exit") :
-                OraxenItems.getItemById(Settings.ORAXEN_INV_EXIT.toString())
+                OraxenItems.getItemById(Settings.ORAXEN_INV_EXIT_ICON.toString())
         ).build();
         mainGui.setItem(6, 5, new GuiItem(exitIcon, event -> mainGui.open(event.getWhoClicked())));
-
-		ItemStack exitIcon = (Settings.ORAXEN_INV_EXIT_ICON.getValue() == null
-				? new ItemBuilder(Material.BARRIER).setDisplayName("Exit") :
-				OraxenItems.getItemById(Settings.ORAXEN_INV_EXIT_ICON.toString())
-		).build();
-		mainGui.setItem(6, 5, new GuiItem(exitIcon, event -> mainGui.open(event.getWhoClicked())));
 
 		return mainGui;
     }
@@ -110,13 +102,13 @@ public class ItemsView {
 
 		ItemStack nextPage = (Settings.ORAXEN_INV_NEXT_PAGE_ICON.getValue() == null
 				? new ItemBuilder(Material.ARROW) : OraxenItems.getItemById(Settings.ORAXEN_INV_NEXT_PAGE_ICON.toString()))
-				.displayName(Component.text("Next Page")).build();
+				.setItemName("Next Page").build();
 		ItemStack previousPage = (Settings.ORAXEN_INV_PREVIOUS_PAGE_ICON.getValue() == null
 				? new ItemBuilder(Material.ARROW) : OraxenItems.getItemById(Settings.ORAXEN_INV_PREVIOUS_PAGE_ICON.toString()))
-				.displayName(Component.text("Previous Page")).build();
+				.setItemName("Previous Page").build();
 		ItemStack exitIcon = (Settings.ORAXEN_INV_EXIT_ICON.getValue() == null
 				? new ItemBuilder(Material.BARRIER) : OraxenItems.getItemById(Settings.ORAXEN_INV_EXIT_ICON.toString()))
-				.displayName(Component.text("Exit")).build();
+				.setItemName("Exit").build();
 
 		if (gui.getPagesNum() > 1) {
 			gui.setItem(6, 2, new GuiItem(previousPage, event -> gui.previous()));

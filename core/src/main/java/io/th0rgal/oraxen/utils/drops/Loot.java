@@ -7,8 +7,6 @@ import io.th0rgal.oraxen.compatibilities.provided.mythiccrucible.WrappedCrucible
 import io.th0rgal.oraxen.items.ItemUpdater;
 import io.th0rgal.oraxen.utils.Utils;
 import net.Indyuce.mmoitems.MMOItems;
-import org.apache.commons.lang3.IntegerRange;
-import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;

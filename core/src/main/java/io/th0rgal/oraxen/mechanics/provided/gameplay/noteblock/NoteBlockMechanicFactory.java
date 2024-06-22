@@ -231,14 +231,14 @@ public class NoteBlockMechanicFactory extends MechanicFactory {
                         speedMultiplier.set(validToolTypes.stream().findFirst().get().getSpeedModifier()));
 
         float multiplier = speedMultiplier.get();
-        if (itemInMainHand.containsEnchantment(Enchantment.DIG_SPEED))
-            multiplier *= 1f + (itemInMainHand.getEnchantmentLevel(Enchantment.DIG_SPEED) ^ 2 + 1);
+        if (itemInMainHand.containsEnchantment(Enchantment.EFFICIENCY))
+            multiplier *= 1f + (itemInMainHand.getEnchantmentLevel(Enchantment.EFFICIENCY) ^ 2 + 1);
 
-        PotionEffect haste = player.getPotionEffect(PotionEffectType.FAST_DIGGING);
+        PotionEffect haste = player.getPotionEffect(PotionEffectType.HASTE);
         if (haste != null) multiplier *= 1f + (0.2F * haste.getAmplifier() + 1);
 
         // Whilst the player has this when they start digging, period is calculated before it is applied
-        PotionEffect miningFatigue = player.getPotionEffect(PotionEffectType.SLOW_DIGGING);
+        PotionEffect miningFatigue = player.getPotionEffect(PotionEffectType.MINING_FATIGUE);
         if (miningFatigue != null) multiplier *= 1f - (0.3F * miningFatigue.getAmplifier() + 1);
 
         // 1.20.5+ speed-modifier attribute
@@ -246,7 +246,7 @@ public class NoteBlockMechanicFactory extends MechanicFactory {
                 .map(player::getAttribute).filter(Objects::nonNull).map(AttributeInstance::getBaseValue).findFirst().orElse(1.0).floatValue();
         multiplier *= miningSpeedModifier;
 
-        if (player.isUnderWater() && !Optional.ofNullable(player.getEquipment().getHelmet()).orElse(new ItemStack(Material.PAPER)).containsEnchantment(Enchantment.WATER_WORKER)) {
+        if (player.isUnderWater() && !Optional.ofNullable(player.getEquipment().getHelmet()).orElse(new ItemStack(Material.PAPER)).containsEnchantment(Enchantment.AQUA_AFFINITY)) {
             multiplier /= 5;
         }
 

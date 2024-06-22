@@ -11,8 +11,6 @@ import io.th0rgal.oraxen.font.FontManager;
 import io.th0rgal.oraxen.items.ItemBuilder;
 import io.th0rgal.oraxen.recipes.CustomRecipe;
 import io.th0rgal.oraxen.utils.AdventureUtils;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
@@ -45,14 +43,14 @@ public class RecipesView {
         paginatedGui.setItem(4, 5, new GuiItem((OraxenItems.getItemById("exit_icon") == null
                 ? new ItemBuilder(Material.BARRIER)
                 : OraxenItems.getItemById("exit_icon"))
-                .displayName(Message.EXIT_MENU.toComponent()).build(),
+                .setItemName(Message.EXIT_MENU.toString()).build(),
                 (event -> event.getWhoClicked().closeInventory())));
 
         // Previous Page button
         if (page > 0)
             paginatedGui.setItem(1, 3, new GuiItem((OraxenItems.getItemById("arrow_previous_icon") == null
                     ? new ItemBuilder(Material.ARROW) : OraxenItems.getItemById("arrow_previous_icon"))
-                    .displayName(Component.text("Open page " + page, NamedTextColor.YELLOW))
+                    .setItemName("<yellow>Open page " + page)
                     .build(), event -> create(page - 1, filteredRecipes).open(event.getWhoClicked())));
 
 
@@ -60,7 +58,7 @@ public class RecipesView {
         if (!lastPage)
             paginatedGui.setItem(7, 3, new GuiItem((OraxenItems.getItemById("arrow_next_icon") == null
                     ? new ItemBuilder(Material.ARROW) : OraxenItems.getItemById("arrow_next_icon"))
-                    .displayName(Component.text("Open page " + (page + 2), NamedTextColor.YELLOW))
+                    .setItemName("<yellow>Open page " + (page + 2))
                     .build(), event -> create(page + 1, filteredRecipes).open(event.getWhoClicked())));
 
         return gui;

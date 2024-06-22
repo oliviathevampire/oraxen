@@ -89,7 +89,6 @@ public class OraxenPlugin extends JavaPlugin {
 
         if (Settings.KEEP_UP_TO_DATE.toBool())
             new SettingsUpdater().handleSettingsUpdate();
-        final PluginManager pluginManager = Bukkit.getPluginManager();
         if (PluginUtils.isEnabled("ProtocolLib")) {
             new BreakerSystem().registerListener();
             if (Settings.FORMAT_INVENTORY_TITLES.toBool())
