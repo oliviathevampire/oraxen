@@ -134,6 +134,8 @@ public enum Settings {
     POLYMATH_SERVER("Pack.upload.polymath.server"),
     POLYMATH_SECRET("Pack.upload.polymath.secret"),
 
+    SEND_PRE_JOIN("Pack.dispatch.send_pre_join", VersionUtil.isPaperServer()),
+    SEND_ON_JOIN("Pack.dispatch.send_on_join", !VersionUtil.isPaperServer()),
     SEND_PACK("Pack.dispatch.send_pack", true),
     SEND_ON_RELOAD("Pack.dispatch.send_on_reload", true),
     SEND_PACK_DELAY("Pack.dispatch.delay", -1),

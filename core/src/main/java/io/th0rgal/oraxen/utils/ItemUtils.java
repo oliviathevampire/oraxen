@@ -113,7 +113,7 @@ public class ItemUtils {
         // If the item is not a tool, it will not be damaged, example flint&steel should not be damaged
         damage = isTool(itemStack) ? damage : 0;
 
-        if (damage == 0) return itemStack;
+        if (damage == 0) return;
         if (VersionUtil.isPaperServer())
             player.damageItemStack(itemStack, damage);
         else {

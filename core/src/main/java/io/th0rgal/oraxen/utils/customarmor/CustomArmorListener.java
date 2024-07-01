@@ -2,6 +2,7 @@ package io.th0rgal.oraxen.utils.customarmor;
 
 import io.th0rgal.oraxen.api.OraxenItems;
 import io.th0rgal.oraxen.config.Settings;
+import io.th0rgal.oraxen.utils.InventoryUtils;
 import io.th0rgal.oraxen.utils.armorequipevent.ArmorEquipEvent;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -28,7 +29,7 @@ public class CustomArmorListener implements Listener {
     public void onCustomArmorRepair(PrepareAnvilEvent event) {
         if (!Settings.DISABLE_LEATHER_REPAIR_CUSTOM.toBool()) return;
         AnvilInventory inventory = event.getInventory();
-        Player player = (Player) inventory.getViewers().getFirst();
+        Player player = InventoryUtils.playerFromView(event);
         if (player == null) return;
         ItemStack first = inventory.getItem(0);
         ItemStack second = inventory.getItem(1);

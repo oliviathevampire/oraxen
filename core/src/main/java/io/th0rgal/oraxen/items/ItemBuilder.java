@@ -412,7 +412,6 @@ public class ItemBuilder {
         return maxStackSize;
     }
 
-
     public ItemBuilder setMaxStackSize(@Nullable Integer maxStackSize) {
         this.maxStackSize = maxStackSize;
         this.setUnstackable(maxStackSize != null && maxStackSize == 1);

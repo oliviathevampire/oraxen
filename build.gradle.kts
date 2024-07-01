@@ -76,7 +76,7 @@ allprojects {
         compileOnly("me.clip:placeholderapi:2.11.5")
         compileOnly("me.gabytm.util:actions-core:$actionsVersion")
         compileOnly("org.springframework:spring-expression:6.0.10")
-        compileOnly("io.lumine:Mythic-Dist:5.3.5")
+        compileOnly("io.lumine:Mythic-Dist:5.7.0-SNAPSHOT")
         compileOnly("io.lumine:MythicCrucible:2.0.0-SNAPSHOT")
         compileOnly("com.sk89q.worldedit:worldedit-bukkit:7.2.9")
         compileOnly("commons-io:commons-io:2.11.0")
@@ -138,7 +138,7 @@ tasks {
         downloadPlugins {
             url("https://ci.dmulloy2.net/job/ProtocolLib/lastSuccessfulBuild/artifact/build/libs/ProtocolLib.jar")
         }
-        minecraftVersion("1.20.6")
+        minecraftVersion("1.21")
     }
 
     shadowJar {

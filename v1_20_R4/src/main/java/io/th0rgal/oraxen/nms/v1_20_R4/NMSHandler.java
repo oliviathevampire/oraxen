@@ -5,7 +5,6 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import io.papermc.paper.configuration.GlobalConfiguration;
 import io.papermc.paper.network.ChannelInitializeListenerHolder;
-import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.NoteBlockMechanicFactory;
 import io.th0rgal.oraxen.nms.GlyphHandler;
 import io.th0rgal.oraxen.utils.BlockHelpers;
@@ -17,7 +16,6 @@ import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.common.ClientboundUpdateTagsPacket;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -35,7 +33,6 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import org.bukkit.NamespacedKey;
 import org.bukkit.SoundCategory;
 import org.bukkit.SoundGroup;
 import org.bukkit.World;
@@ -55,6 +52,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import static io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.NoteBlockMechanicFactory.MINEABLE_PACKET_LISTENER;
+
 public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
 
     private final GlyphHandler glyphHandler;
@@ -63,11 +62,8 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
         this.glyphHandler = new io.th0rgal.oraxen.nms.v1_20_R4.GlyphHandler();
 
         // mineableWith tag handling
-        NamespacedKey tagKey = NamespacedKey.fromString("mineable_with_key", OraxenPlugin.get());
-        if (ChannelInitializeListenerHolder.hasListener(tagKey)) return;
-        ChannelInitializeListenerHolder.addListener(tagKey, (channel ->
-                channel.pipeline().addBefore("packet_handler", tagKey.asString(), new ChannelDuplexHandler() {
-                    Connection connection = (Connection) channel.pipeline().get("packet_handler");
+        ChannelInitializeListenerHolder.addListener(MINEABLE_PACKET_LISTENER, (channel ->
+                channel.pipeline().addBefore("packet_handler", MINEABLE_PACKET_LISTENER.asString(), new ChannelDuplexHandler() {
                     TagNetworkSerialization.NetworkPayload payload = createPayload();
 
                     @Override
