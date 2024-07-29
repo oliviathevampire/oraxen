@@ -14,6 +14,7 @@ import io.th0rgal.oraxen.utils.Utils;
 import io.th0rgal.oraxen.utils.VersionUtil;
 import io.th0rgal.oraxen.utils.logs.Logs;
 import net.kyori.adventure.key.Key;
+import net.kyori.adventure.text.Component;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;

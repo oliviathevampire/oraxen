@@ -161,13 +161,4 @@ public class ItemUtils {
             return itemStack.getType().name().startsWith("MUSIC_DISC");
         }
     }
-
-    public static boolean isMusicDisc(ItemStack itemStack) {
-        if (itemStack == null) return false;
-        if (VersionUtil.atOrAbove("1.21")) {
-            return itemStack.hasItemMeta() && itemStack.getItemMeta().hasJukeboxPlayable();
-        } else {
-            return itemStack.getType().name().startsWith("MUSIC_DISC");
-        }
-    }
 }
