@@ -12,10 +12,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Material;
 import org.bukkit.Tag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.LeatherArmorMeta;
-import org.bukkit.inventory.meta.PotionMeta;
-import org.bukkit.inventory.meta.SpawnEggMeta;
+import org.bukkit.inventory.meta.*;
 
 import java.util.Arrays;
 import java.util.List;
@@ -41,6 +38,9 @@ public class PredicatesGenerator {
         if (material == Material.TIPPED_ARROW) {
             textures.addProperty("layer0", "item/tipped_arrow_head");
             textures.addProperty("layer1", "item/tipped_arrow_base");
+        } else if (material == Material.FIREWORK_STAR) {
+            textures.addProperty("layer0", vanillaTextureName);
+            textures.addProperty("layer1", vanillaTextureName + "_overlay");
         } else if (exampleMeta instanceof PotionMeta) {
             textures.addProperty("layer0", "item/potion_overlay");
             textures.addProperty("layer1", vanillaTextureName);
@@ -112,7 +112,7 @@ public class PredicatesGenerator {
         }
         if (material == Material.COMPASS || material == Material.CLOCK || material == Material.RECOVERY_COMPASS) {
             String override = material == Material.CLOCK ? CLOCK_OVERRIDES : COMPASS_OVERRIDES;
-            JsonArray jsonArray = JsonParser.parseString(override.replace("X", material.name().toLowerCase())).getAsJsonArray();
+            JsonArray jsonArray = JsonParser.parseString(override.replace("X", material.name().toLowerCase(Locale.ROOT))).getAsJsonArray();
             for (int i = 0; i < jsonArray.size(); i++) {
                 overrides.add(jsonArray.get(i).getAsJsonObject());
             }
@@ -268,7 +268,7 @@ public class PredicatesGenerator {
     }
 
     public String getVanillaTextureName(final Material material, final boolean model) {
-        String materialName = material.toString().toLowerCase(Locale.ENGLISH);
+        String materialName = material.toString().toLowerCase(Locale.ROOT);
         if (!model) {
             if (material == Material.COMPASS) return "item/compass_16";
             if (material == Material.DEBUG_STICK) return "item/stick";
@@ -290,7 +290,7 @@ public class PredicatesGenerator {
     }
 
     private String getParent(final Material material) {
-        String materialName = material.name().toLowerCase();
+        String materialName = material.name().toLowerCase(Locale.ROOT);
         if (material == Material.SNOW)
             return "block/snow_height2";
         if (material == Material.FISHING_ROD || material == Material.WARPED_FUNGUS_ON_A_STICK || material == Material.CARROT_ON_A_STICK)

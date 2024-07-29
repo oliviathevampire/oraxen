@@ -1,10 +1,14 @@
 package io.th0rgal.oraxen.utils.customarmor;
 
+import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.api.OraxenItems;
 import io.th0rgal.oraxen.config.Settings;
 import io.th0rgal.oraxen.utils.InventoryUtils;
 import io.th0rgal.oraxen.utils.VersionUtil;
 import io.th0rgal.oraxen.utils.armorequipevent.ArmorEquipEvent;
+import io.th0rgal.oraxen.utils.logs.Logs;
+import net.kyori.adventure.key.Key;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -24,7 +28,21 @@ import org.bukkit.inventory.SmithingInventory;
 import org.bukkit.inventory.meta.ArmorMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
 
+import java.util.Locale;
+
 public class CustomArmorListener implements Listener {
+
+    public CustomArmorListener() {
+        if (!VersionUtil.isPaperServer()) return;
+        Bukkit.getPluginManager().registerEvents(new Listener() {
+            @EventHandler
+            public void onPlayerPickup(PlayerAttemptPickupItemEvent event) {
+                ItemStack item = event.getItem().getItemStack();
+                setVanillaArmorTrim(item);
+                event.getItem().setItemStack(item);
+            }
+        }, OraxenPlugin.get());
+    }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onCustomArmorRepair(PrepareAnvilEvent event) {
@@ -74,13 +92,6 @@ public class CustomArmorListener implements Listener {
     }
 
     @EventHandler
-    public void onPlayerPickup(PlayerAttemptPickupItemEvent event) {
-        ItemStack item = event.getItem().getItemStack();
-        setVanillaArmorTrim(item);
-        event.getItem().setItemStack(item);
-    }
-
-    @EventHandler
     public void onPlayerEquipVanilla(ArmorEquipEvent event) {
         setVanillaArmorTrim(event.getNewArmorPiece());
         setVanillaArmorTrim(event.getOldArmorPiece());
@@ -93,23 +104,18 @@ public class CustomArmorListener implements Listener {
     }
 
     private void setVanillaArmorTrim(ItemStack itemStack) {
-//        if (!VersionUtil.atOrAbove("1.20")) return;
-//        if (CustomArmorType.getSetting() != CustomArmorType.TRIMS) return;
-//        if (itemStack == null || !(itemStack.getItemMeta() instanceof ArmorMeta armorMeta)) return;
-//        if (armorMeta.hasTrim() && armorMeta.getTrim().getPattern().key().namespace().equals("oraxen")) return;
-//
-//        ItemBuilder itemBuilder = OraxenItems.getBuilderByItem(itemStack);
-//        if (itemBuilder == null) return;
-//        OraxenMeta oraxenMeta = itemBuilder.getOraxenMeta();
-//        if (oraxenMeta == null) return;
-//
-//        CustomArmorMaterial customArmorMaterial = CustomArmorMaterial.fromMaterial(itemStack.getType());
-//        Key vanillaPatternKey = Key.key("minecraft", customArmorMaterial.name().toLowerCase());
-//        @Nullable TrimPattern vanillaPattern = Registry.TRIM_PATTERN.get(NamespacedKey.fromString(vanillaPatternKey.asString()));
-//        if (vanillaPattern != null && (!armorMeta.hasItemFlag(ItemFlag.HIDE_ARMOR_TRIM) || !armorMeta.hasTrim() || !armorMeta.getTrim().getPattern().key().equals(vanillaPatternKey))) {
-//            armorMeta.setTrim(new ArmorTrim(TrimMaterial.REDSTONE, vanillaPattern));
-//            armorMeta.addItemFlags(ItemFlag.HIDE_ARMOR_TRIM);
-//            itemStack.setItemMeta(armorMeta);
-//        } else if (vanillaPattern == null && Settings.DEBUG.toBool()) Logs.logWarning("Vanilla trim-pattern not found for " + itemStack.getType().name() + ": " + vanillaPatternKey.asString());
+        String armorPrefix = Settings.CUSTOM_ARMOR_TRIMS_DEFAULT_MATERIAL.toString();
+        if (CustomArmorType.getSetting() != CustomArmorType.TRIMS) return;
+        if (itemStack == null || !(itemStack.getItemMeta() instanceof ArmorMeta armorMeta)) return;
+        if (!itemStack.getType().name().startsWith(armorPrefix)) return;
+        if (armorMeta.hasTrim() && armorMeta.getTrim().getPattern().key().namespace().equals("oraxen")) return;
+
+        Key vanillaPatternKey = Key.key("minecraft", armorPrefix.toLowerCase(Locale.ROOT));
+        @Nullable TrimPattern vanillaPattern = Registry.TRIM_PATTERN.get(NamespacedKey.fromString(vanillaPatternKey.asString()));
+        if (vanillaPattern != null && (!armorMeta.hasItemFlag(ItemFlag.HIDE_ARMOR_TRIM) || !armorMeta.hasTrim() || !armorMeta.getTrim().getPattern().key().equals(vanillaPatternKey))) {
+            armorMeta.setTrim(new ArmorTrim(TrimMaterial.REDSTONE, vanillaPattern));
+            armorMeta.addItemFlags(ItemFlag.HIDE_ARMOR_TRIM);
+            itemStack.setItemMeta(armorMeta);
+        } else if (vanillaPattern == null && Settings.DEBUG.toBool()) Logs.logWarning("Vanilla trim-pattern not found for " + itemStack.getType().name() + ": " + vanillaPatternKey.asString());
     }
 }

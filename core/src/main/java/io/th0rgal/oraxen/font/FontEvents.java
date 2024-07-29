@@ -228,7 +228,12 @@ public class FontEvents implements Listener {
             displayName = inputItem.getItemMeta().getPersistentDataContainer().getOrDefault(ORIGINAL_NAME_KEY, PersistentDataType.STRING, "");
         }
 
-        ItemUtils.displayName(resultItem, AdventureUtils.MINI_MESSAGE.deserialize(displayName));
+        String finalDisplayName = displayName;
+        ItemUtils.editItemMeta(resultItem, meta -> {
+            if (finalDisplayName == null) meta.setDisplayName(null);
+            else if (VersionUtil.isPaperServer()) meta.displayName(MINI_MESSAGE.deserialize(finalDisplayName));
+            else meta.setDisplayName(finalDisplayName);
+        });
     }
 
     @EventHandler
