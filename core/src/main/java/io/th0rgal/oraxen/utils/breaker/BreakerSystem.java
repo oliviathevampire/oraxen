@@ -51,7 +51,7 @@ import static io.th0rgal.oraxen.mechanics.provided.gameplay.block.BlockMechanicF
 public class BreakerSystem {
 
     public static final List<HardnessModifier> MODIFIERS = new ArrayList<>();
-    private final Map<UUID, BukkitScheduler> breakerPerLocation = new HashMap<>();
+    private final Map<Location, BukkitScheduler> breakerPerLocation = new HashMap<>();
     private final Map<Location, BukkitTask> breakerPlaySound = new HashMap<>();
     private final PacketAdapter listener = new PacketAdapter(OraxenPlugin.get(),
             ListenerPriority.LOW, PacketType.Play.Client.BLOCK_DIG) {
@@ -145,7 +145,7 @@ public class BreakerSystem {
 
                     @Override
                     public void accept(final BukkitTask bukkitTask) {
-                        if (!player.isOnline() || !breakerPerLocation.containsKey(player.getUniqueId())) {
+                        if (!player.isOnline() || !breakerPerLocation.containsKey(player.getLocation())) {
                             bukkitTask.cancel();
                             stopBlockHitSound(location);
                             return;
@@ -328,7 +328,7 @@ public class BreakerSystem {
     }
 
     private String getHitSound(Block block) {
-        ConfigurationSection soundSection = OraxenPlugin.get().getConfigsManager().getMechanics().getConfigurationSection("custom_block_sounds");
+        ConfigurationSection soundSection = OraxenPlugin.get().configsManager().getMechanics().getConfigurationSection("custom_block_sounds");
         if (soundSection == null) return null;
         BlockSounds sounds = getBlockSounds(block);
         if (sounds == null) return null;
