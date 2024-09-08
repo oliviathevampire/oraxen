@@ -17,10 +17,7 @@ import io.th0rgal.oraxen.pack.upload.UploadManager;
 import io.th0rgal.oraxen.sound.CustomSound;
 import io.th0rgal.oraxen.sound.SoundManager;
 import io.th0rgal.oraxen.utils.*;
-import io.th0rgal.oraxen.utils.customarmor.CustomArmor;
-import io.th0rgal.oraxen.utils.customarmor.CustomArmorType;
-import io.th0rgal.oraxen.utils.customarmor.ShaderArmorTextures;
-import io.th0rgal.oraxen.utils.customarmor.TrimArmorDatapack;
+import io.th0rgal.oraxen.utils.customarmor.CustomArmorDatapack;
 import io.th0rgal.oraxen.utils.logs.Logs;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -43,28 +40,58 @@ public class ResourcePack {
 
     private final Map<String, Collection<Consumer<File>>> packModifiers;
     private static Map<String, VirtualFile> outputFiles;
-    private ShaderArmorTextures shaderArmorTextures;
-    private TrimArmorDatapack trimArmorDatapack;
+    private final CustomArmorDatapack customArmorDatapack;
     private static final File packFolder = new File(OraxenPlugin.get().getDataFolder(), "pack");
     private final File pack = new File(packFolder, packFolder.getName() + ".zip");
-    private final CustomArmor customArmorHandler;
 
     public ResourcePack() {
         // we use maps to avoid duplicate
         packModifiers = new HashMap<>();
         outputFiles = new HashMap<>();
-        if (CustomArmorType.getSetting().equals(CustomArmorType.SHADER)) customArmorHandler = new ShaderArmorTextures();
-        else if (CustomArmorType.getSetting().equals(CustomArmorType.TRIMS)) customArmorHandler = new TrimArmorDatapack();
-        else customArmorHandler = new CustomArmor();
+        customArmorDatapack = Settings.CUSTOM_ARMOR_ENABLED.toBool() ? new CustomArmorDatapack() : null;
+    }
+
+    private static void search(int length, Set<VirtualFile> list, File file) {
+        if (file.isDirectory()) {
+            File[] array = file.listFiles();
+            if (array != null) for (File file1 : array) {
+                search(length, list, file1);
+            }
+        } else {
+            VirtualFile virtualFile = VirtualFile.of(file.getParent().substring(length), file);
+            if (virtualFile != null && !list.add(virtualFile)) close(virtualFile);
+        }
+    }
+
+    private static void close(VirtualFile file) {
+        try {
+            file.getInputStream().close();
+        } catch (Exception e) {
+            Logs.logWarning("Unable to close this file: " + file.getPath());
+        } finally {
+            Logs.logWarning("Duplicated file skipped: " + file.getPath());
+        }
     }
 
     public void generate() {
         outputFiles.clear();
 
-        makeDirsIfNotExists(packFolder, new File(packFolder, "assets"));
+        Set<VirtualFile> fileSet = new HashSet<>();
+        for (String s : Settings.MERGE_OTHER_RESOURCE_PACKS.toStringList()) {
+            File pluginFolder = OraxenPlugin.get().getDataFolder().getParentFile();
+            File targetFile = new File(pluginFolder, s.replace("/", File.separator));
+            if (targetFile.exists() && targetFile.isDirectory()) {
+                search(targetFile.getPath().length() + 1, fileSet, targetFile);
+            } else Logs.logWarning("This file is not a directory: " + targetFile.getPath());
+        }
+        for (VirtualFile virtualFile : fileSet) {
+            if (outputFiles.putIfAbsent(virtualFile.getPath(), virtualFile) != null) {
+                close(virtualFile);
+                Logs.logWarning("Duplicated file skipped");
+            }
+        }
 
-        trimArmorDatapack = CustomArmorType.getSetting() == CustomArmorType.TRIMS ? new TrimArmorDatapack() : null;
-        shaderArmorTextures = CustomArmorType.getSetting() == CustomArmorType.SHADER ? new ShaderArmorTextures() : null;
+        makeDirsIfNotExists(packFolder, new File(packFolder, "assets"));
 
         if (Settings.GENERATE_DEFAULT_ASSETS.toBool()) extractDefaultFolders();
         extractRequired();
@@ -91,21 +118,14 @@ public class ResourcePack {
         if (Settings.HIDE_SCOREBOARD_NUMBERS.toBool()) hideScoreboardNumbers();
         if (Settings.HIDE_SCOREBOARD_BACKGROUND.toBool()) generateScoreboardHideBackground();
         if (Settings.TEXTURE_SLICER.toBool()) PackSlicer.slicePackFiles();
-        if (CustomArmorType.getSetting() == CustomArmorType.SHADER && Settings.CUSTOM_ARMOR_SHADER_GENERATE_FILES.toBool())
-            ShaderArmorTextures.generateArmorShaderFiles();
 
         for (final Collection<Consumer<File>> packModifiers : packModifiers.values())
             for (Consumer<File> packModifier : packModifiers)
                 packModifier.accept(packFolder);
         List<VirtualFile> output = new ArrayList<>(outputFiles.values());
 
-        customArmorHandler.generateNeededFiles(output);
-        // zipping resourcepack
         try {
-            // Adds all non-directory root files
             getFilesInFolder(packFolder, output, packFolder.getCanonicalPath(), packFolder.getName() + ".zip");
-
-            // needs to be ordered, forEach cannot be used
             File[] files = packFolder.listFiles();
             if (files != null) for (final File folder : files) {
                 if (folder.isDirectory() && folder.getName().equalsIgnoreCase("assets"))
@@ -113,13 +133,8 @@ public class ResourcePack {
                 else if (folder.isDirectory())
                     getAllFiles(folder, output, "assets/minecraft");
             }
-
-            // Convert the global.json within the lang-folder to all languages
             convertGlobalLang(output);
-
-            // Handles generation of datapack & other files for custom armor
             handleCustomArmor(output);
-
             Collections.sort(output);
         } catch (IOException e) {
             e.printStackTrace();
@@ -529,8 +544,6 @@ public class ResourcePack {
         try {
             final InputStream fis;
             if (file.getName().endsWith(".json")) fis = processJsonFile(file);
-            else if (CustomArmorType.getSetting() == CustomArmorType.SHADER && shaderArmorTextures.registerImage(file))
-                return;
             else fis = new FileInputStream(file);
 
             output.add(new VirtualFile(getZipFilePath(file.getParentFile().getCanonicalPath(), newFolder), file.getName(), fis));
@@ -579,29 +592,10 @@ public class ResourcePack {
     }
 
     private void handleCustomArmor(List<VirtualFile> output) {
-        CustomArmorType customArmorType = CustomArmorType.getSetting();
-        // Clear out old datapacks before generating new ones, in case type changed or otherwise
-        TrimArmorDatapack.clearOldDataPacks();
-
-        switch (customArmorType) {
-            case TRIMS -> trimArmorDatapack.generateTrimAssets(output);
-            case SHADER -> {
-                if (Settings.CUSTOM_ARMOR_SHADER_GENERATE_CUSTOM_TEXTURES.toBool() && shaderArmorTextures.hasCustomArmors())
-                    try {
-                        String armorPath = "assets/minecraft/textures/models/armor";
-                        output.add(new VirtualFile(armorPath, "leather_layer_1.png", shaderArmorTextures.getLayerOne()));
-                        output.add(new VirtualFile(armorPath, "leather_layer_2.png", shaderArmorTextures.getLayerTwo()));
-                        if (Settings.CUSTOM_ARMOR_SHADER_GENERATE_SHADER_COMPATIBLE_ARMOR.toBool()) {
-                            output.addAll(shaderArmorTextures.getOptifineFiles());
-                        }
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-            }
-        }
+        if (Settings.CUSTOM_ARMOR_ENABLED.toBool()) customArmorDatapack.generateTrimAssets(output);
         if (VersionUtil.isPaperServer()) {
-            Bukkit.getDatapackManager().getPacks().stream().filter(d -> d.getName().equals(TrimArmorDatapack.datapackKey.value()))
-                    .findFirst().ifPresent(d -> d.setEnabled(CustomArmorType.getSetting() == CustomArmorType.TRIMS));
+            Bukkit.getDatapackManager().getPacks().stream().filter(d -> d.getName().equals(CustomArmorDatapack.datapackKey.value()))
+                    .findFirst().ifPresent(d -> d.setEnabled(true));
         }
     }
 

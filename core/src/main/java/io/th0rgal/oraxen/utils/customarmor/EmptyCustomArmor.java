@@ -1,3 +1,3 @@
 package io.th0rgal.oraxen.utils.customarmor;
 
-public class EmptyCustomArmor extends CustomArmor {}
+public class EmptyCustomArmor extends NoCustomArmor {}

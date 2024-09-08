@@ -7,9 +7,6 @@ import io.th0rgal.oraxen.utils.AdventureUtils;
 import io.th0rgal.oraxen.utils.BlockHelpers;
 import io.th0rgal.oraxen.utils.OraxenYaml;
 import io.th0rgal.oraxen.utils.VersionUtil;
-import io.th0rgal.oraxen.utils.customarmor.CustomArmorMaterial;
-import io.th0rgal.oraxen.utils.customarmor.CustomArmorType;
-import io.th0rgal.oraxen.utils.customarmor.ShaderArmorTextures;
 import io.th0rgal.oraxen.utils.logs.Logs;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
@@ -63,16 +60,8 @@ public enum Settings {
     ERROR_ITEM("ConfigsTools.error_item", Map.of("material", Material.PODZOL.name(), "excludeFromInventory", false, "injectID", false)),
 
     // Custom Armor
-    CUSTOM_ARMOR_DEFAULT_TYPE("CustomArmor.default_type", CustomArmorType.TRIMS.name()),
-    DISABLE_LEATHER_REPAIR_CUSTOM("CustomArmor.disable_leather_repair", true),
-    CUSTOM_ARMOR_TRIMS_DEFAULT_MATERIAL("CustomArmor.trims_settings.default_material", CustomArmorMaterial.CHAINMAIL.name()),
-    CUSTOM_ARMOR_TRIMS_ASSIGN("CustomArmor.trims_settings.auto_assign_settings", true),
-    CUSTOM_ARMOR_SHADER_TYPE("CustomArmor.shader_settings.type", ShaderArmorTextures.ShaderType.FANCY.name()),
-    CUSTOM_ARMOR_SHADER_RESOLUTION("CustomArmor.shader_settings.armor_resolution", 16),
-    CUSTOM_ARMOR_SHADER_ANIMATED_FRAMERATE("CustomArmor.shader_settings.animated_armor_framerate", 24),
-    CUSTOM_ARMOR_SHADER_GENERATE_FILES("CustomArmor.shader_settings.generate_armor_shader_files", true),
-    CUSTOM_ARMOR_SHADER_GENERATE_CUSTOM_TEXTURES("CustomArmor.shader_settings.generate_custom_armor_textures", true),
-    CUSTOM_ARMOR_SHADER_GENERATE_SHADER_COMPATIBLE_ARMOR("CustomArmor.shader_settings.generate_shader_compatible_armor", true),
+    CUSTOM_ARMOR_ENABLED("CustomArmor.enabled", true),
+    CUSTOM_ARMOR_TRIMS_ASSIGN("CustomArmor.auto_assign_settings", true),
 
     // Custom Blocks
     BLOCK_CORRECTION("CustomBlocks.block_correction", BlockHelpers.BlockCorrection.NMS.name()),
@@ -122,6 +111,7 @@ public enum Settings {
             conditions of Oraxen
             """.trim()
     ),
+    MERGE_OTHER_RESOURCE_PACKS("Pack.generation.merge-other-resource-pack", List.of("ModelEngine/resource pack")),
     MERGE_DUPLICATE_FONTS("Pack.import.merge_duplicate_fonts"),
     MERGE_DUPLICATES("Pack.import.merge_duplicates"),
     RETAIN_CUSTOM_MODEL_DATA("Pack.import.retain_custom_model_data"),

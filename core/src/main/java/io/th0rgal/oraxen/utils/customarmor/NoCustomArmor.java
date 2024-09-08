@@ -4,7 +4,7 @@ import io.th0rgal.oraxen.utils.VirtualFile;
 
 import java.util.List;
 
-public class CustomArmor {
+public class NoCustomArmor {
 
 	public void generateNeededFiles(List<VirtualFile> output) {
 
