@@ -17,13 +17,10 @@ import io.th0rgal.oraxen.mechanics.provided.farming.bigmining.BigMiningMechanicF
 import io.th0rgal.oraxen.mechanics.provided.farming.bottledexp.BottledExpMechanicFactory;
 import io.th0rgal.oraxen.mechanics.provided.farming.harvesting.HarvestingMechanicFactory;
 import io.th0rgal.oraxen.mechanics.provided.farming.smelting.SmeltingMechanicFactory;
-import io.th0rgal.oraxen.mechanics.provided.farming.watering.WateringMechanicFactory;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.block.BlockMechanicFactory;
-import io.th0rgal.oraxen.mechanics.provided.gameplay.durability.DurabilityMechanicFactory;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.efficiency.EfficiencyMechanicFactory;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureFactory;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.NoteBlockMechanicFactory;
-import io.th0rgal.oraxen.mechanics.provided.gameplay.repair.RepairMechanicFactory;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.stringblock.StringBlockMechanicFactory;
 import io.th0rgal.oraxen.mechanics.provided.misc.armor_effects.ArmorEffectsFactory;
 import io.th0rgal.oraxen.mechanics.provided.misc.backpack.BackpackMechanicFactory;
@@ -31,10 +28,8 @@ import io.th0rgal.oraxen.mechanics.provided.misc.commands.CommandsMechanicFactor
 import io.th0rgal.oraxen.mechanics.provided.misc.consumable.ConsumableMechanicFactory;
 import io.th0rgal.oraxen.mechanics.provided.misc.consumablepotioneffects.ConsumablePotionEffectsFactory;
 import io.th0rgal.oraxen.mechanics.provided.misc.custom.CustomMechanicFactory;
-import io.th0rgal.oraxen.mechanics.provided.misc.food.FoodMechanicFactory;
 import io.th0rgal.oraxen.mechanics.provided.misc.itemtype.ItemTypeMechanicFactory;
 import io.th0rgal.oraxen.mechanics.provided.misc.misc.MiscMechanicFactory;
-import io.th0rgal.oraxen.mechanics.provided.misc.music_disc.MusicDiscMechanicFactory;
 import io.th0rgal.oraxen.mechanics.provided.misc.soulbound.SoulBoundMechanicFactory;
 import io.th0rgal.oraxen.utils.VersionUtil;
 import org.bukkit.Bukkit;
@@ -66,13 +61,13 @@ public class MechanicsManager {
         registerFactory("custom", CustomMechanicFactory::new);
         registerFactory("commands", CommandsMechanicFactory::new);
         registerFactory("backpack", BackpackMechanicFactory::new);
-        if (VersionUtil.below("1.21")) registerFactory("music_disc", MusicDiscMechanicFactory::new);
+//        if (VersionUtil.below("1.21")) registerFactory("music_disc", MusicDiscMechanicFactory::new);
         registerFactory("misc", MiscMechanicFactory::new);
 
         // gameplay
-        if (VersionUtil.below("1.20.5")) registerFactory("food", FoodMechanicFactory::new);
-        if (VersionUtil.below("1.20.5")) registerFactory("repair", RepairMechanicFactory::new);
-        if (VersionUtil.below("1.20.5")) registerFactory("durability", DurabilityMechanicFactory::new);
+//        if (VersionUtil.below("1.20.5")) registerFactory("food", FoodMechanicFactory::new);
+//        if (VersionUtil.below("1.20.5")) registerFactory("repair", RepairMechanicFactory::new);
+//        if (VersionUtil.below("1.20.5")) registerFactory("durability", DurabilityMechanicFactory::new);
         if (VersionUtil.below("1.20.5")) registerFactory("efficiency", EfficiencyMechanicFactory::new);
         registerFactory("block", BlockMechanicFactory::new);
         registerFactory("noteblock", NoteBlockMechanicFactory::new);
@@ -97,7 +92,6 @@ public class MechanicsManager {
         registerFactory("smelting", SmeltingMechanicFactory::new);
         registerFactory("bottledexp", BottledExpMechanicFactory::new);
         registerFactory("harvesting", HarvestingMechanicFactory::new);
-        registerFactory("watering", WateringMechanicFactory::new);
         if (CompatibilitiesManager.hasPlugin("ProtocolLib"))
             registerFactory("bedrockbreak", BedrockBreakMechanicFactory::new);
 

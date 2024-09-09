@@ -52,7 +52,7 @@ public class Loot {
         this.amount = amount;
     }
 
-    public ItemStack getItemStack() {
+    public ItemStack itemStack() {
         if (itemStack != null) return ItemUpdater.updateItem(itemStack);
 
         if (config.containsKey("oraxen_item")) {
@@ -79,11 +79,16 @@ public class Loot {
         return ItemUpdater.updateItem(itemStack);
     }
 
-    public void setItemStack(ItemStack itemStack) {
+    public Loot itemStack(ItemStack itemStack) {
         this.itemStack = itemStack;
+        return this;
     }
 
-    public double getProbability() {
+    public String sourceID() {
+        return sourceID;
+    }
+
+    public double probability() {
         return probability;
     }
 
@@ -91,23 +96,26 @@ public class Loot {
         return this.amount;
     }
 
-    public int getMaxAmount() {
-        return amount.getUpperBound();
-    }
-
-    public void dropNaturally(Location location, int amountMultiplier) {
-        if (Math.random() <= probability)
-            dropItems(location, amountMultiplier);
+    public int dropNaturally(Location location, int amountMultiplier) {
+        if (Math.random() <= probability) {
+            return dropItems(location, amountMultiplier);
+        }
+        return 0;
     }
 
     public ItemStack getItem(int amountMultiplier) {
-        ItemStack stack = getItemStack().clone();
+        ItemStack stack = itemStack().clone();
         int dropAmount = ThreadLocalRandom.current().nextInt(amount.getLowerBound(), amount.getUpperBound() + 1);
         stack.setAmount(stack.getAmount() * amountMultiplier * dropAmount);
         return ItemUpdater.updateItem(stack);
     }
 
-    private void dropItems(Location location, int amountMultiplier) {
-        if (location.getWorld() != null) location.getWorld().dropItemNaturally(location, getItem(amountMultiplier));
+    private int dropItems(Location location, int amountMultiplier) {
+        ItemStack item = getItem(amountMultiplier);
+        if (location.getWorld() != null) {
+            location.getWorld().dropItemNaturally(location, item);
+            return item.getAmount();
+        }
+        return 0;
     }
 }

@@ -54,8 +54,7 @@ public class ItemUtils {
     }
 
     public static void lore(ItemMeta itemMeta, List<Component> components) {
-        if (VersionUtil.isPaperServer()) itemMeta.lore(components);
-        else itemMeta.setLore(components.stream().map(AdventureUtils.LEGACY_SERIALIZER::serialize).toList());
+        itemMeta.lore(components);
     }
 
     public static void lore(ItemMeta itemMeta, Collection<String> strings) {

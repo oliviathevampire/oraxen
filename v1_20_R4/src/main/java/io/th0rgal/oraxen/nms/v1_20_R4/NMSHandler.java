@@ -5,10 +5,12 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import io.papermc.paper.configuration.GlobalConfiguration;
 import io.papermc.paper.network.ChannelInitializeListenerHolder;
-import io.th0rgal.oraxen.OraxenPlugin;
+import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.IFurniturePacketManager;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.NoteBlockMechanicFactory;
 import io.th0rgal.oraxen.nms.GlyphHandler;
+import io.th0rgal.oraxen.nms.v1_20_R4.furniture.FurniturePacketManager;
 import io.th0rgal.oraxen.utils.BlockHelpers;
+import io.th0rgal.oraxen.utils.InteractionResult;
 import io.th0rgal.oraxen.utils.VersionUtil;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -18,46 +20,48 @@ import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.protocol.common.ClientboundUpdateTagsPacket;
+import net.minecraft.network.protocol.game.ClientboundUpdateAttributesPacket;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.ServerConfigurationPacketListenerImpl;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.TagNetworkSerialization;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.context.BlockPlaceContext;
-import net.minecraft.world.item.context.DirectionalPlaceContext;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import org.bukkit.SoundCategory;
-import org.bukkit.SoundGroup;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.block.Block;
-import org.bukkit.block.data.BlockData;
+import org.bukkit.craftbukkit.block.CraftBlock;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Unmodifiable;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.NoteBlockMechanicFactory.MINEABLE_PACKET_LISTENER;
 
 public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
 
     private final GlyphHandler glyphHandler;
+    private final FurniturePacketManager furniturePacketManager = new FurniturePacketManager();
 
     public NMSHandler() {
         this.glyphHandler = new io.th0rgal.oraxen.nms.v1_20_R4.GlyphHandler();
@@ -71,7 +75,7 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
                     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) {
                         if (msg instanceof ClientboundUpdateTagsPacket updateTagsPacket) {
                             Map<ResourceKey<? extends Registry<?>>, TagNetworkSerialization.NetworkPayload> tags = updateTagsPacket.getTags();
-                            if (NoteBlockMechanicFactory.isEnabled() && NoteBlockMechanicFactory.getInstance().removeMineableTag())
+                            if (NoteBlockMechanicFactory.isEnabled() && NoteBlockMechanicFactory.get().removeMineableTag())
                                 tags.put(Registries.BLOCK, payload);
                             msg = new ClientboundUpdateTagsPacket(tags);
                         }
@@ -83,6 +87,21 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
     @Override
     public GlyphHandler glyphHandler() {
         return glyphHandler;
+    }
+
+    @Override
+    public IFurniturePacketManager furniturePacketManager() {
+        return furniturePacketManager;
+    }
+
+    private static Field configurationTasks;
+    static {
+        try {
+            configurationTasks = ServerConfigurationPacketListenerImpl.class.getDeclaredField("configurationTasks");
+            configurationTasks.setAccessible(true);
+        } catch (Exception e) {
+
+        }
     }
 
     @Override
@@ -112,32 +131,24 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
 
     @Override
     @Nullable
-    public BlockData correctBlockStates(Player player, EquipmentSlot slot, ItemStack itemStack) {
+    public InteractionResult correctBlockStates(Player player, EquipmentSlot slot, ItemStack itemStack) {
         InteractionHand hand = slot == EquipmentSlot.HAND ? InteractionHand.MAIN_HAND : InteractionHand.OFF_HAND;
         net.minecraft.world.item.ItemStack nmsStack = CraftItemStack.asNMSCopy(itemStack);
         ServerPlayer serverPlayer = ((CraftPlayer) player).getHandle();
         BlockHitResult hitResult = getPlayerPOVHitResult(serverPlayer.level(), serverPlayer, ClipContext.Fluid.NONE);
-        BlockPlaceContext placeContext = new BlockPlaceContext(new UseOnContext(serverPlayer, hand, hitResult));
+        BlockPlaceContext placeContext = new BlockPlaceContext(serverPlayer.level(), serverPlayer, hand, nmsStack, hitResult);
 
         if (!(nmsStack.getItem() instanceof BlockItem blockItem)) {
-            nmsStack.getItem().useOn(new UseOnContext(serverPlayer, hand, hitResult));
-            if (!player.isSneaking()) serverPlayer.gameMode.useItem(serverPlayer, serverPlayer.level(), nmsStack, hand);
-            return null;
+            InteractionResult result = InteractionResult.fromNms(nmsStack.getItem().useOn(new UseOnContext(serverPlayer, hand, hitResult)));
+            return player.isSneaking() && player.getGameMode() != GameMode.CREATIVE ? result
+                    : InteractionResult.fromNms(serverPlayer.gameMode.useItem(serverPlayer, serverPlayer.level(), nmsStack, hand));
         }
 
-        // Shulker-Boxes are DirectionalPlace based unlike other directional-blocks
-        if (org.bukkit.Tag.SHULKER_BOXES.isTagged(itemStack.getType())) {
-            placeContext = new DirectionalPlaceContext(serverPlayer.level(), hitResult.getBlockPos(), hitResult.getDirection(), nmsStack, hitResult.getDirection().getOpposite());
-        }
-
-        BlockPos pos = hitResult.getBlockPos();
-        InteractionResult result = blockItem.place(placeContext);
+        InteractionResult result = InteractionResult.fromNms(blockItem.place(placeContext));
         if (result == InteractionResult.FAIL) return null;
-        if (placeContext instanceof DirectionalPlaceContext && player.getGameMode() != org.bukkit.GameMode.CREATIVE)
-            itemStack.setAmount(itemStack.getAmount() - 1);
-        World world = player.getWorld();
 
         if (!player.isSneaking()) {
+            World world = player.getWorld();
             BlockPos clickPos = placeContext.getClickedPos();
             Block block = world.getBlockAt(clickPos.getX(), clickPos.getY(), clickPos.getZ());
             SoundGroup sound = block.getBlockData().getSoundGroup();
@@ -148,7 +159,7 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
             );
         }
 
-        return world.getBlockAt(pos.getX(), pos.getY(), pos.getZ()).getBlockData();
+        return result;
     }
 
     public BlockHitResult getPlayerPOVHitResult(Level world, net.minecraft.world.entity.player.Player player, ClipContext.Fluid fluidHandling) {
@@ -167,7 +178,8 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
     }
 
     @Override
-    public void customBlockDefaultTools(Player player) {
+    public int playerProtocolVersion(Player player) {
+        return ((CraftPlayer) player).getHandle().connection.connection.protocolVersion;
     }
 
     private TagNetworkSerialization.NetworkPayload createPayload() {
@@ -200,5 +212,35 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
     @Override
     public boolean getSupported() {
         return true;
+    }
+
+    @NotNull
+    @Override
+    public @Unmodifiable Set<Material> itemTools() {
+        return Arrays.stream(Material.values()).filter(Material::isItem).map(ItemStack::new).filter(ItemStack::hasItemMeta)
+                .filter(i -> i.getItemMeta().hasTool()).map(ItemStack::getType).collect(Collectors.toSet());
+    }
+
+    @Override
+    public void applyMiningEffect(Player player) {
+        ServerPlayer serverPlayer = ((CraftPlayer) player).getHandle();
+        Collection<AttributeInstance> attributes = serverPlayer.getAttributes().getSyncableAttributes();
+        attributes.removeIf(a -> a.getAttribute().is(Attributes.BLOCK_BREAK_SPEED.unwrapKey().get()));
+        attributes.add(new AttributeInstance(Attributes.BLOCK_BREAK_SPEED, (instance) -> {
+            instance.setBaseValue(0.0);
+        }));
+        serverPlayer.connection.send(new ClientboundUpdateAttributesPacket(player.getEntityId(), attributes));
+    }
+
+    @Override
+    public void removeMiningEffect(Player player) {
+        ServerPlayer serverPlayer = ((CraftPlayer) player).getHandle();
+        Collection<AttributeInstance> attributes = serverPlayer.getAttributes().getSyncableAttributes();
+        serverPlayer.connection.send(new ClientboundUpdateAttributesPacket(player.getEntityId(), attributes));
+    }
+
+    @Override
+    public String getNoteBlockInstrument(Block block) {
+        return ((CraftBlock) block).getNMS().instrument().toString();
     }
 }

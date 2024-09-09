@@ -30,17 +30,17 @@ import org.bukkit.persistence.PersistentDataContainer;
 import javax.annotation.Nullable;
 import java.util.Locale;
 
-import static io.th0rgal.oraxen.mechanics.provided.misc.music_disc.MusicDiscListener.MUSIC_DISC_KEY;
+import static io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.jukebox.JukeboxBlock.MUSIC_DISC_KEY;
 
 public class JukeboxListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onInsertDisc(OraxenFurnitureInteractEvent event) {
-        Entity baseEntity = event.getBaseEntity();
-        Player player = event.getPlayer();
+        Entity baseEntity = event.baseEntity();
+        Player player = event.player();
         ItemStack itemStack = player.getInventory().getItemInMainHand();
 
-        if (event.getHand() != EquipmentSlot.HAND) return;
+        if (event.hand() != EquipmentSlot.HAND) return;
 
         boolean played = insertAndPlayDisc(baseEntity, itemStack, player);
         if (!played) return;
@@ -67,8 +67,8 @@ public class JukeboxListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onEjectDisc(OraxenFurnitureInteractEvent event) {
-        if (!ejectAndStopDisc(event.getBaseEntity(), event.getPlayer())) return;
-        event.getPlayer().swingMainHand();
+        if (!ejectAndStopDisc(event.baseEntity(), event.player())) return;
+        event.player().swingMainHand();
         event.setCancelled(true);
     }
 
@@ -84,7 +84,7 @@ public class JukeboxListener implements Listener {
 
         if (furnitureMechanic == null || !furnitureMechanic.isJukebox()) return false;
         if (pdc.has(MUSIC_DISC_KEY, DataType.ITEM_STACK) || !ItemUtils.isMusicDisc(disc)) return false;
-        JukeboxBlock jukebox = furnitureMechanic.getJukebox();
+        JukeboxBlock jukebox = furnitureMechanic.jukebox();
         if (!jukebox.hasPermission(player)) return false;
         ItemStack insertedDisc = disc.clone();
         insertedDisc.setAmount(1);
@@ -104,7 +104,7 @@ public class JukeboxListener implements Listener {
         if (furnitureMechanic == null || !furnitureMechanic.isJukebox()) return false;
         if (!pdc.has(MUSIC_DISC_KEY, DataType.ITEM_STACK) || !ItemUtils.isMusicDisc(item)) return false;
 
-        JukeboxBlock jukebox = furnitureMechanic.getJukebox();
+        JukeboxBlock jukebox = furnitureMechanic.jukebox();
         if (!jukebox.hasPermission(player)) return false;
 
         baseEntity.getWorld().getNearbyEntities(loc, 32, 32, 32).stream()

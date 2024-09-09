@@ -9,7 +9,6 @@ import io.th0rgal.oraxen.mechanics.provided.gameplay.stringblock.sapling.Sapling
 import io.th0rgal.oraxen.mechanics.provided.gameplay.stringblock.sapling.SaplingTask;
 import io.th0rgal.oraxen.nms.NMSHandlers;
 import io.th0rgal.oraxen.pack.generation.ResourcePack;
-import io.th0rgal.oraxen.utils.VersionUtil;
 import io.th0rgal.oraxen.utils.logs.Logs;
 import org.apache.commons.lang3.Range;
 import org.bukkit.block.Block;
@@ -57,16 +56,21 @@ public class StringBlockMechanicFactory extends MechanicFactory {
         if (customSounds) MechanicsManager.registerListeners(OraxenPlugin.get(), getMechanicID(), new StringBlockSoundListener());
 
         // Physics-related stuff
-        if (VersionUtil.isPaperServer())
-            MechanicsManager.registerListeners(OraxenPlugin.get(), getMechanicID(), new StringBlockMechanicListener.StringBlockMechanicPaperListener());
-        if (!VersionUtil.isPaperServer() || !NMSHandlers.isTripwireUpdatesDisabled())
-            MechanicsManager.registerListeners(OraxenPlugin.get(), getMechanicID(), new StringBlockMechanicListener.StringBlockMechanicPhysicsListener());
-        if (VersionUtil.isPaperServer() && !NMSHandlers.isTripwireUpdatesDisabled()) {
+        MechanicsManager.registerListeners(OraxenPlugin.get(), getMechanicID(), new StringBlockMechanicPaperListener());
+        if (!NMSHandlers.isTripwireUpdatesDisabled()) {
             Logs.logError("Papers block-updates.disable-tripwire-updates is not enabled.");
             Logs.logWarning("It is recommended to enable this setting for improved performance and prevent bugs with tripwires");
             Logs.logWarning("Otherwise Oraxen needs to listen to very taxing events, which also introduces some bugs");
             Logs.logWarning("You can enable this setting in ServerFolder/config/paper-global.yml", true);
         }
+    }
+
+    public static boolean isEnabled() {
+        return instance != null;
+    }
+
+    public static StringBlockMechanicFactory get() {
+        return instance;
     }
 
     public static JsonObject getModelJson(String modelName) {
@@ -77,10 +81,6 @@ public class StringBlockMechanicFactory extends MechanicFactory {
 
     public static StringBlockMechanic getBlockMechanic(@NotNull Tripwire blockData) {
         return BLOCK_PER_VARIATION.values().stream().filter(m -> m.blockData().equals(blockData)).findFirst().orElse(null);
-    }
-
-    public static boolean isEnabled() {
-        return instance != null;
     }
 
     public static StringBlockMechanicFactory getInstance() {
@@ -109,13 +109,13 @@ public class StringBlockMechanicFactory extends MechanicFactory {
     @Override
     public Mechanic parse(ConfigurationSection section) {
         StringBlockMechanic mechanic = new StringBlockMechanic(this, section);
-        if (!Range.between(1, 127).contains(mechanic.getCustomVariation())) {
+        if (!Range.between(1, 127).contains(mechanic.customVariation())) {
             Logs.logError("The custom variation of the block " + mechanic.getItemID() + " is not between 1 and 127!");
             Logs.logWarning("The item has failed to build for now to prevent bugs and issues.");
         }
         String variantName = getBlockstateVariantName(mechanic);
-        variants.add(variantName, getModelJson(mechanic.getModel()));
-        BLOCK_PER_VARIATION.put(mechanic.getCustomVariation(), mechanic);
+        variants.add(variantName, getModelJson(mechanic.model().value()));
+        BLOCK_PER_VARIATION.put(mechanic.customVariation(), mechanic);
         addToImplemented(mechanic);
         return mechanic;
     }

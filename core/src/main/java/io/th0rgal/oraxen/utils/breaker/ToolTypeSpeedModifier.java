@@ -1,25 +1,30 @@
 package io.th0rgal.oraxen.utils.breaker;
 
+import io.th0rgal.oraxen.nms.NMSHandlers;
 import org.bukkit.Material;
 import org.bukkit.Tag;
-import org.bukkit.inventory.ItemStack;
 
-import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 public class ToolTypeSpeedModifier {
+    public static final ToolTypeSpeedModifier EMPTY = new ToolTypeSpeedModifier(Set.of(Material.AIR), 1f);
     public static final Set<ToolTypeSpeedModifier> VANILLA = new HashSet<>();
 
     static {
-        VANILLA.add(new ToolTypeSpeedModifier(Set.of(Material.AIR), 1f));
-        VANILLA.add(new ToolTypeSpeedModifier(Tag.ITEMS_TOOLS.getValues().stream().filter(m -> m.toString().startsWith("WOODEN_")).collect(Collectors.toSet()), 2));
-        VANILLA.add(new ToolTypeSpeedModifier(Tag.ITEMS_TOOLS.getValues().stream().filter(m -> m.toString().startsWith("STONE_")).collect(Collectors.toSet()), 4));
-        VANILLA.add(new ToolTypeSpeedModifier(Tag.ITEMS_TOOLS.getValues().stream().filter(m -> m.toString().startsWith("IRON_")).collect(Collectors.toSet()), 6));
-        VANILLA.add(new ToolTypeSpeedModifier(Tag.ITEMS_TOOLS.getValues().stream().filter(m -> m.toString().startsWith("DIAMOND_")).collect(Collectors.toSet()), 8));
-        VANILLA.add(new ToolTypeSpeedModifier(Tag.ITEMS_TOOLS.getValues().stream().filter(m -> m.toString().startsWith("NETHERITE_")).collect(Collectors.toSet()), 9));
-        VANILLA.add(new ToolTypeSpeedModifier(Tag.ITEMS_TOOLS.getValues().stream().filter(m -> m.toString().startsWith("GOLDEN_")).collect(Collectors.toSet()), 12));
+        VANILLA.add(EMPTY);
+
+        NMSHandlers.getHandler();
+        Set<Material> itemTools = NMSHandlers.getHandler().itemTools();
+
+        VANILLA.add(new ToolTypeSpeedModifier(itemTools.stream().filter(m -> m.toString().startsWith("WOODEN_")).collect(Collectors.toSet()), 2));
+        VANILLA.add(new ToolTypeSpeedModifier(itemTools.stream().filter(m -> m.toString().startsWith("STONE_")).collect(Collectors.toSet()), 4));
+        VANILLA.add(new ToolTypeSpeedModifier(itemTools.stream().filter(m -> m.toString().startsWith("IRON_")).collect(Collectors.toSet()), 6));
+        VANILLA.add(new ToolTypeSpeedModifier(itemTools.stream().filter(m -> m.toString().startsWith("DIAMOND_")).collect(Collectors.toSet()), 8));
+        VANILLA.add(new ToolTypeSpeedModifier(itemTools.stream().filter(m -> m.toString().startsWith("NETHERITE_")).collect(Collectors.toSet()), 9));
+        VANILLA.add(new ToolTypeSpeedModifier(itemTools.stream().filter(m -> m.toString().startsWith("GOLDEN_")).collect(Collectors.toSet()), 12));
 
         VANILLA.add(new ToolTypeSpeedModifier(Set.of(Material.SHEARS), 15, Tag.LEAVES.getValues()));
         VANILLA.add(new ToolTypeSpeedModifier(Set.of(Material.SHEARS), 15, Set.of(Material.COBWEB)));
@@ -40,21 +45,28 @@ public class ToolTypeSpeedModifier {
         this.materials = new HashSet<>();
     }
 
+    //TODO allow for specifying a ToolTypeSpeedModifier in CustomBlockMechanic Drops bestTools
+    /*public ToolTypeSpeedModifier(String bestTool) {
+        String tool = StringUtils.substringBefore(bestTool, " ");
+        double modifier = ParseUtils.parseDouble(StringUtils.substringAfter(bestTool, " "), 1.0);
+        VANILLA.stream().filter(t -> t.toolTypes())
+    }*/
+
     public ToolTypeSpeedModifier(Set<Material> toolType, float speedModifier, Set<Material> materials) {
         this.toolType = toolType;
         this.speedModifier = speedModifier;
         this.materials = materials;
     }
 
-    public Set<Material> getToolType() {
+    public Set<Material> toolTypes() {
         return toolType;
     }
 
-    public float getSpeedModifier() {
+    public float speedModifier() {
         return speedModifier;
     }
 
-    public Set<Material> getMaterials() {
+    public Set<Material> materials() {
         return materials;
     }
 }

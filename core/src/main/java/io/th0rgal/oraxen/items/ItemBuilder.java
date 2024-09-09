@@ -68,8 +68,8 @@ public class ItemBuilder {
     private Multimap<Attribute, AttributeModifier> attributeModifiers;
     private boolean hasCustomModelData;
     private int customModelData;
-    private String displayName;
-    private List<String> lore;
+    private Component displayName;
+    private List<Component> lore;
     private ItemStack finalItemStack;
 
     // 1.20.5+ properties
@@ -82,7 +82,7 @@ public class ItemBuilder {
     @Nullable
     private Integer maxStackSize;
     @Nullable
-    private String itemName;
+    private Component itemName;
     @Nullable
     private Boolean fireResistant;
     @Nullable
@@ -153,15 +153,9 @@ public class ItemBuilder {
             patternColor = tropicalFishBucketMeta.getPatternColor();
         }
 
-        if (itemMeta.hasDisplayName()) {
-            if (VersionUtil.isPaperServer()) displayName = AdventureUtils.MINI_MESSAGE.serialize(itemMeta.displayName());
-            else displayName = itemMeta.getDisplayName();
-        }
+        if (itemMeta.hasDisplayName()) displayName = itemMeta.displayName();
 
-        if (itemMeta.hasLore()) {
-            if (VersionUtil.isPaperServer()) lore = itemMeta.lore().stream().map(AdventureUtils.MINI_MESSAGE::serialize).toList();
-            else lore = itemMeta.getLore();
-        }
+        if (itemMeta.hasLore()) lore = itemMeta.lore();
 
         unbreakable = itemMeta.isUnbreakable();
         unstackable = itemMeta.getPersistentDataContainer().has(UNSTACKABLE_KEY, DataType.UUID);
@@ -182,11 +176,8 @@ public class ItemBuilder {
         enchantments = new HashMap<>();
 
         if (VersionUtil.atOrAbove("1.20.5")) {
-            if (itemMeta.hasItemName()) {
-                if (VersionUtil.isPaperServer())
-                    itemName = AdventureUtils.MINI_MESSAGE.serialize(itemMeta.itemName());
-                else itemName = itemMeta.getItemName();
-            } else itemName = null;
+            if (itemMeta.hasItemName()) itemName = itemMeta.itemName();
+            else itemName = null;
 
             durability = (itemMeta instanceof Damageable damageable) && damageable.hasMaxDamage() ? damageable.getMaxDamage() : null;
             fireResistant = itemMeta.isFireResistant() ? true : null;
@@ -221,13 +212,22 @@ public class ItemBuilder {
         return this;
     }
 
-    @Nullable
+    @Deprecated @Nullable
     public String getDisplayName() {
+        return displayName != null ? AdventureUtils.MINI_MESSAGE.serialize(displayName) : null;
+    }
+
+    @Nullable
+    public Component displayName() {
         return displayName;
     }
 
     @Deprecated
-    public ItemBuilder setDisplayName(final String displayName) {
+    public ItemBuilder setDisplayName(String displayName) {
+        this.displayName = AdventureUtils.LEGACY_SERIALIZER.deserialize(displayName);
+        return this;
+    }
+    public ItemBuilder displayName(Component displayName) {
         this.displayName = displayName;
         return this;
     }
@@ -236,12 +236,23 @@ public class ItemBuilder {
         return itemName != null;
     }
 
-    @Nullable
+    @Deprecated @Nullable
     public String getItemName() {
-        return itemName;
+        return itemName != null ? AdventureUtils.MINI_MESSAGE.serialize(itemName) : null;
     }
 
+    @Nullable
+    public Component itemName() {
+        return itemName != null ? itemName : null;
+    }
+
+    @Deprecated
     public ItemBuilder setItemName(String itemName) {
+        this.itemName = AdventureUtils.LEGACY_SERIALIZER.deserialize(itemName);
+        return this;
+    }
+
+    public ItemBuilder itemName(Component itemName) {
         this.itemName = itemName;
         return this;
     }
@@ -250,11 +261,22 @@ public class ItemBuilder {
         return lore != null && !lore.isEmpty();
     }
 
+    @Deprecated
     public List<String> getLore() {
+        return lore != null ? lore.stream().map(AdventureUtils.MINI_MESSAGE::serialize).toList() : new ArrayList<>();
+    }
+
+    public List<Component> lore() {
         return lore != null ? lore : new ArrayList<>();
     }
 
+    @Deprecated
     public ItemBuilder setLore(final List<String> lore) {
+        this.lore = lore.stream().map(l -> AdventureUtils.LEGACY_SERIALIZER.deserialize(l).asComponent()).toList();
+        return this;
+    }
+
+    public ItemBuilder lore(final List<Component> lore) {
         this.lore = lore;
         return this;
     }
@@ -572,10 +594,7 @@ public class ItemBuilder {
         // 1.20.5+ properties
         if (VersionUtil.atOrAbove("1.20.5")) {
             if (itemMeta instanceof Damageable damageable) damageable.setMaxDamage(durability);
-            if (hasItemName()) {
-                if (VersionUtil.isPaperServer()) itemMeta.itemName(AdventureUtils.MINI_MESSAGE.deserialize(itemName));
-                else itemMeta.setItemName(itemName);
-            }
+            if (hasItemName()) itemMeta.itemName(itemName);
             if (hasMaxStackSize()) itemMeta.setMaxStackSize(maxStackSize);
             if (hasEnchantmentGlindOverride()) itemMeta.setEnchantmentGlintOverride(enchantmentGlintOverride);
             if (hasRarity()) itemMeta.setRarity(rarity);
@@ -594,12 +613,11 @@ public class ItemBuilder {
 
         PersistentDataContainer pdc = itemMeta.getPersistentDataContainer();
         if (displayName != null) {
-            if (!VersionUtil.atOrAbove("1.20.5")) pdc.set(ORIGINAL_NAME_KEY, DataType.STRING, displayName);
-            if (VersionUtil.isPaperServer()) {
-                Component displayName = AdventureUtils.MINI_MESSAGE.deserialize(this.displayName);
-                displayName = displayName.decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE).colorIfAbsent(NamedTextColor.WHITE);
-                itemMeta.displayName(displayName);
-            } else itemMeta.setDisplayName(displayName);
+            if (VersionUtil.below("1.20.5")) pdc.set(ORIGINAL_NAME_KEY, DataType.STRING, AdventureUtils.MINI_MESSAGE.serialize(displayName));
+            itemMeta.displayName(displayName
+                    .decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE)
+                    .colorIfAbsent(NamedTextColor.WHITE)
+            );
         }
 
         if (itemFlags != null)
@@ -623,12 +641,7 @@ public class ItemBuilder {
             for (final Map.Entry<PersistentDataSpace, Object> dataSpace : persistentDataMap.entrySet())
                 pdc.set(dataSpace.getKey().namespacedKey(), (PersistentDataType<?, Object>) dataSpace.getKey().dataType(), dataSpace.getValue());
 
-        if (VersionUtil.isPaperServer()) {
-            @Nullable List<Component> loreLines = lore != null? lore.stream().map(AdventureUtils.MINI_MESSAGE::deserialize).toList() : new ArrayList<>();
-            loreLines = loreLines.stream().map(c -> c.decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE)).toList();
-            itemMeta.lore(lore != null ? loreLines : null);
-        }
-        else itemMeta.setLore(lore);
+        itemMeta.lore(lore);
 
         itemStack.setItemMeta(itemMeta);
         finalItemStack = itemStack;

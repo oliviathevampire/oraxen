@@ -15,9 +15,8 @@ import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.function.Supplier;
 
 public enum Settings {
     // Generic Plugin stuff
@@ -241,6 +240,16 @@ public enum Settings {
     @Override
     public String toString() {
         return String.valueOf(getValue());
+    }
+
+    public <T extends Enum<T>> T toEnum(Class<T> enumClass, T defaultValue) {
+        Optional<T> enumValue = Arrays.stream(enumClass.getEnumConstants()).filter(e -> e.name().equals(toString())).findFirst();
+        return enumValue.orElse(defaultValue);
+    }
+
+    public <T extends Enum<T>> T toEnumOrGet(Class<T> enumClass, Supplier<? extends T> supplier) {
+        Optional<T> enumValue = Arrays.stream(enumClass.getEnumConstants()).filter(e -> e.name().equals(toString())).findFirst();
+        return enumValue.orElseGet(supplier);
     }
 
     public Component toComponent() {

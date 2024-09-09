@@ -1,6 +1,7 @@
 package io.th0rgal.oraxen.utils;
 
 import io.th0rgal.oraxen.utils.logs.Logs;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
@@ -40,9 +41,7 @@ public class EntityUtils {
      * @param entity The entity to teleport
      */
     public static void teleport(@NotNull Location location, @NotNull Entity entity) {
-        if (VersionUtil.atOrAbove("1.19.4") && (VersionUtil.isPaperServer() || VersionUtil.isFoliaServer())) {
-            entity.teleportAsync(location);
-        } else entity.teleport(location);
+        entity.teleportAsync(location);
     }
 
     static {
@@ -73,7 +72,10 @@ public class EntityUtils {
         return null;
     }
 
-
+    public static void customName(Entity entity, Component customName) {
+        if (VersionUtil.isPaperServer()) entity.customName(customName);
+        else entity.setCustomName(AdventureUtils.LEGACY_SERIALIZER.serialize(customName));
+    }
 
     public interface EntityConsumer<T> {
         void accept(T entity);

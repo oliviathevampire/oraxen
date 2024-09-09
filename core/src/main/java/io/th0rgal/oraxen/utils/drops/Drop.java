@@ -1,7 +1,8 @@
 package io.th0rgal.oraxen.utils.drops;
 
+import dev.jorel.commandapi.wrappers.IntegerRange;
 import io.th0rgal.oraxen.api.OraxenItems;
-import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureMechanic;
+import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureHelpers;
 import io.th0rgal.oraxen.mechanics.provided.misc.itemtype.ItemTypeMechanic;
 import io.th0rgal.oraxen.mechanics.provided.misc.itemtype.ItemTypeMechanicFactory;
 import io.th0rgal.oraxen.utils.BlockHelpers;
@@ -10,7 +11,7 @@ import io.th0rgal.oraxen.utils.wrappers.EnchantmentWrapper;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.entity.Entity;
+import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -27,8 +28,8 @@ public class Drop {
     private final List<Loot> loots;
     final boolean silktouch;
     final boolean fortune;
-    String minimalType;
-    private final List<String> bestTools;
+    private String minimalType;
+    private String bestTool;
     final String sourceID;
 
     @SuppressWarnings("unchecked")
@@ -36,18 +37,18 @@ public class Drop {
         List<Loot> loots = ((List<LinkedHashMap<String, Object>>) dropSection.getList("loots", new ArrayList<>())).stream().map(c -> new Loot(c, sourceID)).toList();
         return new Drop(toolTypes, loots, dropSection.getBoolean("silktouch"),
                 dropSection.getBoolean("fortune"), sourceID,
-                dropSection.getString("minimal_type", ""), dropSection.getStringList("best_tools"));
+                dropSection.getString("minimal_type", ""), dropSection.getString("best_tool"));
     }
 
     public Drop(List<String> hierarchy, List<Loot> loots, boolean silktouch, boolean fortune, String sourceID,
-                String minimalType, List<String> bestTools) {
+                String minimalType, String bestTool) {
         this.hierarchy = hierarchy;
         this.loots = loots;
         this.silktouch = silktouch;
         this.fortune = fortune;
         this.sourceID = sourceID;
         this.minimalType = minimalType;
-        this.bestTools = bestTools;
+        this.bestTool = bestTool;
     }
 
     public Drop(List<Loot> loots, boolean silktouch, boolean fortune, String sourceID) {
@@ -55,7 +56,6 @@ public class Drop {
         this.silktouch = silktouch;
         this.fortune = fortune;
         this.sourceID = sourceID;
-        this.bestTools = new ArrayList<>();
     }
 
     public static Drop emptyDrop() {
@@ -65,7 +65,7 @@ public class Drop {
         return new Drop(loots, false, false, "");
     }
     public static Drop clone(Drop drop, List<Loot> newLoots) {
-        return new Drop(drop.hierarchy, newLoots, drop.silktouch, drop.fortune, drop.sourceID, drop.minimalType, drop.bestTools);
+        return new Drop(drop.hierarchy, newLoots, drop.silktouch, drop.fortune, drop.sourceID, drop.minimalType, drop.bestTool);
     }
 
     public String getItemType(ItemStack itemInHand) {
@@ -75,7 +75,7 @@ public class Drop {
             String[] content = itemInHand.getType().toString().split("_");
             return content.length >= 2 ? content[0] : "";
         } else {
-            ItemTypeMechanic mechanic = (ItemTypeMechanic) factory.getMechanic(itemID);
+            ItemTypeMechanic mechanic = factory.getMechanic(itemID);
             return mechanic.itemType;
         }
     }
@@ -93,12 +93,12 @@ public class Drop {
     }
 
     public boolean isToolEnough(ItemStack itemInHand) {
-        if (!bestTools.isEmpty()) {
+        if (bestTool != null && !bestTool.isEmpty()) {
             String itemID = OraxenItems.getIdByItem(itemInHand);
-            String type = (itemInHand == null ? Material.AIR : itemInHand.getType()).toString().toUpperCase();
-            if (itemID != null && bestTools.stream().anyMatch(itemID::equalsIgnoreCase)) return true;
-            else if (bestTools.contains(type)) return true;
-            else return bestTools.stream().anyMatch(toolName -> type.endsWith(toolName.toUpperCase()));
+            String type = (itemInHand == null ? Material.AIR : itemInHand.getType()).name();
+            if (bestTool.equals(itemID)) return true;
+            else if (bestTool.equals(type)) return true;
+            else return type.endsWith(bestTool.toUpperCase());
         } else return true;
     }
 
@@ -114,45 +114,48 @@ public class Drop {
         return fortune;
     }
 
-    public String getSourceID() {
+    public String sourceId() {
         return sourceID;
     }
 
-    public String getMinimalType() {
+    public String minimalType() {
         return minimalType;
     }
 
-    public List<String> getBestTools() {
-        return bestTools;
+    public String bestTool() {
+        return bestTool;
     }
 
-    public List<String> getHierarchy() {
+    public List<String> hierarchy() {
         return hierarchy;
     }
 
-    public List<Loot> getLoots() {
+    public List<Loot> loots() {
         return loots;
     }
 
-    public Drop setLoots(List<Loot> loots) {
+    public Drop loots(List<Loot> loots) {
         this.loots.clear();
         this.loots.addAll(loots);
         return this;
     }
 
-    public void spawns(Location location, ItemStack itemInHand) {
-        if (!canDrop(itemInHand) || !BlockHelpers.isLoaded(location)) return;
+    public List<DroppedLoot> spawns(Location location, ItemStack itemInHand) {
+        if (!canDrop(itemInHand) || !BlockHelpers.isLoaded(location)) return List.of();
         ItemStack baseItem = OraxenItems.getItemById(sourceID).build();
 
-        if (silktouch && itemInHand.hasItemMeta() && itemInHand.getItemMeta().hasEnchant(EnchantmentWrapper.SILK_TOUCH))
+        if (silktouch && itemInHand.hasItemMeta() && itemInHand.getItemMeta().hasEnchant(EnchantmentWrapper.SILK_TOUCH)) {
             location.getWorld().dropItemNaturally(BlockHelpers.toCenterBlockLocation(location), baseItem);
-        else dropLoot(loots, location, getFortuneMultiplier(itemInHand));
+            return List.of(new DroppedLoot(new Loot(sourceID, baseItem, 1, new IntegerRange(1, 1)), 1));
+        } else {
+            return dropLoot(loots, location, getFortuneMultiplier(itemInHand));
+        }
     }
 
-    public void furnitureSpawns(Entity baseEntity, ItemStack itemInHand) {
+    public void furnitureSpawns(ItemDisplay baseEntity, ItemStack itemInHand) {
         ItemStack baseItem = OraxenItems.getItemById(sourceID).build();
         Location location = BlockHelpers.toBlockLocation(baseEntity.getLocation());
-        ItemStack furnitureItem = FurnitureMechanic.getFurnitureItem(baseEntity);
+        ItemStack furnitureItem = FurnitureHelpers.furnitureItem(baseEntity);
         ItemUtils.editItemMeta(furnitureItem, (itemMeta) -> {
             ItemMeta baseMeta = baseItem.getItemMeta();
             if (baseMeta != null && baseMeta.hasDisplayName())
@@ -167,11 +170,11 @@ public class Drop {
         } else {
             // Drop all the items that aren't the furniture item
             dropLoot(loots.stream().filter(loot ->
-                    !loot.getItemStack().equals(baseItem)).toList(), location, getFortuneMultiplier(itemInHand));
+                    !loot.itemStack().equals(baseItem)).toList(), location, getFortuneMultiplier(itemInHand));
             // Filter loots down to only the furniture item and drop the item in the actual Furniture to preseve color etc.
             dropLoot(loots.stream()
-                    .filter(loot -> loot.getItemStack().equals(baseItem))
-                    .map(loot -> new Loot(sourceID, furnitureItem, loot.getProbability(), 1, loot.getMaxAmount()))
+                    .filter(loot -> loot.itemStack().equals(baseItem))
+                    .map(loot -> new Loot(sourceID, furnitureItem, loot.probability(), loot.amount()))
                     .toList(), location, getFortuneMultiplier(itemInHand));
         }
     }
@@ -188,8 +191,17 @@ public class Drop {
         return fortuneMultiplier;
     }
 
-    private void dropLoot(List<Loot> loots, Location location, int fortuneMultiplier) {
-        for (Loot loot : loots) loot.dropNaturally(location, fortuneMultiplier);
+    private List<DroppedLoot> dropLoot(List<Loot> loots, Location location, int fortuneMultiplier) {
+        List<DroppedLoot> droppedLoots = new ArrayList<>();
+
+        for (Loot loot : loots) {
+            int droppedAmount = loot.dropNaturally(location, fortuneMultiplier);
+            if (droppedAmount > 0) {
+                droppedLoots.add(new DroppedLoot(loot, droppedAmount));
+            }
+        }
+
+        return droppedLoots;
     }
 
     /**
@@ -197,7 +209,7 @@ public class Drop {
      * @param player the player that triggered this drop
      * @return the loots that will drop
      */
-    public List<Loot> getLootToDrop(Player player) {
+    public List<Loot> lootToDrop(Player player) {
         ItemStack itemInHand = player.getInventory().getItemInMainHand();
         int fortuneMultiplier = getFortuneMultiplier(itemInHand);
         List<Loot> droppedLoots = new ArrayList<>();
@@ -205,7 +217,7 @@ public class Drop {
             ItemStack item = loot.getItem(fortuneMultiplier);
 
             if (!canDrop(itemInHand) || item == null) continue;
-            if (Math.random() > loot.getProbability()) continue;
+            if (Math.random() > loot.probability()) continue;
 
             droppedLoots.add(loot);
         }

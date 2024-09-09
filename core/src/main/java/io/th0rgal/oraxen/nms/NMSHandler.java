@@ -1,21 +1,35 @@
 package io.th0rgal.oraxen.nms;
 
-import org.bukkit.block.data.BlockData;
+import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.IFurniturePacketManager;
+import io.th0rgal.oraxen.utils.InteractionResult;
+import io.th0rgal.oraxen.utils.wrappers.PotionEffectTypeWrapper;
+import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.potion.PotionEffect;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Unmodifiable;
 
 import java.util.Set;
 
 public interface NMSHandler {
+    default boolean isEmpty() {
+        return this.equals(new io.th0rgal.oraxen.nms.EmptyNMSHandler());
+    }
+    default IFurniturePacketManager furniturePacketManager() {
+        return new EmptyFurniturePacketManager();
+    }
 
     GlyphHandler glyphHandler();
 
     boolean noteblockUpdatesDisabled();
 
     boolean tripwireUpdatesDisabled();
+
+    int playerProtocolVersion(Player player);
 
     /**
      * Copies over all NBT-Tags from oldItem to newItem
@@ -37,10 +51,8 @@ public interface NMSHandler {
      * @param itemStack       The ItemStack the player placed the block with
      * @return The corrected BlockData
      */
-    @Nullable BlockData correctBlockStates(Player player, EquipmentSlot slot, ItemStack itemStack);
-
-    /**Removes mineable/axe tag from noteblocks for custom blocks */
-    void customBlockDefaultTools(Player player);
+    @Nullable
+    InteractionResult correctBlockStates(Player player, EquipmentSlot slot, ItemStack itemStack);
 
     /**
      * Keys that are used by vanilla Minecraft and should therefore be skipped
@@ -76,19 +88,50 @@ public interface NMSHandler {
         }
 
         @Override
+        public int playerProtocolVersion(Player player) {
+            return 0;
+        }
+
+        @Override
         public ItemStack copyItemNBTTags(@NotNull ItemStack oldItem, @NotNull ItemStack newItem) {
             return newItem;
         }
 
         @Nullable
         @Override
-        public BlockData correctBlockStates(Player player, EquipmentSlot slot, ItemStack itemStack) {
+        public InteractionResult correctBlockStates(Player player, EquipmentSlot slot, ItemStack itemStack) {
             return null;
         }
 
+        @NotNull
         @Override
-        public void customBlockDefaultTools(Player player) {
+        public @Unmodifiable Set<Material> itemTools() {
+            return Set.of();
+        }
 
+        @Override
+        public void applyMiningEffect(Player player) {
+            player.addPotionEffect(new PotionEffect(PotionEffectTypeWrapper.MINING_FATIGUE, -1, Integer.MAX_VALUE, false, false, false));
+        }
+
+        @Override
+        public void removeMiningEffect(Player player) {
+            player.removePotionEffect(PotionEffectTypeWrapper.MINING_FATIGUE);
+        }
+
+        @Override
+        public String getNoteBlockInstrument(Block block) {
+            return "block.note_block.harp";
         }
     }
+
+    @NotNull
+    @Unmodifiable
+    Set<Material> itemTools();
+
+    void applyMiningEffect(Player player);
+
+    void removeMiningEffect(Player player);
+
+    String getNoteBlockInstrument(Block block);
 }
