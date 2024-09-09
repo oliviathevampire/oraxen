@@ -1,6 +1,6 @@
 package io.th0rgal.oraxen.api.events.stringblock;
 
-import io.th0rgal.oraxen.mechanics.provided.gameplay.stringblock.StringBlockMechanic;
+import io.th0rgal.oraxen.mechanics.provided.gameplay.custom_block.stringblock.StringBlockMechanic;
 import io.th0rgal.oraxen.utils.drops.Drop;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -22,7 +22,7 @@ public class OraxenStringBlockBreakEvent extends Event implements Cancellable {
         this.mechanic = mechanic;
         this.player = player;
         this.block = block;
-        this.drop = mechanic.getDrop();
+        this.drop = mechanic.breakable().drop();
         this.isCancelled = false;
     }
 

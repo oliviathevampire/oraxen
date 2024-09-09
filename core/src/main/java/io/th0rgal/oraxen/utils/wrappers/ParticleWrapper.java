@@ -5,9 +5,6 @@ import org.bukkit.Particle;
 import org.bukkit.Registry;
 import org.jetbrains.annotations.NotNull;
 
-import org.bukkit.Registry;
-import org.jetbrains.annotations.NotNull;
-
 import java.util.Objects;
 
 public class ParticleWrapper {

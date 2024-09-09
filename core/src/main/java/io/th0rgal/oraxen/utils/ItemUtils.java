@@ -1,6 +1,7 @@
 package io.th0rgal.oraxen.utils;
 
 import io.th0rgal.oraxen.utils.drops.Drop;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.Tag;
@@ -9,7 +10,11 @@ import org.bukkit.event.player.PlayerItemDamageEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.*;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 public class ItemUtils {
@@ -20,6 +25,62 @@ public class ItemUtils {
 
     public static void subtract(ItemStack itemStack, int amount) {
         itemStack.setAmount(Math.max(0, itemStack.getAmount() - amount));
+    }
+
+    public static void itemName(ItemMeta itemMeta, ItemMeta otherMeta) {
+        if (itemMeta == null) return;
+        if (VersionUtil.isPaperServer()) itemName(itemMeta, otherMeta.itemName());
+        else itemMeta.setItemName(otherMeta.getItemName());
+    }
+
+    public static void itemName(ItemMeta itemMeta, @Nullable Component component) {
+        component = component != Component.empty() ? component : null;
+        if (VersionUtil.isPaperServer()) itemMeta.itemName(component);
+        else itemMeta.setItemName(AdventureUtils.LEGACY_SERIALIZER.serialize(component));
+    }
+
+    public static void displayName(ItemMeta itemMeta, ItemMeta otherMeta) {
+        if (itemMeta == null) return;
+        if (VersionUtil.isPaperServer()) displayName(itemMeta, otherMeta.displayName());
+        else itemMeta.setDisplayName(otherMeta.getDisplayName());
+    }
+
+    public static void displayName(ItemStack itemStack, @Nullable Component component) {
+        editItemMeta(itemStack, itemMeta -> {
+            if (VersionUtil.isPaperServer()) itemMeta.displayName(component);
+            else itemMeta.setDisplayName(Optional.ofNullable(component).map(AdventureUtils.LEGACY_SERIALIZER::serialize).orElse(null));
+        });
+    }
+
+    public static void displayName(ItemMeta itemMeta, @Nullable Component component) {
+        component = component != Component.empty() ? component : null;
+        if (VersionUtil.isPaperServer()) itemMeta.displayName(component);
+        else itemMeta.setDisplayName(AdventureUtils.LEGACY_SERIALIZER.serialize(component));
+    }
+
+    public static void lore(ItemStack itemStack, List<Component> components) {
+        if (VersionUtil.isPaperServer()) itemStack.lore(components);
+        else itemStack.setLore(components.stream().map(AdventureUtils.LEGACY_SERIALIZER::serialize).toList());
+    }
+
+    public static void lore(ItemStack itemStack, Collection<String> strings) {
+        if (VersionUtil.isPaperServer()) itemStack.lore(strings.stream().map(AdventureUtils.MINI_MESSAGE::deserialize).toList());
+        else itemStack.setLore(strings.stream().toList());
+    }
+
+    public static void lore(ItemMeta itemMeta, List<Component> components) {
+        if (VersionUtil.isPaperServer()) itemMeta.lore(components);
+        else itemMeta.setLore(components.stream().map(AdventureUtils.LEGACY_SERIALIZER::serialize).toList());
+    }
+
+    public static void lore(ItemMeta itemMeta, Collection<String> strings) {
+        if (VersionUtil.isPaperServer()) itemMeta.lore(strings.stream().map(AdventureUtils.MINI_MESSAGE::deserialize).toList());
+        else itemMeta.setLore(strings.stream().toList());
+    }
+
+    public static void lore(ItemMeta itemMeta, ItemMeta otherMeta) {
+        if (VersionUtil.isPaperServer()) itemMeta.lore(otherMeta.lore());
+        else itemMeta.setLore(otherMeta.getLore());
     }
 
     public static void dyeItem(ItemStack itemStack, Color color) {

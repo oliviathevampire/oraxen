@@ -61,7 +61,6 @@ public class ItemBuilder {
     private DyeColor bodyColor; // TropicalFishBucketMeta
     private TropicalFish.Pattern pattern;
     private DyeColor patternColor;
-    private String displayName;
     private boolean unbreakable;
     private boolean unstackable;
     private Set<ItemFlag> itemFlags;
@@ -69,7 +68,8 @@ public class ItemBuilder {
     private Multimap<Attribute, AttributeModifier> attributeModifiers;
     private boolean hasCustomModelData;
     private int customModelData;
-    private List<String> lore;
+    private Component displayName;
+    private List<Component> lore;
     private ItemStack finalItemStack;
 
     // 1.20.5+ properties
@@ -82,7 +82,7 @@ public class ItemBuilder {
     @Nullable
     private Integer maxStackSize;
     @Nullable
-    private String itemName;
+    private Component itemName;
     @Nullable
     private Boolean fireResistant;
     @Nullable
@@ -97,7 +97,6 @@ public class ItemBuilder {
     // 1.21+ properties
     @Nullable
     private JukeboxPlayableComponent jukeboxPlayable;
-
 
     public ItemBuilder(final Material material) {
         this(new ItemStack(material));
@@ -141,7 +140,7 @@ public class ItemBuilder {
         if (itemMeta instanceof FireworkEffectMeta effectMeta)
             color = effectMeta.hasEffect() ? Utils.getOrDefault(effectMeta.getEffect().getColors(), 0, Color.WHITE) : Color.WHITE;
 
-        if (VersionUtil.atOrAbove("1.20") && itemMeta instanceof ArmorMeta armorMeta && armorMeta.hasTrim())
+        if (itemMeta instanceof ArmorMeta armorMeta && armorMeta.hasTrim())
             trimPattern = armorMeta.getTrim().getMaterial().key();
 
         if (itemMeta instanceof SkullMeta skullMeta)
@@ -154,8 +153,13 @@ public class ItemBuilder {
         }
 
         if (itemMeta.hasDisplayName()) {
-            if (VersionUtil.isPaperServer()) displayName = AdventureUtils.MINI_MESSAGE.serialize(itemMeta.displayName());
-            else displayName = itemMeta.getDisplayName();
+            if (VersionUtil.isPaperServer()) displayName = itemMeta.displayName();
+            else displayName = AdventureUtils.LEGACY_SERIALIZER.deserialize(itemMeta.getDisplayName());
+        }
+
+        if (itemMeta.hasLore()) {
+            if (VersionUtil.isPaperServer()) lore = itemMeta.lore();
+            else lore = itemMeta.getLore().stream().map(l -> AdventureUtils.LEGACY_SERIALIZER.deserialize(l).asComponent()).toList();
         }
 
         unbreakable = itemMeta.isUnbreakable();
@@ -172,20 +176,14 @@ public class ItemBuilder {
         if (hasCustomModelData)
             customModelData = itemMeta.getCustomModelData();
 
-        if (itemMeta.hasLore()) {
-            if (VersionUtil.isPaperServer()) lore = itemMeta.lore().stream().map(AdventureUtils.MINI_MESSAGE::serialize).toList();
-            else lore = itemMeta.getLore();
-        }
-
         persistentDataContainer = itemMeta.getPersistentDataContainer();
 
         enchantments = new HashMap<>();
 
         if (VersionUtil.atOrAbove("1.20.5")) {
             if (itemMeta.hasItemName()) {
-                if (VersionUtil.isPaperServer())
-                    itemName = AdventureUtils.MINI_MESSAGE.serialize(itemMeta.itemName());
-                else itemName = itemMeta.getItemName();
+                if (VersionUtil.isPaperServer()) itemName = itemMeta.itemName();
+                else itemName = AdventureUtils.LEGACY_SERIALIZER.deserialize(itemMeta.getItemName());
             } else itemName = null;
 
             durability = (itemMeta instanceof Damageable damageable) && damageable.hasMaxDamage() ? damageable.getMaxDamage() : null;
@@ -221,12 +219,22 @@ public class ItemBuilder {
         return this;
     }
 
-    @Nullable
+    @Deprecated @Nullable
     public String getDisplayName() {
+        return displayName != null ? AdventureUtils.MINI_MESSAGE.serialize(displayName) : null;
+    }
+
+    @Nullable
+    public Component displayName() {
         return displayName;
     }
 
-    public ItemBuilder setDisplayName(final String displayName) {
+    @Deprecated
+    public ItemBuilder setDisplayName(String displayName) {
+        this.displayName = AdventureUtils.LEGACY_SERIALIZER.deserialize(displayName);
+        return this;
+    }
+    public ItemBuilder displayName(Component displayName) {
         this.displayName = displayName;
         return this;
     }
@@ -235,12 +243,23 @@ public class ItemBuilder {
         return itemName != null;
     }
 
-    @Nullable
+    @Deprecated @Nullable
     public String getItemName() {
+        return itemName != null ? AdventureUtils.MINI_MESSAGE.serialize(itemName) : null;
+    }
+
+    @Nullable
+    public Component itemName() {
         return itemName;
     }
 
+    @Deprecated
     public ItemBuilder setItemName(String itemName) {
+        this.itemName = AdventureUtils.LEGACY_SERIALIZER.deserialize(itemName);
+        return this;
+    }
+
+    public ItemBuilder itemName(Component itemName) {
         this.itemName = itemName;
         return this;
     }
@@ -249,11 +268,22 @@ public class ItemBuilder {
         return lore != null && !lore.isEmpty();
     }
 
+    @Deprecated
     public List<String> getLore() {
+        return lore != null ? lore.stream().map(AdventureUtils.MINI_MESSAGE::serialize).toList() : new ArrayList<>();
+    }
+
+    public List<Component> lore() {
         return lore != null ? lore : new ArrayList<>();
     }
 
+    @Deprecated
     public ItemBuilder setLore(final List<String> lore) {
+        this.lore = lore.stream().map(l -> AdventureUtils.LEGACY_SERIALIZER.deserialize(l).asComponent()).toList();
+        return this;
+    }
+
+    public ItemBuilder lore(final List<Component> lore) {
         this.lore = lore;
         return this;
     }
@@ -575,9 +605,9 @@ public class ItemBuilder {
         // 1.20.5+ properties
         if (VersionUtil.atOrAbove("1.20.5")) {
             if (itemMeta instanceof Damageable damageable) damageable.setMaxDamage(durability);
-            if (hasItemName()) {
-                if (VersionUtil.isPaperServer()) itemMeta.itemName(AdventureUtils.MINI_MESSAGE.deserialize(itemName));
-                else itemMeta.setItemName(itemName);
+            if (itemName != null) {
+                if (VersionUtil.isPaperServer()) itemMeta.itemName(itemName);
+                else itemMeta.setItemName(AdventureUtils.LEGACY_SERIALIZER.serialize(itemName));
             }
             if (hasMaxStackSize()) itemMeta.setMaxStackSize(maxStackSize);
             if (hasEnchantmentGlindOverride()) itemMeta.setEnchantmentGlintOverride(enchantmentGlintOverride);
@@ -597,16 +627,14 @@ public class ItemBuilder {
 
         PersistentDataContainer pdc = itemMeta.getPersistentDataContainer();
         if (displayName != null) {
-            if (!VersionUtil.atOrAbove("1.20.5")) pdc.set(ORIGINAL_NAME_KEY, DataType.STRING, displayName);
+            if (VersionUtil.below("1.20.5")) pdc.set(ORIGINAL_NAME_KEY, DataType.STRING, AdventureUtils.MINI_MESSAGE.serialize(displayName));
             if (VersionUtil.isPaperServer()) {
-                Component displayName = AdventureUtils.MINI_MESSAGE.deserialize(this.displayName);
-                displayName = displayName.decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE).colorIfAbsent(NamedTextColor.WHITE);
-                itemMeta.displayName(displayName);
-            } else itemMeta.setDisplayName(displayName);
+                itemMeta.displayName(displayName
+                        .decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE)
+                        .colorIfAbsent(NamedTextColor.WHITE)
+                );
+            } else itemMeta.setDisplayName(AdventureUtils.LEGACY_SERIALIZER.serialize(displayName));
         }
-
-        if (itemFlags != null)
-            itemMeta.addItemFlags(itemFlags.toArray(new ItemFlag[0]));
 
         if (enchantments.size() > 0) {
             for (final Map.Entry<Enchantment, Integer> enchant : enchantments.entrySet()) {
@@ -616,26 +644,31 @@ public class ItemBuilder {
             }
         }
 
-        if (hasAttributeModifiers)
-            itemMeta.setAttributeModifiers(attributeModifiers);
-
-        if (hasCustomModelData)
-            itemMeta.setCustomModelData(customModelData);
+        if (itemFlags != null) itemMeta.addItemFlags(itemFlags.toArray(new ItemFlag[0]));
+        if (hasAttributeModifiers) itemMeta.setAttributeModifiers(attributeModifiers);
+        if (hasCustomModelData) itemMeta.setCustomModelData(customModelData);
 
         if (!persistentDataMap.isEmpty())
             for (final Map.Entry<PersistentDataSpace, Object> dataSpace : persistentDataMap.entrySet())
                 pdc.set(dataSpace.getKey().namespacedKey(), (PersistentDataType<?, Object>) dataSpace.getKey().dataType(), dataSpace.getValue());
 
-        if (VersionUtil.isPaperServer()) {
-            @Nullable List<Component> loreLines = lore != null? lore.stream().map(AdventureUtils.MINI_MESSAGE::deserialize).toList() : new ArrayList<>();
-            loreLines = loreLines.stream().map(c -> c.decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE)).toList();
-            itemMeta.lore(lore != null ? loreLines : null);
-        }
-        else itemMeta.setLore(lore);
+        ItemUtils.lore(itemMeta, lore);
 
         itemStack.setItemMeta(itemMeta);
-        finalItemStack = itemStack;
 
+        /*if (VersionUtil.atOrAbove("1.20.5") && itemMeta.hasItemFlag(ItemFlag.HIDE_ATTRIBUTES)) {
+            Optional.ofNullable(ItemUtils.itemToBase64(itemStack)).ifPresent((data) -> {
+                String regex = "(attribute_modifiers=\\{[^}]*)(?<!show_in_tooltips:true)(\\})";
+
+                Pattern pattern = Pattern.compile(regex);
+                Matcher matcher = pattern.matcher(data);
+
+                data = matcher.replaceAll("$1,show_in_tooltips:true$2");
+                itemStack.setItemMeta(ItemUtils.itemFromBase64(data).getItemMeta());
+            });
+        }*/
+
+        finalItemStack = itemStack;
         return this;
     }
 

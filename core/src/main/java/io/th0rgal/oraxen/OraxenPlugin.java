@@ -1,7 +1,6 @@
 package io.th0rgal.oraxen;
 
 import com.comphenix.protocol.ProtocolLibrary;
-import com.ticxo.playeranimator.PlayerAnimatorImpl;
 import dev.jorel.commandapi.CommandAPI;
 import dev.jorel.commandapi.CommandAPIBukkitConfig;
 import io.th0rgal.oraxen.api.OraxenItems;
@@ -13,7 +12,6 @@ import io.th0rgal.oraxen.font.FontManager;
 import io.th0rgal.oraxen.font.packets.InventoryPacketListener;
 import io.th0rgal.oraxen.font.packets.TitlePacketListener;
 import io.th0rgal.oraxen.gestures.GestureManager;
-import io.th0rgal.oraxen.hud.HudManager;
 import io.th0rgal.oraxen.items.ItemUpdater;
 import io.th0rgal.oraxen.mechanics.MechanicsManager;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureFactory;
@@ -51,12 +49,10 @@ public class OraxenPlugin extends JavaPlugin {
     private BukkitAudiences audience;
     private UploadManager uploadManager;
     private FontManager fontManager;
-    private HudManager hudManager;
     private SoundManager soundManager;
     private InvManager invManager;
     private ResourcePack resourcePack;
     private ClickActionManager clickActionManager;
-    public static boolean supportsDisplayEntities;
 
     public OraxenPlugin() {
         oraxen = this;
@@ -84,10 +80,8 @@ public class OraxenPlugin extends JavaPlugin {
     public void onEnable() {
         CommandAPI.onEnable();
         ProtectionLib.init(this);
-        if (!VersionUtil.atOrAbove("1.20.3")) PlayerAnimatorImpl.initialize(this);
         audience = BukkitAudiences.create(this);
         clickActionManager = new ClickActionManager(this);
-        supportsDisplayEntities = VersionUtil.atOrAbove("1.19.4");
         reloadConfigs();
         ProtectionLib.setDebug(Settings.DEBUG.toBool());
 
@@ -100,22 +94,17 @@ public class OraxenPlugin extends JavaPlugin {
             ProtocolLibrary.getProtocolManager().addPacketListener(new TitlePacketListener());
         } else Logs.logWarning("ProtocolLib is not on your server, some features will not work");
         Bukkit.getPluginManager().registerEvents(new CustomArmorListener(), this);
-        NMSHandlers.setup();
+        NMSHandlers.setupHandler();
 
 
         resourcePack = new ResourcePack();
         MechanicsManager.registerNativeMechanics();
-        //CustomBlockData.registerListener(this); //Handle this manually
-        hudManager = new HudManager(configsManager);
         fontManager = new FontManager(configsManager);
         soundManager = new SoundManager(configsManager.getSound());
         if (!VersionUtil.atOrAbove("1.20.3")) gestureManager = new GestureManager();
         OraxenItems.loadItems();
         fontManager.registerEvents();
         fontManager.verifyRequired(); // Verify the required glyph is there
-        hudManager.registerEvents();
-        hudManager.registerTask();
-        hudManager.parsedHudDisplays = hudManager.generateHudDisplays();
         Bukkit.getPluginManager().registerEvents(new ItemUpdater(), this);
         resourcePack.generate();
         RecipesManager.load(this);
@@ -189,16 +178,6 @@ public class OraxenPlugin extends JavaPlugin {
         this.fontManager.unregisterEvents();
         this.fontManager = fontManager;
         fontManager.registerEvents();
-    }
-
-    public HudManager getHudManager() {
-        return hudManager;
-    }
-
-    public void setHudManager(final HudManager hudManager) {
-        this.hudManager.unregisterEvents();
-        this.hudManager = hudManager;
-        hudManager.registerEvents();
     }
 
     public SoundManager getSoundManager() {

@@ -126,7 +126,7 @@ public class LimitedPlacing {
 
         return switch (block.getType()) {
             case NOTE_BLOCK, TRIPWIRE -> {
-                Mechanic mechanic = OraxenBlocks.getOraxenBlock(block.getBlockData());
+                Mechanic mechanic = OraxenBlocks.getCustomBlockMechanic(block.getBlockData());
                 if (mechanic == null) yield null;
                 else yield mechanic.getItemID();
             }

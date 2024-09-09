@@ -7,32 +7,32 @@ import io.th0rgal.oraxen.mechanics.MechanicsManager;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.evolution.EvolutionListener;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.evolution.EvolutionTask;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.jukebox.JukeboxListener;
+import io.th0rgal.oraxen.nms.EmptyFurniturePacketManager;
+import io.th0rgal.oraxen.nms.NMSHandler;
+import io.th0rgal.oraxen.nms.NMSHandlers;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.List;
+import java.util.Optional;
 
 public class FurnitureFactory extends MechanicFactory {
 
-    public static FurnitureMechanic.FurnitureType defaultFurnitureType;
     public static FurnitureFactory instance;
     public final List<String> toolTypes;
     public final int evolutionCheckDelay;
     private boolean evolvingFurnitures;
     private static EvolutionTask evolutionTask;
     public final boolean customSounds;
-    public final boolean detectViabackwards;
+    public double simulationRadius = Math.pow((Bukkit.getServer().getSimulationDistance() * 16.0), 2.0);
 
     public FurnitureFactory(ConfigurationSection section) {
         super(section);
-        if (OraxenPlugin.supportsDisplayEntities)
-            defaultFurnitureType = FurnitureMechanic.FurnitureType.getType(section.getString("default_furniture_type", "DISPLAY_ENTITY"));
-        else defaultFurnitureType = FurnitureMechanic.FurnitureType.ITEM_FRAME;
         toolTypes = section.getStringList("tool_types");
         evolutionCheckDelay = section.getInt("evolution_check_delay");
         MechanicsManager.registerListeners(OraxenPlugin.get(), getMechanicID(),
                 new FurnitureListener(),
-                new FurnitureUpdater(),
                 new EvolutionListener(),
                 new JukeboxListener()
         );
@@ -41,15 +41,10 @@ public class FurnitureFactory extends MechanicFactory {
         customSounds = OraxenPlugin.get().getConfigsManager().getMechanics().getConfigurationSection("custom_block_sounds").getBoolean("stringblock_and_furniture", true);
 
         if (customSounds) MechanicsManager.registerListeners(OraxenPlugin.get(), getMechanicID(), new FurnitureSoundListener());
-        detectViabackwards = OraxenPlugin.get().getConfigsManager().getMechanics().getConfigurationSection("furniture").getBoolean("detect_viabackwards", true);
-        //TODO Fix this to not permanently and randomly break furniture
-        //if (VersionUtil.isPaperServer()) MechanicsManager.registerListeners(OraxenPlugin.get(), getMechanicID(), new FurniturePaperListener());
     }
 
-    public static boolean setDefaultType(ConfigurationSection mechanicSection) {
-        if (mechanicSection.isSet("type")) return true;
-        mechanicSection.set("type", defaultFurnitureType.toString());
-        return false;
+    public IFurniturePacketManager packetManager() {
+        return Optional.of(NMSHandlers.getHandler()).map(NMSHandler::furniturePacketManager).orElse(new EmptyFurniturePacketManager());
     }
 
     @Override
@@ -63,7 +58,7 @@ public class FurnitureFactory extends MechanicFactory {
         return instance != null;
     }
 
-    public static FurnitureFactory getInstance() {
+    public static FurnitureFactory get() {
         return instance;
     }
 
@@ -85,6 +80,11 @@ public class FurnitureFactory extends MechanicFactory {
     public static void unregisterEvolution() {
         if (evolutionTask != null)
             evolutionTask.cancel();
+    }
+
+    public static void removeAllFurniturePackets() {
+        if (instance == null) return;
+        instance.packetManager().removeAllFurniturePackets();
     }
 
     @Override

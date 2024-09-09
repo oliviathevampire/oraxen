@@ -18,9 +18,9 @@ import com.sk89q.worldedit.world.block.BaseBlock;
 import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.api.OraxenBlocks;
 import io.th0rgal.oraxen.config.Settings;
-import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.NoteBlockMechanic;
-import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.NoteBlockMechanicFactory;
-import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.directional.DirectionalBlock;
+import io.th0rgal.oraxen.mechanics.provided.gameplay.custom_block.noteblock.NoteBlockMechanic;
+import io.th0rgal.oraxen.mechanics.provided.gameplay.custom_block.noteblock.NoteBlockMechanicFactory;
+import io.th0rgal.oraxen.mechanics.provided.gameplay.custom_block.noteblock.directional.DirectionalBlock;
 import io.th0rgal.oraxen.utils.BlockHelpers;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -74,21 +74,21 @@ public class WorldEditUtils {
     }
 
     private static BlockData parseNoteBlock(NoteBlockMechanic mechanic, String input) {
-        NoteBlockMechanicFactory factory = NoteBlockMechanicFactory.getInstance();
+        NoteBlockMechanicFactory factory = NoteBlockMechanicFactory.get();
         if (mechanic.isDirectional()) {
             String direction = (input.contains("\\[")) ? input.split("\\[")[1].split("=")[1].split("]")[0] : input;
-            DirectionalBlock dirBlock = mechanic.getDirectional();
+            DirectionalBlock dirBlock = mechanic.directional();
 
             if (!dirBlock.isParentBlock()) {
-                return factory.createNoteBlockData(dirBlock.getParentBlock());
+                return factory.getMechanic(dirBlock.getParentBlock()).blockData();
             } else if (dirBlock.isParentBlock() && !direction.equals(input)) {
-                return  factory.createNoteBlockData(getDirectionalID(mechanic, direction));
-            } else return factory.createNoteBlockData(mechanic.getItemID());
-        } else return factory.createNoteBlockData(mechanic.getItemID());
+                return  factory.getMechanic(getDirectionalID(mechanic, direction)).blockData();
+            } else return mechanic.blockData();
+        } else return mechanic.blockData();
     }
 
     private static String getDirectionalID(NoteBlockMechanic mechanic, String direction) {
-        DirectionalBlock dirBlock = mechanic.getDirectional();
+        DirectionalBlock dirBlock = mechanic.directional();
         if (dirBlock.isLog()) {
             return switch (direction) {
                 case "x" -> dirBlock.getXBlock();

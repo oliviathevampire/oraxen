@@ -10,19 +10,23 @@ import io.th0rgal.oraxen.api.OraxenPack;
 import io.th0rgal.oraxen.api.events.OraxenItemsLoadedEvent;
 import io.th0rgal.oraxen.config.Message;
 import io.th0rgal.oraxen.config.Settings;
-import io.th0rgal.oraxen.hud.HudManager;
 import io.th0rgal.oraxen.items.ItemUpdater;
 import io.th0rgal.oraxen.mechanics.MechanicsManager;
+import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureFactory;
+import io.th0rgal.oraxen.nms.NMSHandlers;
 import io.th0rgal.oraxen.recipes.RecipesManager;
 import io.th0rgal.oraxen.utils.AdventureUtils;
 import io.th0rgal.oraxen.utils.logs.Logs;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.Optional;
 
 public class ReloadCommand {
 
@@ -47,33 +51,14 @@ public class ReloadCommand {
             }
         }
 
-        if (Settings.UPDATE_FURNITURE.toBool() && Settings.UPDATE_FURNITURE_ON_RELOAD.toBool()) {
-            Logs.logInfo("Updating all placed furniture...");
-            for (World world : Bukkit.getServer().getWorlds())
-                world.getEntities().stream().filter(OraxenFurniture::isBaseEntity).forEach(OraxenFurniture::updateFurniture);
-        }
-
+        Logs.logInfo("Updating all placed furniture...");
+        for (World world : Bukkit.getServer().getWorlds()) for (ItemDisplay baseEntity : world.getEntitiesByClass(ItemDisplay.class))
+            OraxenFurniture.updateFurniture(baseEntity);
     }
 
     public static void reloadPack(@Nullable CommandSender sender) {
         Message.PACK_REGENERATED.send(sender);
         OraxenPack.reloadPack();
-    }
-
-    public static void reloadHud(@Nullable CommandSender sender) {
-        Message.RELOAD.send(sender, AdventureUtils.tagResolver("reloaded", "hud"));
-        OraxenPlugin.get().reloadConfigs();
-        HudManager hudManager = new HudManager(OraxenPlugin.get().getConfigsManager());
-        OraxenPlugin.get().setHudManager(hudManager);
-        hudManager.loadHuds(hudManager.getHudConfigSection());
-        hudManager.parsedHudDisplays = hudManager.generateHudDisplays();
-        hudManager.reregisterEvents();
-        hudManager.restartTask();
-    }
-
-    public static void reloadGestures(@Nullable CommandSender sender) {
-        Message.RELOAD.send(sender, AdventureUtils.tagResolver("reloaded", "gestures"));
-        OraxenPlugin.get().getGesturesManager().reload();
     }
 
     public static void reloadRecipes(@Nullable CommandSender sender) {
@@ -86,22 +71,22 @@ public class ReloadCommand {
                 .withAliases("rl")
                 .withPermission("oraxen.command.reload")
                 .withArguments(new TextArgument("type").replaceSuggestions(
-                        ArgumentSuggestions.strings("items", "pack", "hud", "recipes", "messages", "all")))
+                        ArgumentSuggestions.strings("items", "pack", "recipes", "messages", "all")))
                 .executes((sender, args) -> {
                     switch (((String) args.get("type")).toUpperCase()) {
-                        case "HUD" -> reloadHud(sender);
                         case "ITEMS" -> reloadItems(sender);
                         case "PACK" -> reloadPack(sender);
                         case "RECIPES" -> reloadRecipes(sender);
                         case "CONFIGS" -> OraxenPlugin.get().reloadConfigs();
                         default -> {
+                            Optional.ofNullable(FurnitureFactory.get()).ifPresent(f -> f.packetManager().removeAllFurniturePackets());
                             MechanicsManager.unloadListeners();
                             MechanicsManager.unregisterTasks();
-                            MechanicsManager.registerNativeMechanics();
+                            NMSHandlers.resetHandler();
                             OraxenPlugin.get().reloadConfigs();
+                            MechanicsManager.registerNativeMechanics();
                             reloadItems(sender);
                             reloadPack(sender);
-                            reloadHud(sender);
                             reloadRecipes(sender);
                         }
                     }
@@ -110,5 +95,4 @@ public class ReloadCommand {
                     }
                 });
     }
-
 }

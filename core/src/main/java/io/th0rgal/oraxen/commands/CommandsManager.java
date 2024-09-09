@@ -35,7 +35,6 @@ public class CommandsManager {
                         (new GlyphInfoCommand()).getGlyphInfoCommand(),
                         (new ItemInfoCommand()).getItemInfoCommand(),
                         (new BlockInfoCommand()).getBlockInfoCommand(),
-                        (new HudCommand()).getHudCommand(),
                         (new LogDumpCommand().getLogDumpCommand()),
                         (new GestureCommand().getGestureCommand()),
                         (new VersionCommand()).getVersionCommand(),

@@ -1,9 +1,11 @@
 package io.th0rgal.oraxen.utils;
 
+import io.th0rgal.oraxen.nms.NMSHandlers;
 import io.th0rgal.oraxen.utils.logs.Logs;
 import org.apache.commons.lang3.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -15,13 +17,6 @@ public class VersionUtil {
         v1_21_R1,
         v1_20_R4,
         v1_20_R3,
-        v1_20_R2,
-        v1_20_R1,
-        v1_19_R3,
-        v1_19_R2,
-        v1_19_R1,
-        v1_18_R2,
-        v1_18_R1,
         UNKNOWN;
 
         public static boolean matchesServer(NMSVersion version) {
@@ -30,16 +25,9 @@ public class VersionUtil {
     }
 
     static {
-        versionMap.put(NMSVersion.v1_21_R1, Map.of(15, new MinecraftVersion("1.21")));
-        versionMap.put(NMSVersion.v1_20_R4, Map.of(13, new MinecraftVersion("1.20.5"), 14, new MinecraftVersion("1.20.6")));
-        versionMap.put(NMSVersion.v1_20_R3, Map.of(11, new MinecraftVersion("1.20.3"), 12, new MinecraftVersion("1.20.4")));
-        versionMap.put(NMSVersion.v1_20_R2, Map.of(10, new MinecraftVersion("1.20.2")));
-        versionMap.put(NMSVersion.v1_20_R1, Map.of(8, new MinecraftVersion("1.20"), 9, new MinecraftVersion("1.20.1")));
-        versionMap.put(NMSVersion.v1_19_R3, Map.of(7, new MinecraftVersion("1.19.4")));
-        versionMap.put(NMSVersion.v1_19_R2, Map.of(6, new MinecraftVersion("1.19.3")));
-        versionMap.put(NMSVersion.v1_19_R1, Map.of(3, new MinecraftVersion("1.19"), 4, new MinecraftVersion("1.19.1"), 5, new MinecraftVersion("1.19.2")));
-        versionMap.put(NMSVersion.v1_18_R2, Map.of(2, new MinecraftVersion("1.18.2")));
-        versionMap.put(NMSVersion.v1_18_R1, Map.of(0, new MinecraftVersion("1.18"), 1, new MinecraftVersion("1.18.1")));
+        versionMap.put(NMSVersion.v1_21_R1, Map.of(4, new MinecraftVersion("1.21"), 16, new MinecraftVersion("1.21.1")));
+        versionMap.put(NMSVersion.v1_20_R4, Map.of(2, new MinecraftVersion("1.20.5"), 3, new MinecraftVersion("1.20.6")));
+        versionMap.put(NMSVersion.v1_20_R3, Map.of(1, new MinecraftVersion("1.20.4")));
     }
 
     public static NMSVersion getNMSVersion(MinecraftVersion version) {
@@ -50,8 +38,20 @@ public class VersionUtil {
         return MinecraftVersion.getCurrentVersion().equals(new MinecraftVersion(server));
     }
 
+    public static boolean atOrAbove(Player player, int protocolVersion) {
+        return NMSHandlers.getHandler().playerProtocolVersion(player) >= protocolVersion;
+    }
+
     public static boolean atOrAbove(String versionString) {
         return new MinecraftVersion(versionString).atOrAbove();
+    }
+
+    public static boolean below(Player player, int protocolVersion) {
+        return !atOrAbove(player, protocolVersion);
+    }
+
+    public static boolean below(String versionString) {
+        return !atOrAbove(versionString);
     }
 
     /**

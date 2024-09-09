@@ -1,61 +1,43 @@
 package io.th0rgal.oraxen.mechanics.provided.gameplay.furniture;
 
+import io.th0rgal.oraxen.utils.Utils;
 import io.th0rgal.oraxen.utils.logs.Logs;
+import org.bukkit.Color;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.ItemDisplay;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
 import java.util.Arrays;
 import java.util.Objects;
 
 public class DisplayEntityProperties {
-    //private final Color glowColor;
+    private Color glowColor;
     private Integer viewRange;
-    private final Display.Brightness brightness;
+    private Display.Brightness brightness;
     private ItemDisplay.ItemDisplayTransform displayTransform;
     private Display.Billboard trackingRotation;
     private Float shadowStrength;
     private Float shadowRadius;
-    private Integer interpolationDuration;
-    private Integer interpolationDelay;
-    private final float displayWidth;
-    private final float displayHeight;
-    private final Vector3f scale;
+    private float displayWidth;
+    private float displayHeight;
+    private Vector3f scale;
 
-    public DisplayEntityProperties() {
-        this.displayWidth = 0f;
-        this.displayHeight = 0f;
-        this.displayTransform = ItemDisplay.ItemDisplayTransform.NONE;
-        this.scale = null;
-        this.shadowRadius = null;
-        this.shadowStrength = null;
-        this.brightness = null;
-        this.trackingRotation = null;
-        this.viewRange = null;
-    }
-
-    public DisplayEntityProperties(ConfigurationSection configSection) {
+    public DisplayEntityProperties(@Nullable ConfigurationSection configSection) {
+        this();
+        if (configSection == null) return;
         String itemID = configSection.getParent().getParent().getParent().getName();
-        //glowColor = Utils.toColor(configSection.getString("glow_color", ""));
+        glowColor = Utils.toColor(configSection.getString("glow_color", ""));
         viewRange = configSection.getInt("view_range");
-        interpolationDuration = configSection.getInt("interpolation_duration");
-        interpolationDelay = configSection.getInt("interpolation_delay");
         shadowStrength = (float) configSection.getDouble("shadow_strength");
         shadowRadius = (float) configSection.getDouble("shadow_radius");
         displayWidth = (float) configSection.getDouble("displayWidth", 0);
         displayHeight = (float) configSection.getDouble("displayHeight", 0);
-        if (configSection.isConfigurationSection("scale"))
-            scale = new Vector3f((float) configSection.getDouble("scale.x", 1.0),
-                    (float) configSection.getDouble("scale.y", 1.0),
-                    (float) configSection.getDouble("scale.z", 1.0));
-        else scale = null;
 
         if (viewRange == 0) viewRange = null;
-        if (interpolationDuration == 0) interpolationDuration = null;
-        if (interpolationDelay == 0) interpolationDelay = null;
         if (shadowStrength == 0f) shadowStrength = null;
         if (shadowRadius == 0f) shadowRadius = null;
 
@@ -67,6 +49,13 @@ public class DisplayEntityProperties {
             Logs.logWarning("Setting transform to NONE for furniture: <gold>" + itemID);
             displayTransform = ItemDisplay.ItemDisplayTransform.NONE;
         }
+
+        boolean isFixed = displayTransform == ItemDisplay.ItemDisplayTransform.FIXED;
+        if (configSection.isConfigurationSection("scale"))
+            scale = new Vector3f((float) configSection.getDouble("scale.x", isFixed ? 0.5 : 1.0),
+                    (float) configSection.getDouble("scale.y", isFixed ? 0.5 : 1.0),
+                    (float) configSection.getDouble("scale.z", isFixed ? 0.5 : 1.0));
+        else scale = isFixed ? new Vector3f(0.5f,0.5f,0.5f) : null;
 
         try {
             trackingRotation = Display.Billboard.valueOf(configSection.getString("tracking_rotation", Display.Billboard.FIXED.name()));
@@ -84,73 +73,71 @@ public class DisplayEntityProperties {
 
     }
 
-    //public boolean hasGlowColor() { return glowColor != null; }
-    //public Color getGlowColor() { return glowColor; }
+    public DisplayEntityProperties() {
+        this.displayWidth = 0f;
+        this.displayHeight = 0f;
+        this.displayTransform = ItemDisplay.ItemDisplayTransform.NONE;
+        this.scale = null;
+        this.shadowRadius = null;
+        this.shadowStrength = null;
+        this.brightness = null;
+        this.trackingRotation = null;
+        this.viewRange = null;
+        this.glowColor = null;
+    }
+
+    public boolean hasGlowColor() { return glowColor != null; }
+    public Color glowColor() { return glowColor; }
+
     public boolean hasSpecifiedViewRange() {
         return viewRange != null;
     }
 
-    public int getViewRange() {
+    public int viewRange() {
         return viewRange;
-    }
-
-    public boolean hasInterpolationDuration() {
-        return interpolationDuration != null;
-    }
-
-    public int getInterpolationDuration() {
-        return interpolationDuration;
-    }
-
-    public boolean hasInterpolationDelay() {
-        return interpolationDelay != null;
-    }
-
-    public int getInterpolationDelay() {
-        return interpolationDelay;
     }
 
     public boolean hasBrightness() {
         return brightness != null;
     }
 
-    public Display.Brightness getBrightness() {
+    public Display.Brightness brightness() {
         return brightness;
     }
 
-    public ItemDisplay.ItemDisplayTransform getDisplayTransform() {
+    public ItemDisplay.ItemDisplayTransform displayTransform() {
         return displayTransform;
+    }
+
+    public boolean isFixedTransform() {
+        return displayTransform == ItemDisplay.ItemDisplayTransform.FIXED;
+    }
+
+    public boolean isNoneTransform() {
+        return displayTransform == ItemDisplay.ItemDisplayTransform.NONE;
     }
 
     public boolean hasTrackingRotation() {
         return trackingRotation != null;
     }
 
-    public Display.Billboard getTrackingRotation() {
+    public Display.Billboard trackingRotation() {
         return trackingRotation;
     }
 
-    public boolean hasShadowStrength() {
-        return shadowStrength != null;
-    }
-
-    public float getShadowStrength() {
+    public float shadowStrength() {
         return shadowStrength;
     }
 
-    public boolean hasShadowRadius() {
-        return shadowRadius != null;
-    }
-
-    public float getShadowRadius() {
+    public float shadowRadius() {
         return shadowRadius;
     }
 
-    public float getDisplayWidth() {
+    public float displayWidth() {
         return displayWidth;
     }
 
-    public float getDisplayHeight() {
+    public float displayHeight() {
         return displayHeight;
     }
 
@@ -158,7 +145,7 @@ public class DisplayEntityProperties {
         return scale != null;
     }
 
-    public Vector3f getScale() {
+    public Vector3f scale() {
         return scale;
     }
 
@@ -170,8 +157,6 @@ public class DisplayEntityProperties {
         itemDisplay.setShadowRadius(Objects.requireNonNullElse(shadowRadius, 0f));
         itemDisplay.setShadowStrength(Objects.requireNonNullElse(shadowStrength, 0f));
         itemDisplay.setViewRange(Objects.requireNonNullElse(viewRange, 0));
-        itemDisplay.setInterpolationDuration(Objects.requireNonNullElse(interpolationDuration, 0));
-        itemDisplay.setInterpolationDelay(Objects.requireNonNullElse(interpolationDelay, 0));
         itemDisplay.getTransformation().getScale().set(Objects.requireNonNullElse(scale, new Vector3f(1,1,1)));
 
         return true;

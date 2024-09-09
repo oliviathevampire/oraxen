@@ -32,17 +32,14 @@ public class ConfigsManager {
     private final YamlConfiguration defaultFont;
     private final YamlConfiguration defaultSound;
     private final YamlConfiguration defaultLanguage;
-    private final YamlConfiguration defaultHud;
     private YamlConfiguration mechanics;
     private YamlConfiguration settings;
     private YamlConfiguration font;
     private YamlConfiguration sound;
     private YamlConfiguration language;
-    private YamlConfiguration hud;
     private File itemsFolder;
     private File glyphsFolder;
     private File schematicsFolder;
-    private File gesturesFolder;
 
     public ConfigsManager(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -51,7 +48,6 @@ public class ConfigsManager {
         defaultFont = extractDefault("font.yml");
         defaultSound = extractDefault("sound.yml");
         defaultLanguage = extractDefault("languages/english.yml");
-        defaultHud = extractDefault("hud.yml");
     }
 
     public YamlConfiguration getMechanics() {
@@ -72,10 +68,6 @@ public class ConfigsManager {
 
     public YamlConfiguration getFont() {
         return font != null ? font : defaultFont;
-    }
-
-    public YamlConfiguration getHud() {
-        return hud != null ? hud : defaultHud;
     }
 
     public YamlConfiguration getSound() {
@@ -105,7 +97,6 @@ public class ConfigsManager {
         mechanics = validate(tempManager, "mechanics.yml", defaultMechanics);
         settings = validate(tempManager, "settings.yml", defaultSettings);
         font = validate(tempManager, "font.yml", defaultFont);
-        hud = validate(tempManager, "hud.yml", defaultHud);
         sound = validate(tempManager, "sound.yml", defaultSound);
         File languagesFolder = new File(plugin.getDataFolder(), "languages");
         languagesFolder.mkdir();
@@ -136,15 +127,6 @@ public class ConfigsManager {
             if (Settings.GENERATE_DEFAULT_CONFIGS.toBool())
                 tempManager.extractConfigsInFolder("schematics", "schem");
         }
-
-        // check gestures
-        gesturesFolder = new File(plugin.getDataFolder(), "gestures");
-        if (!gesturesFolder.exists()) {
-            gesturesFolder.mkdirs();
-            if (Settings.GENERATE_DEFAULT_CONFIGS.toBool())
-                tempManager.extractConfigsInFolder("gestures", "yml");
-        }
-
     }
 
     private YamlConfiguration validate(ResourcesManager resourcesManager, String configName, YamlConfiguration defaultConfiguration) {
