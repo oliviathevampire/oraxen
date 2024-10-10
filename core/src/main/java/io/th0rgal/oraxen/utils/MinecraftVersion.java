@@ -147,7 +147,7 @@ public final class MinecraftVersion implements Comparable<MinecraftVersion>, Ser
     /**
      * The latest release version of minecraft.
      */
-    public static final MinecraftVersion LATEST = v1_20_5;
+    public static final MinecraftVersion LATEST = v1_21_1;
 
     // used when serializing
     private static final long serialVersionUID = -8695133558996459770L;
