@@ -18,7 +18,8 @@ public class BedrockBreakMechanicManager {
                 if (block.getType() != Material.BEDROCK) return false;
 
                 String itemID = OraxenItems.getIdByItem(tool);
-                return !factory.isNotImplementedIn(itemID) && (!factory.isDisabledOnFirstLayer() || block.getY() != 0);
+                boolean disableFirstLayer = !factory.isDisabledOnFirstLayer() || block.getY() > (block.getWorld().getMinHeight());
+                return !factory.isNotImplementedIn(itemID) && disableFirstLayer;
 
             }
 

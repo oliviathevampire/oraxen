@@ -26,7 +26,7 @@ public class ItemsView {
     PaginatedGui mainGui;
 
     public PaginatedGui create() {
-        final Map<File, PaginatedGui> files = new HashMap<>();
+        final SortedMap<File, PaginatedGui> files = new TreeMap<>(Comparator.comparing(File::getName));
         for (final File file : OraxenItems.getMap().keySet()) {
             final List<ItemBuilder> unexcludedItems = OraxenItems.getUnexcludedItems(file);
             if (!unexcludedItems.isEmpty())
