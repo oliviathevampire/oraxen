@@ -53,7 +53,7 @@ public class OraxenPlugin extends JavaPlugin {
     private InvManager invManager;
     private ResourcePack resourcePack;
     private ClickActionManager clickActionManager;
-    public static boolean supportsDisplayEntities;
+    public static boolean supportsDisplayEntities = true;
 
     public OraxenPlugin() {
         oraxen = this;
@@ -83,7 +83,6 @@ public class OraxenPlugin extends JavaPlugin {
         ProtectionLib.init(this);
         audience = BukkitAudiences.create(this);
         clickActionManager = new ClickActionManager(this);
-        supportsDisplayEntities = VersionUtil.atOrAbove("1.19.4");
         reloadConfigs();
         ProtectionLib.setDebug(Settings.DEBUG.toBool());
 

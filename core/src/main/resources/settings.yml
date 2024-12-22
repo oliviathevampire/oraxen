@@ -341,12 +341,13 @@ Misc:
   crossbow_display: '{"thirdperson_righthand":{"rotation":[-90,0,-60],"translation":[2,0.1,-3],"scale":[0.9,0.9,0.9]},"thirdperson_lefthand":{"rotation":[-90,0,30],"translation":[2,0.1,-3],"scale":[0.9,0.9,0.9]},"firstperson_righthand":{"rotation":[-90,0,-55],"translation":[1.13,3.2,1.13],"scale":[0.68,0.68,0.68]},"firstperson_lefthand":{"rotation":[-90,0,35],"translation":[1.13,3.2,1.13],"scale":[0.68,0.68,0.68]}}'
 
 oraxen_inventory:
-  main_menu_title: "<shift:-18><glyph:menu_items><shift:-193>"
-  menu_rows: 6 # The rows in the GUI, not slots
-  menu_size: 45 # The amount of slots per page
-  #exit_icon: exit_icon
-  #next_page_icon: next_page_icon
-  #previous_page_icon: previous_page_icon
+  menu_info:
+    title: "<shift:-18><glyph:menu_items><shift:-193>"
+    rows: 6 # The rows in the GUI, not slots
+    size: 45 # The amount of slots per page
+    previous_page_button: arrow_previous_icon
+    next_page_button: arrow_next_icon
+    exit_button: exit_icon
   menu_layout:
     armors:
       slot: 1

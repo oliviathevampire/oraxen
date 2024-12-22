@@ -7,13 +7,10 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.attribute.FileTime;
 import java.util.List;
-import java.util.zip.Deflater;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
+import java.util.zip.*;
 
 public class ZipUtils {
 
@@ -29,7 +26,15 @@ public class ZipUtils {
             zos.setLevel(compressionLevel);
             zos.setComment(Settings.COMMENT.toString());
             for (final VirtualFile file : fileList) {
-                addToZip(file.getPath(), file.getInputStream(), zos);
+                try (InputStream fis = file.getInputStream()) {
+                    if (fis == null) {
+                        System.err.println("Skipping file with null InputStream: " + file.getPath());
+                        continue; // Skip files with null InputStream
+                    }
+                    addToZip(file.getPath(), fis, zos);
+                } catch (IOException e) {
+                    e.printStackTrace(); // Log the error for debugging
+                }
             }
 
         } catch (final IOException | NoSuchFieldException | IllegalAccessException ex) {
@@ -38,22 +43,34 @@ public class ZipUtils {
     }
 
     public static void addToZip(String zipFilePath, final InputStream fis, ZipOutputStream zos) throws IOException {
+        if (fis == null) {
+            throw new IllegalArgumentException("InputStream cannot be null");
+        }
+
         final ZipEntry zipEntry = new ZipEntry(zipFilePath);
         zipEntry.setLastModifiedTime(FileTime.fromMillis(0L));
         DuplicationHandler.checkForDuplicate(zos, zipEntry);
 
-        final byte[] bytes = new byte[1024];
-        int length;
-        try (fis) {
-            while ((length = fis.read(bytes)) >= 0)
+        try {
+            final byte[] bytes = new byte[1024];
+            int length;
+            Checksum checksum = new CRC32();
+            long totalSize = 0;
+
+            while ((length = fis.read(bytes)) >= 0) {
                 zos.write(bytes, 0, length);
-        } catch (IOException ignored) {
+                checksum.update(bytes, 0, length);
+                totalSize += length;
+            }
+
+            if (Settings.PROTECTION.toBool()) {
+                zipEntry.setCrc(checksum.getValue());
+                zipEntry.setSize(totalSize);
+            }
+        } catch (IOException e) {
+            throw new IOException("Error writing to zip entry", e);
         } finally {
             zos.closeEntry();
-            if (Settings.PROTECTION.toBool()) {
-                zipEntry.setCrc(bytes.length);
-                zipEntry.setSize(new BigInteger(bytes).mod(BigInteger.valueOf(Long.MAX_VALUE)).longValue());
-            }
         }
     }
 }
